@@ -49,7 +49,7 @@ data/
 logs/*
 source/*
 .cursor/*
-docs/*
+# docs/*
 !docs/ARCHITECTURE.md
 test/*
 open-sse/test/*
