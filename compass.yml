@@ -1,0 +1,16 @@
+name: 9router
+id: ari:cloud:compass:d080ee26-f21d-4730-84de-98c025104c05:component/e09ef9ad-8d69-4877-b0ee-7395c9ca13a3/17641f70-f87a-46cd-abba-8fedd419c257
+description: Unlimited FREE AI coding. Connect Claude Code, Codex, Cursor, Cline, Copilot, Antigravity to FREE Claude/GPT/Gemini via 40+ providers. Auto-fallback, RTK -40% tokens, never hit limits.
+configVersion: 1
+typeId: SERVICE
+fields:
+  tier: 4
+links:
+  - name: null
+    type: REPOSITORY
+    url: https://github.com/nqdev-group/9router
+relationships:
+  DEPENDS_ON: []
+labels:
+  - source:github
+customFields: null
