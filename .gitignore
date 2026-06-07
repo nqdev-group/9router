@@ -72,3 +72,14 @@ ecosystem.config.*
 scripts/agSniffer/*
 gitbooks/*
 gitbook/README.md
+
+# ===== Ignore claude ai files =====
+.claude/*.local.json
+
+# ===== Ignore dist files =====
+dist/*
+!dist/index.d.ts
+
+# ===== Ignore archived files =====
+archived/
+!archived/.gitignore

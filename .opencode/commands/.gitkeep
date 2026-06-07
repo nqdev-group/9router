@@ -1,0 +1,2 @@
+Commands - https://opencode.ai/docs/config/#commands
+You can also define commands using markdown files in ~/.config/opencode/commands/ or .opencode/commands/. Learn more here (https://opencode.ai/docs/commands).
