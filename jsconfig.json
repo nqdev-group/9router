@@ -2,9 +2,21 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "open-sse": ["./open-sse"],
-      "open-sse/*": ["./open-sse/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "open-sse": [
+        "./open-sse"
+      ],
+      "open-sse/*": [
+        "./open-sse/*"
+      ],
+      "packages": [
+        "./packages"
+      ],
+      "packages/*": [
+        "./packages/*"
+      ]
     },
     "module": "ESNext",
     "moduleResolution": "bundler"
