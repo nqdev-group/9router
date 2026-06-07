@@ -18,6 +18,21 @@
 - Format translation via OpenAI intermediary: source → openai → target
 - Shared packages: `@9router/*` maps to `./packages/*` via jsconfig.json
 
+## Feature Organization Rule
+
+**New features**: put reusable UI components & utilities in `packages/`, page-level orchestration/routing in `app/` or `src/`.
+
+- `packages/components/` — reusable UI components (charts, tables, cards, etc.), accessed via `@9router/components`
+- `packages/utils/` — shared utility functions, accessed via `@9router/utils`
+- `app/src/` — only page components, route handlers, API logic, and feature-level orchestrators that compose packages/*
+
+Pattern:
+- Orchestrator component (eg. CostReport) → `app/` (page-level, imports from packages)
+- Sub-components (eg. CostByProviderChart) → `packages/components/`
+- Helpers (eg. cost formatting) → `packages/utils/`
+
+Do NOT scatter reusable UI across app/ subdirectories. If a component can be used by >1 page or is large enough to stand alone, it belongs in packages/.
+
 ## Environment Variables (Runtime)
 - `JWT_SECRET` - Dashboard auth (auto-generated if unset)
 - `INITIAL_PASSWORD` - First login (default: 123456)
