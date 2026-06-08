@@ -55,12 +55,9 @@ export default function CostByModelChart({ stats }) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(value, name) => {
-              const item = chartData.find((d) => d.name === name);
-              return [
-                `$${(value || 0).toFixed(4)}`,
-                item ? item.fullName : name,
-              ];
+            formatter={(value, _name, props) => {
+              const fullName = props?.payload?.fullName || props?.payload?.name;
+              return [`$${(value || 0).toFixed(4)}`, fullName || "Model"];
             }}
           />
           <Legend verticalAlign="top" height={36} />
