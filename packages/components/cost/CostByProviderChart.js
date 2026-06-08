@@ -65,13 +65,11 @@ export default function CostByProviderChart({ stats }) {
                borderRadius: "8px",
                fontSize: "12px",
              }}
-             formatter={(value, name) => {
-               const provider = getProviderByAlias(name);
-               const providerName = provider?.name || name;
-               return [
-                 `$${(value || 0).toFixed(4)}`,
-                 providerName,
-               ];
+             formatter={(value, _name, props) => {
+               const providerId = props?.payload?.name;
+               const provider = getProviderByAlias(providerId);
+               const providerName = provider?.name || providerId || "Provider";
+               return [`$${(value || 0).toFixed(4)}`, providerName];
              }}
           />
            <Legend
