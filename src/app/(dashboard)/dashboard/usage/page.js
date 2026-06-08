@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { UsageStats, RequestLogger, CardSkeleton, SegmentedControl } from "@/shared/components";
 import RequestDetailsTab from "./components/RequestDetailsTab";
+import CostReport from "./components/CostReport";
 
 const PERIODS = [
   { value: "today", label: "Today" },
@@ -28,7 +29,7 @@ function UsageContent() {
   const [period, setPeriod] = useState("today");
 
   const tabFromUrl = searchParams.get("tab");
-  const activeTab = tabFromUrl && ["overview", "logs", "details"].includes(tabFromUrl)
+  const activeTab = tabFromUrl && ["overview", "logs", "details", "cost-report"].includes(tabFromUrl)
     ? tabFromUrl
     : "overview";
 
@@ -43,15 +44,16 @@ function UsageContent() {
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Tabs + period selector on same row */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <SegmentedControl
-          options={[
-            { value: "overview", label: "Overview" },
-            { value: "details", label: "Details" },
-          ]}
-          value={activeTab}
-          onChange={handleTabChange}
-          className="w-full sm:w-auto"
-        />
+<SegmentedControl
+           options={[
+             { value: "overview", label: "Overview" },
+             { value: "details", label: "Details" },
+             { value: "cost-report", label: "Cost Report" },
+           ]}
+           value={activeTab}
+           onChange={handleTabChange}
+           className="w-full sm:w-auto"
+         />
         {activeTab === "overview" && (
           <SegmentedControl
             options={PERIODS}
@@ -70,6 +72,7 @@ function UsageContent() {
       )}
       {activeTab === "logs" && <RequestLogger />}
       {activeTab === "details" && <RequestDetailsTab />}
+      {activeTab === "cost-report" && <CostReport period={period} />}
     </div>
   );
 }
