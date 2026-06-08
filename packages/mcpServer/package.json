@@ -1,0 +1,13 @@
+{
+  "name": "@9router/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP Server package for 9Router",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./server": "./lib/server.js"
+  },
+  "keywords": ["9router", "mcp"],
+  "license": "MIT"
+}
