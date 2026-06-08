@@ -9,7 +9,7 @@ import {
   Legend,
 } from "recharts";
 import Card from "@/shared/components/Card";
-import { getProviderNameByAlias } from "@/shared/constants/providers";
+import { getProviderByAlias } from "@/shared/constants/providers";
 
 const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
@@ -42,42 +42,46 @@ export default function CostByProviderChart({ stats }) {
           <Pie
             data={chartData}
             dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={120}
-            labelLine={false}
-            label={({ name, value, percentage }) => {
-              const providerName = getProviderNameByAlias(name) || name;
-              return (
-                <label>
-                  {(percentage * 100).toFixed(0)}% {providerName}
-                </label>
-              );
-            }}
+             nameKey="name"
+             cx="50%"
+             cy="50%"
+             innerRadius={60}
+             outerRadius={120}
+             labelLine={false}
+              label={({ name, percent, value }) => {
+                const provider = getProviderByAlias(name);
+                const providerName = provider?.name || name;
+                return `${(percent || 0) * 100 > 0.5 ? ((percent || 0) * 100).toFixed(0) : ""} ${providerName}`;
+              }}
           >
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "var(--color-bg)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "8px",
-              fontSize: "12px",
-            }}
-            formatter={(value, name) => [
-              `$${(value || 0).toFixed(4)}`,
-              getProviderNameByAlias(name) || name,
-            ]}
+           <Tooltip
+             contentStyle={{
+               backgroundColor: "var(--color-bg)",
+               border: "1px solid var(--color-border)",
+               borderRadius: "8px",
+               fontSize: "12px",
+             }}
+             formatter={(value, name) => {
+               const provider = getProviderByAlias(name);
+               const providerName = provider?.name || name;
+               return [
+                 `$${(value || 0).toFixed(4)}`,
+                 providerName,
+               ];
+             }}
           />
-          <Legend
-            verticalAlign="top"
-            height={36}
-            formatter={(name) => `${getProviderNameByAlias(name) || name}`}
-          />
+           <Legend
+             verticalAlign="top"
+             height={36}
+             formatter={(name) => {
+               const provider = getProviderByAlias(name);
+               return `${provider?.name || name}`;
+             }}
+           />
         </PieChart>
       </div>
     </Card>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import Card from "@/shared/components/Card";
-import { getProviderNameByAlias } from "@/shared/constants/providers";
+import { getProviderByAlias } from "@/shared/constants/providers";
 
 const fmt = (n) => new Intl.NumberFormat().format(n || 0);
 const fmtCost = (n) => `$${(n || 0).toFixed(4)}`;
@@ -73,9 +73,9 @@ export default function CostBreakdownTable({ stats }) {
                 </tr>
                 {sortedProviders.map(([providerId, data]) => (
                   <tr key={providerId} className="hover:bg-bg-subtle/20 transition-colors">
-                    <td className="px-6 py-3 font-medium">
-                      {getProviderNameByAlias(providerId) || providerId}
-                    </td>
+                     <td className="px-6 py-3 font-medium">
+                       {getProviderByAlias(providerId)?.name || providerId}
+                     </td>
                     <td className="px-6 py-3 text-right text-warning font-mono">
                       {fmtCost(data.cost)}
                     </td>
