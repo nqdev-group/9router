@@ -41,19 +41,28 @@ export default function CostBreakdownTable({ stats }) {
               <th className="px-6 py-3">Category</th>
               <th
                 className="px-6 py-3 text-right cursor-pointer hover:bg-bg-subtle/50"
-                onClick={() => setProviderSort("cost")}
+                onClick={() => {
+                  setProviderSort("cost");
+                  setModelSort("cost");
+                }}
               >
                 Cost <SortIcon field="cost" currentSort={providerSort} />
               </th>
               <th
                 className="px-6 py-3 text-right cursor-pointer hover:bg-bg-subtle/50"
-                onClick={() => setProviderSort("promptTokens")}
+                onClick={() => {
+                  setProviderSort("promptTokens");
+                  setModelSort("promptTokens");
+                }}
               >
                 Input Tokens <SortIcon field="promptTokens" currentSort={providerSort} />
               </th>
               <th
                 className="px-6 py-3 text-right cursor-pointer hover:bg-bg-subtle/50"
-                onClick={() => setProviderSort("completionTokens")}
+                onClick={() => {
+                  setProviderSort("completionTokens");
+                  setModelSort("completionTokens");
+                }}
               >
                 Output Tokens <SortIcon field="completionTokens" currentSort={providerSort} />
               </th>
