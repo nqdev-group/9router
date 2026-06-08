@@ -9,7 +9,8 @@ const fmtCost = (n) => `$${(n || 0).toFixed(2)}`;
 export default function CostSummaryCards({ stats, period }) {
   const totalCost = stats?.totalCost || 0;
   const totalRequests = stats?.totalRequests || 0;
-  const dailyAvg = totalCost / (period === "today" ? 1 : period === "24h" ? 1 : period === "7d" ? 7 : period === "30d" ? 30 : period === "60d" ? 60 : 1);
+  const days = ({ today: 1, "24h": 1, "7d": 7, "30d": 30, "60d": 60 }[period] ?? 1);
+  const dailyAvg = totalCost / days;
   const projectedMonthly = dailyAvg * 30;
 
   return (
