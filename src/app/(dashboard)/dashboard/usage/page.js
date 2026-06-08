@@ -54,7 +54,7 @@ function UsageContent() {
            onChange={handleTabChange}
            className="w-full sm:w-auto"
          />
-        {activeTab === "overview" && (
+        {(activeTab === "overview" || activeTab === "cost-report") && (
           <SegmentedControl
             options={PERIODS}
             value={period}
