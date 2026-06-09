@@ -4,34 +4,22 @@
 - Dev: `PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev`
 - Build: `npm run build`
 - Start: `PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start`
-- Test: `cd tests && npm test`
+- Test: `cd tests && npm test` (requires NODE_PATH=/tmp/node_modules)
 - Single test: `cd tests && NODE_PATH=/tmp/node_modules /tmp/node_modules/.bin/vitest run unit/<name>.test.js`
 - Lint: `npx eslint .`
 
-## Key Architecture Notes
-- Pure JavaScript only (ESM in src/ and open-sse/, CommonJS in cli/)
+## Key Architecture
+- Pure JavaScript (ESM in src/ and open-sse/, CommonJS in cli/)
 - Next.js 16 with Webpack (turbopack disabled)
 - URL rewrites: `/v1/*` → `/api/v1/*`, `/codex/*` → `/api/v1/responses`
-- SQLite persistence at `$DATA_DIR/db/data.sqlite` (default `~/.9router`)
+- App vs API: `/api/*` are API routes; `/dashboard`, `/login` are pages
+- Request flow: `/v1/chat/completions` → route.js → chat.js → chatCore.js → executor → translator
+- API route pattern: route.js imports handler + initTranslators + ensureInitialized()
+- SQLite persistence at `$DATA_DIR/db/data.sqlite` via repos (never raw SQL)
 - RTK token saver active by default in `translateRequest()` (compresses tool_result)
-- Provider executors in `open-sse/executors/` (default.js for OpenAI-compatible, specialized for antigravity, azure, codex, etc.)
-- Format translation via OpenAI intermediary: source → openai → target
-- Shared packages: `@9router/*` maps to `./packages/*` via jsconfig.json
-
-## Feature Organization Rule
-
-**New features**: put reusable UI components & utilities in `packages/`, page-level orchestration/routing in `app/` or `src/`.
-
-- `packages/components/` — reusable UI components (charts, tables, cards, etc.), accessed via `@9router/components`
-- `packages/utils/` — shared utility functions, accessed via `@9router/utils`
-- `app/src/` — only page components, route handlers, API logic, and feature-level orchestrators that compose packages/*
-
-Pattern:
-- Orchestrator component (eg. CostReport) → `app/` (page-level, imports from packages)
-- Sub-components (eg. CostByProviderChart) → `packages/components/`
-- Helpers (eg. cost formatting) → `packages/utils/`
-
-Do NOT scatter reusable UI across app/ subdirectories. If a component can be used by >1 page or is large enough to stand alone, it belongs in packages/.
+- Provider executors: `open-sse/executors/` (default.js for OpenAI-compatible, specialized for antigravity, azure, codex, etc.)
+- Format translation via OpenAI: source → openai → target
+- Shared packages: `@9router/*` → `./packages/*` via jsconfig.json
 
 ## Environment Variables (Runtime)
 - `JWT_SECRET` - Dashboard auth (auto-generated if unset)
