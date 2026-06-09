@@ -34,6 +34,40 @@ const DEFAULT_SETTINGS = {
   mitmRouterBaseUrl: DEFAULT_MITM_ROUTER_BASE,
   dnsToolEnabled: {},
   rtkEnabled: true,
+  rtkConfig: {
+    // Intensity
+    intensity: "moderate",                   // "minimal" | "moderate" | "aggressive" | "maximal"
+    
+    // Per-filter control (null = use intensity default)
+    enabledFilters: null,                    // null = all; or { "git-diff": true, "grep": false, ... }
+    
+    // Size thresholds
+    minCompressSize: 500,                    // bytes (default: 500)
+    maxCompressSize: 10485760,               // bytes (10 MiB)
+    
+    // Truncation (smart-truncate)
+    truncateHeadLines: 120,                  // keep first N lines
+    truncateTailLines: 60,                   // keep last N lines
+    truncateThreshold: 250,                  // only truncate if > N lines
+    
+    // Dedup
+    dedupThreshold: 2,                       // consecutive identical lines to collapse
+    dedupEnabled: true,
+    
+    // Code stripping (comment/whitespace removal per language)
+    codeStrippingEnabled: false,
+    codeStrippingLanguages: ["js", "ts", "py", "rs", "go"],  // target languages
+    
+    // Raw output retention (for debugging)
+    rawOutputRetention: "none",              // "none" | "first_kb" | "full"
+    
+    // Auto-detection
+    autoDetectEnabled: true,                 // auto-detect filter from content
+    commandDetectionEnabled: false,          // detect command type (git, test, build, etc.)
+    
+    // Per-provider overrides (optional, phase 2)
+    providerOverrides: {},                   // { "claude": { intensity: "aggressive" }, ... }
+  },
   cavemanEnabled: false,
   cavemanLevel: "full",
 };

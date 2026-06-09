@@ -43,6 +43,7 @@ export const FILTERS = {
   GIT_DIFF: "git-diff",
   GIT_STATUS: "git-status",
   GIT_LOG: "git-log",
+  GIT_SHOW: "git-show",
   GREP: "grep",
   FIND: "find",
   LS: "ls",
@@ -51,5 +52,13 @@ export const FILTERS = {
   SMART_TRUNCATE: "smart-truncate",
   READ_NUMBERED: "read-numbered",
   SEARCH_LIST: "search-list",
-  BUILD_OUTPUT: "build-output"
+  BUILD_OUTPUT: "build-output",
+  ESLINT: "eslint",
+  TSC_BUILD: "tsc-build",
+  JEST_TEST: "jest-test",
+  NPM_INSTALL: "npm-install",
+  PIP_INSTALL: "pip-install",
+  DOCKER_LOGS: "docker-logs",
+  ERROR_STACKTRACE: "error-stacktrace",
+  JSON_LOG: "json-log"
 };
