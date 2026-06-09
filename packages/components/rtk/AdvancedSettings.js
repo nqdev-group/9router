@@ -133,7 +133,7 @@ export function AdvancedSettings({ config, onChange }) {
                 }
                 className="w-20 px-2 py-1 rounded bg-bg border border-border-subtle text-sm text-right focus:outline-none focus:border-primary"
               />
-              lines (only truncate if > N lines)
+              lines (only truncate if {'>'} N lines)
             </label>
           </div>
         </div>
