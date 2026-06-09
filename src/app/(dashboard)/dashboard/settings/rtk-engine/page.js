@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { IntensitySelector, FilterGrid, AdvancedSettings, TestPanel, StatsCards } from "@9router/components/rtk";
+import { IntensitySelector, FilterGrid, AdvancedSettings, TestPanel, StatsCards } from "@9router/components";
 
 export default function RtkEnginePage() {
   const [rtkEnabled, setRtkEnabled] = useState(true);

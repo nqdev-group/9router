@@ -154,7 +154,7 @@ export function StatsCards({ stats, filters }) {
                   <div className="w-2 h-2 rounded-full bg-primary/20">
                     <div
                       className={`h-2 w-full rounded-full bg-primary ${
-                        filter.index === 0 ? "w-full" : `${Math.min(
+                        index === 0 ? "w-full" : `${Math.min(
                           (filter.savings / topFilters[0].savings) * 100,
                           100
                         )}%`
