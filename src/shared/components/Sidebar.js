@@ -37,6 +37,7 @@ const systemItems = [
   { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
+  { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
 ];
 
 export default function Sidebar({ onClose }) {
