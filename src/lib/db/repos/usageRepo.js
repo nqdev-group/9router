@@ -700,7 +700,7 @@ function formatLogDate(date = new Date()) {
 // ─── Token Saver stats (RTK + Caveman) ──────────────────────────────────
 
 export async function getTokenSaverStats(period = "30d") {
-  const db = getAdapter();
+  const db = await getAdapter();
   const now = Date.now();
   const periodMs = { "today": 86400000, "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
   const maxAge = periodMs[period];
@@ -806,7 +806,7 @@ export async function getTokenSaverStats(period = "30d") {
 }
 
 export async function getTokenSaverChartData(period = "7d") {
-  const db = getAdapter();
+  const db = await getAdapter();
   const now = Date.now();
 
   if (period === "today") {
@@ -870,7 +870,7 @@ export async function getTokenSaverChartData(period = "7d") {
 }
 
 export async function getTokenSaverPerRequest(page = 1, limit = 50) {
-  const db = getAdapter();
+  const db = await getAdapter();
   const offset = (page - 1) * limit;
   const totalRow = db.get(`SELECT COUNT(*) as count FROM usageHistory`);
   const total = totalRow?.count || 0;
