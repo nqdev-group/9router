@@ -15,11 +15,11 @@
 - App vs API: `/api/*` are API routes; `/dashboard`, `/login` are pages
 - Request flow: `/v1/chat/completions` → route.js → chat.js → chatCore.js → executor → translator
 - API route pattern: route.js imports handler + initTranslators + ensureInitialized()
-- SQLite persistence at `$DATA_DIR/db/data.sqlite` via repos (never raw SQL)
+- Import aliases: `@/*` → `./src/*`, `open-sse/*` → `./open-sse/*`, `@9router/*` → `./packages/*` (jsconfig.json)
+- SQLite at `$DATA_DIR/db/data.sqlite` via repos (never raw SQL); `better-sqlite3` optional, `sql.js` fallback
 - RTK token saver active by default in `translateRequest()` (compresses tool_result)
 - Provider executors: `open-sse/executors/` (default.js for OpenAI-compatible, specialized for antigravity, azure, codex, etc.)
 - Format translation via OpenAI: source → openai → target
-- Shared packages: `@9router/*` → `./packages/*` via jsconfig.json
 
 ## Environment Variables (Runtime)
 - `JWT_SECRET` - Dashboard auth (auto-generated if unset)
@@ -47,4 +47,5 @@
   3. Add translators if format differs from OpenAI
   4. Register in open-sse/translator/index.js
   5. Add OAuth handlers if needed in src/app/api/oauth/[provider]/
+- Skills: `skills/` contains agent skill files (chat, embeddings, image, TTS, STT, web search/fetch)
 - CLI tool integration: Set endpoint to http://localhost:20128/v1 with API key from dashboard
