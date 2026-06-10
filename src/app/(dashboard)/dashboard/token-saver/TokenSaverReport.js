@@ -9,6 +9,12 @@ import {
   TokenSaverPerRequestTable,
 } from "@9router/components/token-saver";
 
+/**
+ * Defines the available time periods for filtering token saver statistics, along with their display labels.
+ * This array is used to render the period selection buttons in the TokenSaverReport component.
+ * Each object contains a 'value' used for API queries and a 'label' for user-friendly display.
+ * @type {Array<{value: string, label: string}>}
+ */
 const PERIODS = [
   { value: "today", label: "Today" },
   { value: "24h", label: "24h" },
@@ -17,8 +23,13 @@ const PERIODS = [
   { value: "60d", label: "60D" },
 ];
 
+/**
+ * TokenSaverReport component displays an overview of token saver statistics, including trends and breakdowns.
+ * It fetches data from the server based on the selected time period and handles loading and error states.
+ * @returns {JSX.Element} The rendered TokenSaverReport component.
+ */
 export default function TokenSaverReport() {
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("today");
   const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [perRequestData, setPerRequestData] = useState(null);

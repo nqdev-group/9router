@@ -34,7 +34,7 @@ function UsageContent() {
     : "overview";
 
   const handleTabChange = (value) => {
-    if (value === activeTab) return;
+    // if (value === activeTab) return;
     const params = new URLSearchParams(searchParams);
     params.set("tab", value);
     router.push(`/dashboard/usage?${params.toString()}`, { scroll: false });
@@ -44,16 +44,16 @@ function UsageContent() {
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Tabs + period selector on same row */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-<SegmentedControl
-           options={[
-             { value: "overview", label: "Overview" },
-             { value: "details", label: "Details" },
-             { value: "cost-report", label: "Cost Report" },
-           ]}
-           value={activeTab}
-           onChange={handleTabChange}
-           className="w-full sm:w-auto"
-         />
+        <SegmentedControl
+          options={[
+            { value: "overview", label: "Overview" },
+            { value: "details", label: "Details" },
+            { value: "cost-report", label: "Cost Report" },
+          ]}
+          value={activeTab}
+          onChange={handleTabChange}
+          className="w-full sm:w-auto"
+        />
         {(activeTab === "overview" || activeTab === "cost-report") && (
           <SegmentedControl
             options={PERIODS}
