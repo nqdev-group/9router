@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { CostReport as CostReportView } from "@9router/components/cost";
 
+/**
+ * CostReport component displays an overview of cost statistics, including trends and breakdowns.
+ * It fetches data from the server based on the selected time period and handles loading and error states.
+ * @param {{ period: string }} param0 - The props object containing the period for which to fetch cost data.
+ * @returns {JSX.Element} The rendered CostReport component.
+ */
 export default function CostReport({ period = "7d" }) {
   const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState([]);

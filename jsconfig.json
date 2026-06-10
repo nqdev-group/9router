@@ -11,9 +11,9 @@
       "open-sse/*": [
         "./open-sse/*"
       ],
-      "@9router/*": [
-        "./packages/*/index.js"
-      ]
+       "@9router/*": [
+         "./packages/*"
+       ]
     },
     "module": "ESNext",
     "moduleResolution": "bundler"

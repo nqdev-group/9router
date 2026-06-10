@@ -23,6 +23,7 @@ const navItems = [
   // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
   { href: "/dashboard/combos", label: "Combos", icon: "layers" },
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
+  { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
   { href: "/dashboard/mitm", label: "MITM", icon: "security" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
@@ -37,6 +38,7 @@ const systemItems = [
   { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
+  { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
 ];
 
 export default function Sidebar({ onClose }) {
