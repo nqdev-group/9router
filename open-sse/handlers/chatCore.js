@@ -19,6 +19,8 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { preprocessBody } from "../rtk/preprocessors/contentCleaner.js";
+import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -42,6 +44,12 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const targetFormat = modelTargetFormat || getTargetFormat(provider);
   const stripList = getModelStrip(alias, model);
   const upstreamModel = getModelUpstreamId(alias, model);
+
+  // Preprocess: clean whitespace, dedup duplicate content (before translation)
+  preprocessBody(body);
+  if (Array.isArray(body.messages) && body.messages.length >= 2) {
+    pruneBody(body);
+  }
 
   // Inject provider-level thinking config override (only if client hasn't set)
   // on/off → extended type (body.thinking), none/low/medium/high → effort type (body.reasoning_effort)
@@ -121,16 +129,16 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     delete translatedBody.tools;
   }
 
-  // RTK: compress tool_result content
-  const rtkStats = compressMessages(translatedBody, rtkEnabled, rtkConfig);
-  const rtkLine = formatRtkLog(rtkStats);
-  if (rtkLine) console.log(rtkLine);
-
-  // Caveman: inject terse-style system prompt
+  // Caveman: inject terse-style system prompt (before RTK so RTK can compress added text)
   if (cavemanEnabled && cavemanLevel) {
     injectCaveman(translatedBody, finalFormat, cavemanLevel);
     log?.debug?.("CAVEMAN", `${cavemanLevel} | ${finalFormat}`);
   }
+
+  // RTK: compress tool_result content
+  const rtkStats = compressMessages(translatedBody, rtkEnabled, rtkConfig);
+  const rtkLine = formatRtkLog(rtkStats);
+  if (rtkLine) console.log(rtkLine);
 
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);

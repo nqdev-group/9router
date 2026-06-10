@@ -4,48 +4,60 @@
 - Dev: `PORT=20128 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run dev`
 - Build: `npm run build`
 - Start: `PORT=20128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://localhost:20128 npm run start`
-- Test: `cd tests && npm test` (requires NODE_PATH=/tmp/node_modules)
-- Single test: `cd tests && NODE_PATH=/tmp/node_modules /tmp/node_modules/.bin/vitest run unit/<name>.test.js`
+- Bun variants: `dev:bun`, `build:bun`, `start:bun`
+- Full test suite: `cd tests && npm test` (requires NODE_PATH=/tmp/node_modules)
+- Single unit test: `cd tests && NODE_PATH=/tmp/node_modules /tmp/node_modules/.bin/vitest run unit/<name>.test.js`
+- Single translator test: `cd tests && npx vitest run --config tests/vitest.config.js "tests/translator/<name>.test.js"`
 - Lint: `npx eslint .`
 
 ## Key Architecture
-- Pure JavaScript (ESM in src/ and open-sse/, CommonJS in cli/)
-- Next.js 16 with Webpack (turbopack disabled)
+- Pure JS: ESM in `src/` & `open-sse/` (import/export); CommonJS in `cli/` (require)
+- Next.js 16 with Webpack (turbopack disabled), standalone output
 - URL rewrites: `/v1/*` → `/api/v1/*`, `/codex/*` → `/api/v1/responses`
-- App vs API: `/api/*` are API routes; `/dashboard`, `/login` are pages
-- Request flow: `/v1/chat/completions` → route.js → chat.js → chatCore.js → executor → translator
-- API route pattern: route.js imports handler + initTranslators + ensureInitialized()
-- Import aliases: `@/*` → `./src/*`, `open-sse/*` → `./open-sse/*`, `@9router/*` → `./packages/*` (jsconfig.json)
-- SQLite at `$DATA_DIR/db/data.sqlite` via repos (never raw SQL); `better-sqlite3` optional, `sql.js` fallback
-- RTK token saver active by default in `translateRequest()` (compresses tool_result)
-- Provider executors: `open-sse/executors/` (default.js for OpenAI-compatible, specialized for antigravity, azure, codex, etc.)
-- Format translation via OpenAI: source → openai → target
+- App vs API routes: `/api/*` = API routes; `/(dashboard)/dashboard/`, `/login` = pages
+- Request flow: `route.js` → `chat.js` (combo/account loop) → `chatCore.js` (translate + dispatch) → executor → upstream
+- Proxy/auth: `src/dashboardGuard.js` is the real Express integration; `src/proxy.js` re-exports it
+- Import aliases (jsconfig.json): `@/*` → `./src/*`, `open-sse/*` → `./open-sse/*`, `@9router/*` → `./packages/*`
+- SQLite at `$DATA_DIR/db/data.sqlite` via repos in `src/lib/db/`; 4 driver adapters: better-sqlite3 (native, optional), sql.js (WASM fallback), node:sqlite, bun:sqlite
+- RTK token saver default-on in `translateRequest()` (compresses tool_result content)
+- Format translation uses OpenAI bridge: source → openai → target
+- MITM layer in `src/mitm/` for antigravity local proxy (separate server process)
+- `open-sse/executors/base.js` = BaseExecutor class; `default.js` for OpenAI-compatible; 19 specialized executors
+- `open-sse/services/` = 11 service modules (combo, model, provider, usage, tokenRefresh, accountFallback, oauthCredentialManager...)
+- `packages/components/` has isolated feature components (token-saver, caveman, cost, rtk); barrel export gotcha: use `export { default as X } from "./X.js"` NOT `export { X } from "./X.js"`
 
 ## Environment Variables (Runtime)
-- `JWT_SECRET` - Dashboard auth (auto-generated if unset)
+All from `.env.example`. Notable:
+- `JWT_SECRET` - Dashboard auth (auto-gen to `~/.9router/jwt-secret` if unset)
 - `INITIAL_PASSWORD` - First login (default: 123456)
-- `DATA_DIR` - SQLite location (default: `~/.9router`)
-- `PORT` - HTTP port (default: 20128)
-- `BASE_URL` - Server-side base URL (preferred over NEXT_PUBLIC_BASE_URL)
-- `CLOUD_URL` - Cloud sync endpoint (preferred over NEXT_PUBLIC_CLOUD_URL)
-- `REQUIRE_API_KEY` - Enforce Bearer auth on /v1/* (false by default)
-- `ENABLE_REQUEST_LOGS` - Write request/response logs to logs/ (false by default)
+- `DATA_DIR` - SQLite + password hash location (default: `~/.9router`)
+- `PORT`/`HOSTNAME` - HTTP bind (default: 20128/0.0.0.0)
+- `BASE_URL`/`CLOUD_URL` - Server-side URLs (preferred over `NEXT_PUBLIC_*` variants)
+- `REQUIRE_API_KEY` - Enforce Bearer auth on `/v1/*` (default: false)
+- `ENABLE_REQUEST_LOGS` - Write request/response logs to `logs/` (default: false)
+- `AUTH_COOKIE_SECURE` - Force Secure flag on auth cookie (set true behind HTTPS)
+- `OBSERVABILITY_ENABLED` - Observability telemetry (default: true)
 - `API_KEY_SECRET`/`MACHINE_ID_SALT` - HMAC secrets for key generation
+- `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`/`NO_PROXY` - Outbound proxy (lowercase variants also supported)
 
 ## Testing Specifics
-- Vitest configured in tests/vitest.config.js with path aliases
-- Tests require NODE_PATH=/tmp/node_modules due to workspace hoisting
-- Translator tests MUST import "./registerAll.js" to load translators
-- Real provider tests require RUN_REAL=1 and read credentials from ~/.9router/db/data.sqlite
-- 51 unit test files in tests/unit/ covering core functionality
+- Vitest in `tests/vitest.config.js` with `open-sse/` and `@/` path aliases
+- Tests require `NODE_PATH=/tmp/node_modules` due to workspace hoisting (`cd tests && npm test` handles this)
+- 51 unit test files in `tests/unit/` + 9 translator test files in `tests/translator/` = 60 total
+- Translator tests MUST `import "./registerAll.js"` at top (require() in translator/index.js silently no-ops under vitest/ESM → false pass)
+- Real provider tests require `RUN_REAL=1` (read credentials from local sqlite DB)
+- `it.concurrent` used extensively; `maxConcurrency: 60` for parallel provider tests
+- Known-bug convention: `it.fails(...)` for known unfixed bugs (turns red when fixed → switch to `it`)
+- Translator bug exposure docs: `tests/translator/AGENTS.md`
 
 ## Development Workflow
-- Provider configs: open-sse/config/providerModels.js and providers.js
+- Provider configs: `open-sse/config/providerModels.js` (model catalog) and `providers.js` (auth/endpoints)
 - Add new provider:
   1. Add to providerModels.js and providers.js
-  2. Create executor in open-sse/executors/ (use default.js for OpenAI-compatible)
-  3. Add translators if format differs from OpenAI
-  4. Register in open-sse/translator/index.js
-  5. Add OAuth handlers if needed in src/app/api/oauth/[provider]/
-- Skills: `skills/` contains agent skill files (chat, embeddings, image, TTS, STT, web search/fetch)
-- CLI tool integration: Set endpoint to http://localhost:20128/v1 with API key from dashboard
+  2. Create executor or reuse default.js for OpenAI-compatible
+  3. Add translators in `open-sse/translator/request/` and `response/` if format differs from OpenAI
+  4. Register in `open-sse/translator/index.js` ensureInitialized()
+  5. Add OAuth handlers in `src/app/api/oauth/[provider]/` if needed
+- `skills/` contains end-user agent skills (URLs to paste into Claude/Cursor/etc.) — not dev tooling
+- CLI tool integration: Set endpoint to `http://localhost:20128/v1` with API key from dashboard
+- Docker: multi-arch (linux/amd64 + linux/arm64); auto-published to GHCR + Docker Hub on `v*` tags

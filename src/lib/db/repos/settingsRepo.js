@@ -36,13 +36,13 @@ const DEFAULT_SETTINGS = {
   rtkEnabled: true,
   rtkConfig: {
     // Intensity
-    intensity: "moderate",                   // "minimal" | "moderate" | "aggressive" | "maximal"
+    intensity: "aggressive",                   // "minimal" | "moderate" | "aggressive" | "maximal"
     
     // Per-filter control (null = use intensity default)
     enabledFilters: null,                    // null = all; or { "git-diff": true, "grep": false, ... }
     
     // Size thresholds
-    minCompressSize: 500,                    // bytes (default: 500)
+    minCompressSize: 200,                    // bytes (default: 200)
     maxCompressSize: 10485760,               // bytes (10 MiB)
     
     // Truncation (smart-truncate)
