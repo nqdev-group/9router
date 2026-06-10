@@ -80,11 +80,10 @@ export default function TokenSaverReport() {
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                period === p.value
-                  ? "bg-primary text-white"
-                  : "bg-bg-subtle text-text-muted hover:bg-bg-subtle/70"
-              }`}
+              className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${period === p.value
+                ? "bg-primary text-white"
+                : "bg-bg-subtle text-text-muted hover:bg-bg-subtle/70"
+                }`}
             >
               {p.label}
             </button>
