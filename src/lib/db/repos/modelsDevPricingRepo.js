@@ -3,6 +3,7 @@ import {
   MODELS_DEV_SCOPE,
   MODELS_DEV_SNAPSHOT_KEY,
   MODELS_DEV_MAP_KEY,
+  MODELS_DEV_MANUAL_MAP_KEY,
 } from "@/shared/constants/modelsDevDefaults.js";
 
 const mdKv = makeKv(MODELS_DEV_SCOPE);
@@ -25,6 +26,14 @@ export async function getModelMap() {
 
 export async function saveModelMap(map) {
   await mdKv.set(MODELS_DEV_MAP_KEY, map);
+}
+
+export async function getManualMap() {
+  return await mdKv.get(MODELS_DEV_MANUAL_MAP_KEY, {});
+}
+
+export async function saveManualMap(map) {
+  await mdKv.set(MODELS_DEV_MANUAL_MAP_KEY, map);
 }
 
 export async function clearAll() {

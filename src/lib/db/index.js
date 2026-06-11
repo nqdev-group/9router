@@ -56,6 +56,8 @@ export {
   saveSnapshot as saveModelsDevSnapshot,
   getModelMap as getModelsDevModelMap,
   saveModelMap as saveModelsDevModelMap,
+  getManualMap as getModelsDevManualMap,
+  saveManualMap as saveModelsDevManualMap,
   clearAll as clearModelsDevData,
 } from "./repos/modelsDevPricingRepo.js";
 

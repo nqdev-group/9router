@@ -16,6 +16,21 @@ async function getUserPricing() {
   return await pricingKv.getAll();
 }
 
+async function getManualMappings() {
+  try {
+    return (await modelsDevKv.get("manualMap", {})) || {};
+  } catch {
+    return {};
+  }
+}
+
+function reverseManualLookup(provider, manualMappings) {
+  for (const [modelsDevProviderId, customAlias] of Object.entries(manualMappings)) {
+    if (customAlias === provider) return modelsDevProviderId;
+  }
+  return null;
+}
+
 async function getModelsDevPricingForModel(provider, model) {
   try {
     const { getSettings } = await import("../repos/settingsRepo.js");
@@ -25,7 +40,14 @@ async function getModelsDevPricingForModel(provider, model) {
     const snapshot = await modelsDevKv.get("snapshot");
     if (!snapshot?.providers) return null;
 
-    const providerData = snapshot.providers[provider];
+    let providerData = snapshot.providers[provider];
+    if (!providerData?.models) {
+      const manualMappings = await getManualMappings();
+      const modelsDevProviderId = reverseManualLookup(provider, manualMappings);
+      if (modelsDevProviderId) {
+        providerData = snapshot.providers[modelsDevProviderId];
+      }
+    }
     if (!providerData?.models) return null;
 
     const baseModel = model.includes("/") ? model.split("/").pop() : model;
@@ -70,6 +92,12 @@ export async function getPricing() {
     const settings = await getSettings();
     if (settings.modelsDevEnabled && settings.modelsDevPreferPrices) {
       const snapshot = await modelsDevKv.get("snapshot");
+      const manualMappings = await getManualMappings();
+      const reverseMap = {};
+      for (const [mid, cid] of Object.entries(manualMappings)) {
+        reverseMap[cid] = mid;
+      }
+
       if (snapshot?.providers) {
         for (const [pid, pdata] of Object.entries(snapshot.providers)) {
           if (!pdata?.models) continue;
@@ -84,6 +112,23 @@ export async function getPricing() {
                 reasoning: cost.reasoning,
                 _source: "models.dev",
               };
+            }
+          }
+
+          const customAlias = manualMappings[pid];
+          if (customAlias) {
+            if (!merged[customAlias]) merged[customAlias] = {};
+            for (const [mid, cost] of Object.entries(pdata.models)) {
+              if (!merged[customAlias][mid] && cost.input != null) {
+                merged[customAlias][mid] = {
+                  input: cost.input,
+                  output: cost.output,
+                  cached: cost.cache_read,
+                  cache_creation: cost.cache_write,
+                  reasoning: cost.reasoning,
+                  _source: "models.dev",
+                };
+              }
             }
           }
         }

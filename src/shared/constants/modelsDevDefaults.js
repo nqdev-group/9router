@@ -6,3 +6,4 @@ export const MODELS_DEV_FETCH_TIMEOUT_MS = 30000;
 export const MODELS_DEV_SCOPE = "modelsDevPricing";
 export const MODELS_DEV_SNAPSHOT_KEY = "snapshot";
 export const MODELS_DEV_MAP_KEY = "modelMap";
+export const MODELS_DEV_MANUAL_MAP_KEY = "manualMap";

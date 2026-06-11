@@ -8,6 +8,8 @@ import {
   getModelMap,
   saveModelMap,
   clearAll,
+  getManualMap,
+  saveManualMap,
 } from "@/lib/db/repos/modelsDevPricingRepo.js";
 import { PROVIDERS } from "../config/providers.js";
 
@@ -94,12 +96,12 @@ function catalogToSnapshot(data) {
   return snapshot;
 }
 
-function buildModelMap(providers) {
+function buildModelMap(providers, manualMappings = {}) {
   const map = {};
   const unmapped = {};
 
   for (const [providerId, providerData] of Object.entries(providers)) {
-    const alias = PROVIDER_ID_TO_ALIAS[providerId];
+    const alias = PROVIDER_ID_TO_ALIAS[providerId] || manualMappings[providerId] || null;
 
     for (const modelId of Object.keys(providerData.models || {})) {
       const modelsDevKey = `${providerId}/${modelId}`;
@@ -112,6 +114,7 @@ function buildModelMap(providers) {
           alias,
           full9routerId,
           mapped: true,
+          manual: !!manualMappings[providerId],
         };
       } else {
         map[modelsDevKey] = {
@@ -168,7 +171,8 @@ export async function syncModelsDevPricing() {
   }
 
   const snapshot = catalogToSnapshot(result.data);
-  const { map, unmapped } = buildModelMap(snapshot.providers);
+  const manualMappings = await getManualMap();
+  const { map, unmapped } = buildModelMap(snapshot.providers, manualMappings);
 
   const now = new Date().toISOString();
   const payload = {
@@ -198,6 +202,7 @@ export async function getModelsDevStatus() {
   const snapshot = await getSnapshot();
   const modelMap = await getModelMap();
   const mapValues = modelMap ? Object.values(modelMap) : [];
+  const manualMappings = await getManualMap();
 
   if (!snapshot) {
     return {
@@ -209,6 +214,8 @@ export async function getModelsDevStatus() {
       mappedCount: 0,
       unmappedCount: 0,
       providers: {},
+      manualMappings: {},
+      customProviders: [],
     };
   }
 
@@ -217,7 +224,9 @@ export async function getModelsDevStatus() {
 
   const providerSummaries = {};
   for (const [pid, pdata] of Object.entries(snapshot.providers || {})) {
-    const alias = PROVIDER_ID_TO_ALIAS[pid];
+    const autoAlias = PROVIDER_ID_TO_ALIAS[pid];
+    const manualAlias = manualMappings[pid];
+    const effectiveAlias = manualAlias || autoAlias || null;
     const modelCount = Object.keys(pdata.models || {}).length;
     const matchedCount = mapValues.filter(
       (v) => v.canonical && Object.keys(pdata.models || {}).includes(v.canonical)
@@ -226,10 +235,15 @@ export async function getModelsDevStatus() {
       name: pdata.name,
       modelCount,
       matchedCount,
-      matched: !!alias,
-      alias: alias || null,
+      matched: !!effectiveAlias,
+      alias: effectiveAlias,
+      autoAlias: autoAlias || null,
+      manualAlias: manualAlias || null,
+      manualMapped: !!manualAlias,
     };
   }
+
+  const customProviders = await getCustomProvidersList();
 
   return {
     lastSynced: snapshot.lastSynced,
@@ -239,7 +253,38 @@ export async function getModelsDevStatus() {
     mappedCount: mapped,
     unmappedCount: unmapped,
     providers: providerSummaries,
+    manualMappings,
+    customProviders,
   };
+}
+
+export async function getModelsDevManualMappings() {
+  return await getManualMap();
+}
+
+export async function saveModelsDevManualMappings(map) {
+  await saveManualMap(map);
+  const snapshot = await getSnapshot();
+  if (snapshot?.lastSynced) {
+    const modelMap = await getModelMap();
+    const { map: rebuiltMap } = buildModelMap(snapshot.providers, map);
+    const mergedMap = { ...modelMap, ...rebuiltMap };
+    await saveModelMap(mergedMap);
+  }
+}
+
+async function getCustomProvidersList() {
+  try {
+    const { getProviderNodes } = await import("@/lib/localDb");
+    const nodes = await getProviderNodes();
+    const openai = nodes.filter((n) => n.type === "openai-compatible")
+      .map((n) => ({ id: n.id, name: n.name || n.id, type: "openai-compatible" }));
+    const anthropic = nodes.filter((n) => n.type === "anthropic-compatible")
+      .map((n) => ({ id: n.id, name: n.name || n.id, type: "anthropic-compatible" }));
+    return [...openai, ...anthropic];
+  } catch {
+    return [];
+  }
 }
 
 export async function getModelsDevPricing() {
