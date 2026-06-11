@@ -364,6 +364,13 @@ export const PROVIDER_MODELS = {
     { id: "qwen3-max", name: "Qwen3 Max" },
     { id: "qwen3-vl-plus", name: "Qwen3 VL Plus" },
   ],
+  kira: [
+    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
+    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
+    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
+  ],
   "minimax-cn": [
     { id: "MiniMax-M3", name: "MiniMax M3", targetFormat: "claude" },
     { id: "MiniMax-M2.7", name: "MiniMax M2.7" },
