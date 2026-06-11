@@ -33,6 +33,9 @@ const DEFAULT_SETTINGS = {
   outboundNoProxy: "",
   mitmRouterBaseUrl: DEFAULT_MITM_ROUTER_BASE,
   dnsToolEnabled: {},
+  modelsDevEnabled: false,
+  modelsDevPreferPrices: false,
+  modelsDevAutoSyncHours: 24,
   rtkEnabled: true,
   rtkConfig: {
     // Intensity

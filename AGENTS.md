@@ -61,3 +61,16 @@ All from `.env.example`. Notable:
 - `skills/` contains end-user agent skills (URLs to paste into Claude/Cursor/etc.) — not dev tooling
 - CLI tool integration: Set endpoint to `http://localhost:20128/v1` with API key from dashboard
 - Docker: multi-arch (linux/amd64 + linux/arm64); auto-published to GHCR + Docker Hub on `v*` tags
+
+## Models.dev Pricing Integration
+- Independent data source at `open-sse/services/modelsDevService.js`
+- Fetches `https://models.dev/catalog.json` → persists in SQLite KV scope `'modelsDevPricing'`
+- Config defaults in `src/shared/constants/modelsDevDefaults.js`
+- Repo: `src/lib/db/repos/modelsDevPricingRepo.js` (getSnapshot, saveSnapshot, getModelMap, saveModelMap)
+- API: `GET /api/models-dev` (status), `PATCH /api/models-dev` (settings), `POST /api/models-dev/sync` (sync), `DELETE /api/models-dev/sync` (clear)
+- Dashboard: `/dashboard/settings/models-dev` (toggle enabled/preferPrices/autoSyncHours)
+- Pricing resolver: `src/lib/db/repos/pricingRepo.js` — `getPricingForModel()` consults models.dev when enabled + preferPrices
+- Settings defaults in `src/lib/db/repos/settingsRepo.js`: `modelsDevEnabled: false`, `modelsDevPreferPrices: false`, `modelsDevAutoSyncHours: 24`
+- Auto-sync on server start if enabled + data stale (background, non-blocking)
+- Sync rate limit: 30s cooldown between manual syncs (HTTP 429)
+- Model ID mapping: strip provider/ prefix → exact match → fallback

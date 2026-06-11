@@ -19,6 +19,16 @@ import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
+import { maybeAutoSyncModelsDev } from "open-sse/services/modelsDevService.js";
+
+let modelsDevInitiated = false;
+
+async function ensureModelsDevInitialized() {
+  if (!modelsDevInitiated) {
+    modelsDevInitiated = true;
+    maybeAutoSyncModelsDev();
+  }
+}
 
 /**
  * Handle chat completion request
@@ -26,6 +36,9 @@ import { getProjectIdForConnection } from "open-sse/services/projectId.js";
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
+  // Lazy init: auto-sync models.dev on first request
+  ensureModelsDevInitialized();
+
   let body;
   try {
     body = await request.json();
