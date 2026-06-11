@@ -3,6 +3,7 @@ import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
 
 const pricingKv = makeKv("pricing");
+const modelsDevKv = makeKv("modelsDevPricing");
 const CACHE_TTL_MS = 5000;
 
 let cache = { value: null, expiresAt: 0 };
@@ -13,6 +14,47 @@ function invalidate() {
 
 async function getUserPricing() {
   return await pricingKv.getAll();
+}
+
+async function getManualMappings() {
+  try {
+    return (await modelsDevKv.get("manualMap", {})) || {};
+  } catch {
+    return {};
+  }
+}
+
+function reverseManualLookup(provider, manualMappings) {
+  for (const [modelsDevProviderId, customAlias] of Object.entries(manualMappings)) {
+    if (customAlias === provider) return modelsDevProviderId;
+  }
+  return null;
+}
+
+async function getModelsDevPricingForModel(provider, model) {
+  try {
+    const { getSettings } = await import("../repos/settingsRepo.js");
+    const settings = await getSettings();
+    if (!settings.modelsDevEnabled || !settings.modelsDevPreferPrices) return null;
+
+    const snapshot = await modelsDevKv.get("snapshot");
+    if (!snapshot?.providers) return null;
+
+    let providerData = snapshot.providers[provider];
+    if (!providerData?.models) {
+      const manualMappings = await getManualMappings();
+      const modelsDevProviderId = reverseManualLookup(provider, manualMappings);
+      if (modelsDevProviderId) {
+        providerData = snapshot.providers[modelsDevProviderId];
+      }
+    }
+    if (!providerData?.models) return null;
+
+    const baseModel = model.includes("/") ? model.split("/").pop() : model;
+    return providerData.models[model] || providerData.models[baseModel] || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getPricing() {
@@ -44,6 +86,58 @@ export async function getPricing() {
     }
   }
 
+  // Merge models.dev pricing when preferPrices enabled
+  try {
+    const { getSettings } = await import("../repos/settingsRepo.js");
+    const settings = await getSettings();
+    if (settings.modelsDevEnabled && settings.modelsDevPreferPrices) {
+      const snapshot = await modelsDevKv.get("snapshot");
+      const manualMappings = await getManualMappings();
+      const reverseMap = {};
+      for (const [mid, cid] of Object.entries(manualMappings)) {
+        reverseMap[cid] = mid;
+      }
+
+      if (snapshot?.providers) {
+        for (const [pid, pdata] of Object.entries(snapshot.providers)) {
+          if (!pdata?.models) continue;
+          if (!merged[pid]) merged[pid] = {};
+          for (const [mid, cost] of Object.entries(pdata.models)) {
+            if (!merged[pid][mid] && cost.input != null) {
+              merged[pid][mid] = {
+                input: cost.input,
+                output: cost.output,
+                cached: cost.cache_read,
+                cache_creation: cost.cache_write,
+                reasoning: cost.reasoning,
+                _source: "models.dev",
+              };
+            }
+          }
+
+          const customAlias = manualMappings[pid];
+          if (customAlias) {
+            if (!merged[customAlias]) merged[customAlias] = {};
+            for (const [mid, cost] of Object.entries(pdata.models)) {
+              if (!merged[customAlias][mid] && cost.input != null) {
+                merged[customAlias][mid] = {
+                  input: cost.input,
+                  output: cost.output,
+                  cached: cost.cache_read,
+                  cache_creation: cost.cache_write,
+                  reasoning: cost.reasoning,
+                  _source: "models.dev",
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore merge errors
+  }
+
   cache = { value: merged, expiresAt: now + CACHE_TTL_MS };
   return merged;
 }
@@ -52,6 +146,11 @@ export async function getPricingForModel(provider, model) {
   if (!model) return null;
   const userPricing = await getUserPricing();
   if (provider && userPricing[provider]?.[model]) return userPricing[provider][model];
+
+  // Models.dev layer (only when preferPrices enabled)
+  const modelsDevPrice = await getModelsDevPricingForModel(provider, model);
+  if (modelsDevPrice) return modelsDevPrice;
+
   const { getPricingForModel: resolveConst } = await import("@/shared/constants/pricing.js");
   return resolveConst(provider, model);
 }

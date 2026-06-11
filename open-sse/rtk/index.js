@@ -4,6 +4,7 @@ import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
 import { resolveRtkConfig } from "./configResolver.js";
+import { batchCompressTexts } from "./batchCompress.js";
 
 // Compress tool_result content in-place. Returns stats or null if disabled/failed.
 export function compressMessages(body, enabled, rtkConfig) {
@@ -24,11 +25,81 @@ export function compressMessages(body, enabled, rtkConfig) {
     : null;
   if (!items) return null;
 
+  // Batch pass: collect small system/user text segments, compress as single blob
+  const batchable = [];
+  const batchRefs = [];
+  for (const msg of items) {
+    if (!msg) continue;
+    if (msg.role !== "system" && msg.role !== "developer" && msg.role !== "user") continue;
+    const texts = typeof msg.content === "string" ? [msg.content]
+      : Array.isArray(msg.content) ? msg.content.filter(p => p && p.type === "text" && typeof p.text === "string").map(p => p.text)
+      : [];
+    for (const t of texts) {
+      if (t.length < 500) {
+        batchable.push(t);
+        batchRefs.push({ msg, text: t });
+      }
+    }
+  }
+  if (batchable.length >= 3) {
+    const batchResult = batchCompressTexts(batchable, config);
+    if (batchResult && batchResult.length === batchRefs.length) {
+      for (let bi = 0; bi < batchRefs.length; bi++) {
+        const ref = batchRefs[bi];
+        const origLen = ref.text.length;
+        const newLen = batchResult[bi].length;
+        if (newLen > 0 && newLen < origLen) {
+          const msg = ref.msg;
+          if (typeof msg.content === "string") {
+            msg.content = batchResult[bi];
+          } else if (Array.isArray(msg.content)) {
+            for (const part of msg.content) {
+              if (part && part.type === "text" && part.text === ref.text) {
+                part.text = batchResult[bi];
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
     for (let i = 0; i < items.length; i++) {
       const msg = items[i];
       if (!msg) continue;
+
+      // System/developer messages: compress long prompt text
+      if (msg.role === "system" || msg.role === "developer") {
+        if (typeof msg.content === "string") {
+          msg.content = compressText(msg.content, stats, "system", config);
+        } else if (Array.isArray(msg.content)) {
+          for (let k = 0; k < msg.content.length; k++) {
+            const part = msg.content[k];
+            if (part && part.type === "text" && typeof part.text === "string") {
+              part.text = compressText(part.text, stats, "system-array", config);
+            }
+          }
+        }
+        continue;
+      }
+
+      // User messages: compress code blocks, long text
+      if (msg.role === "user") {
+        if (typeof msg.content === "string") {
+          msg.content = compressText(msg.content, stats, "user", config);
+        } else if (Array.isArray(msg.content)) {
+          for (let k = 0; k < msg.content.length; k++) {
+            const part = msg.content[k];
+            if (part && part.type === "text" && typeof part.text === "string") {
+              part.text = compressText(part.text, stats, "user-array", config);
+            }
+          }
+        }
+        continue;
+      }
 
       // Shape 4: OpenAI Responses — top-level { type:"function_call_output", output: string | [{type:"input_text", text}] }
       if (msg.type === "function_call_output") {
