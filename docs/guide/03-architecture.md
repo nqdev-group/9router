@@ -45,11 +45,11 @@ Lớp 3: Translation Registry (open-sse/translator/)
 
 ### 2. SSE Core
 
-**Đường dẫn**: `open-sse/` (module độc lập, 167 files, ~987KB code)
+**Đường dẫn**: `open-sse/` (module độc lập, ~1000KB code)
 
 | Thành phần | Mô tả |
 |------------|-------|
-| `handlers/chatCore.js` | Điều phối format detection → translation → executor dispatch |
+| `handlers/chatCore.js` | Điều phối format detection → preprocessing → RTK → translation → executor dispatch |
 | `handlers/chatCore/nonStreamingHandler.js` | Xử lý response non-streaming |
 | `handlers/chatCore/streamingHandler.js` | Xử lý SSE streaming |
 | `handlers/chatCore/sseToJsonHandler.js` | Chuyển SSE → JSON khi provider force streaming |
@@ -81,7 +81,7 @@ Lớp 3: Translation Registry (open-sse/translator/)
 
 **Đường dẫn**: `open-sse/executors/`
 
-Mỗi executor là một adapter HTTP + auth cho từng provider:
+Mỗi executor là một adapter HTTP + auth cho từng provider (19 executors):
 
 | Executor | Provider | Ghi chú |
 |----------|----------|---------|
@@ -91,16 +91,18 @@ Mỗi executor là một adapter HTTP + auth cho từng provider:
 | `github.js` | GitHub | GitHub Copilot |
 | `iflow.js` | iFlow | iFlow API |
 | `qoder.js` | Qoder | Qoder API |
+| `qwen.js` | Qwen | Qwen API |
 | `kiro.js` | Kiro | Kiro AI (free Claude) |
 | `codex.js` | Codex | OpenAI Codex CLI |
 | `cursor.js` | Cursor | Cursor IDE (alias: `cu`) |
 | `vertex.js` | Vertex | Google Vertex AI |
 | `opencode.js` | OpenCode | OpenCode Free |
-| `opencode-go.js` | OpenCode Go | OpenCode Go |
+| `opencode-go.js` | OpenCode Go | OpenCode Go (minimax models → claude) |
 | `grok-web.js` | Grok Web | xAI Grok (web) |
 | `perplexity-web.js` | Perplexity Web | Perplexity (web) |
 | `ollama-local.js` | Ollama Local | Local Ollama |
 | `commandcode.js` | Command Code | Command Code |
+| `xiaomi-tokenplan.js` | Xiaomi Token Plan | Xiaomi AI |
 | `default.js` | All others | Standard OpenAI-compatible |
 
 ### 4. Translation Registry

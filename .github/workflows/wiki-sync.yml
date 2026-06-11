@@ -30,7 +30,6 @@ jobs:
         run: |
           rsync -av --delete --exclude='.git' --exclude='README.md' \
             docs/guide/ wiki/
-          cp docs/guide/README.md wiki/Home.md
           echo "---"
           echo "Files synced:"
           ls -la wiki/

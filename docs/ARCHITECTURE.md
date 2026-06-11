@@ -1,6 +1,6 @@
 # 9Router Architecture
 
-_Last updated: 2026-02-06_
+_Last updated: 2026-06-12_
 
 ## Executive Summary
 
@@ -125,27 +125,25 @@ Main flow modules:
 
 - Entry: `src/sse/handlers/chat.js`
 - Core orchestration: `open-sse/handlers/chatCore.js`
-- Provider execution adapters: `open-sse/executors/*`
+- Provider execution adapters: `open-sse/executors/*` (19 executors)
 - Format detection/provider config: `open-sse/services/provider.js`
 - Model parse/resolve: `src/sse/services/model.js`, `open-sse/services/model.js`
 - Account fallback logic: `open-sse/services/accountFallback.js`
 - Translation registry: `open-sse/translator/index.js`
-- Stream transformations: `open-sse/utils/stream.js`, `open-sse/utils/streamHandler.js`
-- Usage extraction/normalization: `open-sse/utils/usageTracking.js`
+- RTK token compression: `open-sse/rtk/` (21 filters, 6 caveman levels, intensity presets, batch compression, preprocessors)
+- Response cache: `open-sse/services/responseCache.js` (LRU cache for identical responses)
 
 ## 3) Persistence Layer
 
-Primary state DB:
+SQLite database at `${DATA_DIR}/db/data.sqlite`:
 
-- `src/lib/localDb.js`
-- file: `${DATA_DIR}/db.json` (or `~/.9router/db.json` when `DATA_DIR` is unset)
-- entities: providerConnections, providerNodes, modelAliases, combos, apiKeys, settings, pricing
+- Driver chain: bun:sqlite → better-sqlite3 → node:sqlite → sql.js (WASM fallback)
+- Tables: `_meta`, `settings`, `providerConnections`, `providerNodes`, `proxyPools`, `apiKeys`, `combos`, `kv`, `usageHistory`, `usageDaily`, `requestDetails`
+- Versioned migrations (4) + additive schema sync
 
-Usage DB:
+Optional request/translator logs:
 
-- `src/lib/usageDb.js`
-- files: `~/.9router/usage.json`, `~/.9router/log.txt`
-- note: currently independent from `DATA_DIR`
+- `<repo>/logs/...` when `ENABLE_REQUEST_LOGS=true`
 
 ## 4) Auth + Security Surfaces
 
@@ -375,12 +373,11 @@ erDiagram
     }
 ```
 
-Physical storage files:
+Physical storage:
 
-- main state: `${DATA_DIR}/db.json` (or `~/.9router/db.json`)
-- usage stats: `~/.9router/usage.json`
-- request log lines: `~/.9router/log.txt`
-- optional translator/request debug sessions: `<repo>/logs/...`
+- main state: `${DATA_DIR}/db/data.sqlite` (SQLite)
+- auto backups: `${DATA_DIR}/db/backups/`
+- optional request/translator logs: `<repo>/logs/...` when `ENABLE_REQUEST_LOGS=true`
 
 ## Deployment Topology
 
@@ -394,8 +391,7 @@ flowchart LR
     subgraph ContainerOrProcess[9Router Runtime]
         Next[Next.js Server\nPORT=20128]
         Core[SSE Core + Executors]
-        MainDB[(db.json)]
-        UsageDB[(usage.json/log.txt)]
+        SQLiteDB[(db/data.sqlite)]
     end
 
     subgraph External[External Services]
@@ -406,9 +402,8 @@ flowchart LR
     CLI --> Next
     Browser --> Next
     Next --> Core
-    Next --> MainDB
-    Core --> MainDB
-    Core --> UsageDB
+    Next --> SQLiteDB
+    Core --> SQLiteDB
     Core --> Providers
     Next --> SyncCloud
 ```
@@ -444,23 +439,23 @@ flowchart LR
 
 ### Persistence
 
-- `src/lib/localDb.js`: persistent config/state
-- `src/lib/usageDb.js`: usage history and rolling request logs
+- `src/lib/db/index.js`: SQLite DB barrel + export/import
+- `src/lib/db/driver.js`: adapter chain loader (bun:sqlite → better-sqlite3 → node:sqlite → sql.js)
+- `src/lib/db/schema.js`: schema definitions (11 tables)
+- `src/lib/db/migrate.js`: migration runner
+- `src/lib/db/repos/*`: per-entity repositories (usageRepo - 820 lines, largest)
 
 ## Provider Executor Coverage
 
-Specialized executors:
+Specialized executors (19 total):
 
-- `antigravity`
-- `gemini-cli`
-- `github`
-- `kiro`
-- `codex`
-- `cursor`
+- `antigravity`, `azure`, `gemini-cli`, `github`, `iflow`, `qoder`, `qwen`, `kiro`
+- `codex`, `cursor`, `vertex`, `opencode`, `opencode-go`
+- `grok-web`, `perplexity-web`, `ollama-local`, `commandcode`, `xiaomi-tokenplan`
 
 Default executor path:
 
-- all other providers (including compatible node providers) use `open-sse/executors/default.js`
+- all other providers use `open-sse/executors/default.js`
 
 ## Format Translation Coverage
 
@@ -470,16 +465,27 @@ Detected source formats include:
 - `openai-responses`
 - `claude`
 - `gemini`
+- `gemini-cli`
+- `antigravity`
+- `cursor`
+- `kiro`
+- `ollama`
+- `commandcode`
+- `vertex`
 
 Target formats include:
 
-- OpenAI chat/Responses
-- Claude
-- Gemini/Gemini-CLI/Antigravity envelope
-- Kiro
-- Cursor
+- `openai` (chat completions)
+- `openai-responses`
+- `claude`
+- `gemini` / `gemini-cli` / `antigravity` envelope
+- `vertex`
+- `kiro`
+- `cursor`
+- `ollama`
+- `commandcode`
 
-Translations are selected dynamically based on source payload shape and provider target format.
+Translations are selected dynamically based on source payload shape and provider target format. Pipeline uses **OpenAI as intermediate format**: source → OpenAI → target.
 
 ## Failure Modes and Resilience
 
@@ -525,7 +531,7 @@ Runtime visibility sources:
 - JWT secret (`JWT_SECRET`) secures dashboard session cookie verification/signing
 - Initial password fallback (`INITIAL_PASSWORD`, default `123456`) must be overridden in real deployments
 - API key HMAC secret (`API_KEY_SECRET`) secures generated local API key format
-- Provider secrets (API keys/tokens) are persisted in local DB and should be protected at filesystem level
+- Provider secrets (API keys/tokens) are persisted in SQLite DB and should be protected at filesystem level
 - Cloud sync endpoints rely on API key auth + machine id semantics
 
 ## Environment and Runtime Matrix
@@ -536,16 +542,16 @@ Environment variables actively used by code:
 - Storage: `DATA_DIR`
 - Security hashing: `API_KEY_SECRET`, `MACHINE_ID_SALT`
 - Logging: `ENABLE_REQUEST_LOGS`
-- Sync/cloud URLing: `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_CLOUD_URL`
+- Sync/cloud URLing: `BASE_URL`, `CLOUD_URL` (preferred), backward compat: `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_CLOUD_URL`
 - Outbound proxy: `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` and lowercase variants
 - Platform/runtime helpers (not app-specific config): `APPDATA`, `NODE_ENV`, `PORT`, `HOSTNAME`
 
 ## Known Architectural Notes
 
-1. `usageDb` currently stores under `~/.9router` and does not follow `DATA_DIR`.
+1. SQLite DB is the single source of truth for all state (providers, keys, combos, settings, usage).
 2. `/api/v1/route.js` returns a static model list and is not the main models source used by `/v1/models`.
 3. Request logger writes full headers/body when enabled; treat log directory as sensitive.
-4. Cloud behavior depends on correct `NEXT_PUBLIC_BASE_URL` and cloud endpoint reachability.
+4. Cloud behavior depends on correct `BASE_URL` and cloud endpoint reachability.
 
 ## Operational Verification Checklist
 
