@@ -19,6 +19,7 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { PrivacyEngine } from "../privacy/PrivacyEngine.js";
 import { preprocessBody } from "../rtk/preprocessors/contentCleaner.js";
 import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
 
@@ -139,6 +140,10 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkStats = compressMessages(translatedBody, rtkEnabled, rtkConfig);
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
+
+  // Privacy: mask sensitive data before dispatch to provider
+  const privacyEngine = new PrivacyEngine();
+  translatedBody = privacyEngine.process(translatedBody);
 
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
