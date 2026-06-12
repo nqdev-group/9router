@@ -39,6 +39,7 @@ const systemItems = [
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
+  { href: "/dashboard/settings/privacy", label: "Privacy Engine", icon: "lock" },
   { href: "/dashboard/settings/models-dev", label: "Models.dev", icon: "database" },
 ];
 
