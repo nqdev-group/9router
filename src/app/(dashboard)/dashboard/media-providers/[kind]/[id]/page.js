@@ -59,8 +59,27 @@ function getImageEditDefaults(providerId, modelId) {
 function toImagePreviewSrc(value) {
   const trimmed = typeof value === "string" ? value.trim() : "";
   if (!trimmed) return "";
-  if (/^(data:image\/|https?:\/\/)/i.test(trimmed)) return trimmed;
-  return `data:image/png;base64,${trimmed}`;
+
+  // Allow only safe remote URLs.
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.toString();
+    } catch {
+      return "";
+    }
+    return "";
+  }
+
+  // Allow only base64-encoded raster data URLs (block SVG and other active content).
+  const safeDataUrl = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i;
+  if (safeDataUrl.test(trimmed)) return trimmed;
+
+  // Treat raw base64 as PNG by default if it matches base64 charset.
+  const base64Only = /^[a-z0-9+/=\s]+$/i;
+  if (base64Only.test(trimmed)) return `data:image/png;base64,${trimmed}`;
+
+  return "";
 }
 
 // Config-driven example defaults per kind
@@ -1013,7 +1032,7 @@ function GenericExampleCard({ providerId, kind }) {
   const apiPathWithQuery = `${apiPath}${wantBinary ? "?response_format=binary" : ""}`;
   const headersPreview = `-H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${apiKey || "YOUR_KEY"}"${pinnedConnectionId ? ` \\\n  -H "x-connection-id: ${pinnedConnectionId}"` : ""}${useStreaming ? ` \\\n  -H "Accept: text/event-stream"` : ""}`;
   const curlSnippet = `curl -X ${kindConfig.endpoint.method} ${endpoint}${apiPathWithQuery} \\
-  ${headersPreview.replace(/\\\n  /g, "\\\n  ")} \\
+  ${headersPreview} \\
   -d '${JSON.stringify(requestBody)}'${wantBinary ? " \\\n  --output image.png" : ""}`;
 
   const handleRun = async () => {

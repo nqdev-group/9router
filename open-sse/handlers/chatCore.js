@@ -19,6 +19,7 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { PrivacyEngine } from "../privacy/PrivacyEngine.js";
 import { preprocessBody } from "../rtk/preprocessors/contentCleaner.js";
 import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
 
@@ -29,7 +30,7 @@ import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
  * @param {object} options.credentials - Provider credentials
  * @param {string} options.sourceFormatOverride - Override detected source format (e.g. "openai-responses")
  */
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, sourceFormatOverride, providerThinking }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, privacyEnabled = true, privacyCustomKeywords, sourceFormatOverride, providerThinking }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
 
@@ -139,6 +140,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkStats = compressMessages(translatedBody, rtkEnabled, rtkConfig);
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
+
+  // Privacy: mask sensitive data before dispatch to provider
+  const privacyEngine = new PrivacyEngine({
+    enabled: privacyEnabled,
+    customKeywords: Array.isArray(privacyCustomKeywords) ? privacyCustomKeywords : [],
+  });
+  translatedBody = privacyEngine.process(translatedBody);
 
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
