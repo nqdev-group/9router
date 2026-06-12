@@ -1,6 +1,8 @@
 import { DEFAULT_KEYWORDS } from './constants.js';
 import { maskString } from './masking.js';
 
+const EMAIL_REGEX = /\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/gi;
+
 export class PrivacyEngine {
   constructor(options = {}) {
     this.customKeywords = options.customKeywords || [];
@@ -11,8 +13,8 @@ export class PrivacyEngine {
 
   _buildRegex() {
     // Matches keys followed by delimiters and values
-    // Supported formats: key=value, key: value, "key": "value with spaces"
-    const pattern = `(?:${this.keywords.join('|')})\\s*[:=]\\s*(?:"([^"]*)"|'([^']*)'|([^"'\\s]+))`;
+    // Supported formats: key=value, key: value, key là value, "key": "value with spaces"
+    const pattern = `(?:${this.keywords.join('|')})\\s*(?:[:=]|l[àa])\\s*(?:"([^"]*)"|'([^']*)'|([^"'\\s]+))`;
     return new RegExp(pattern, 'gi');
   }
 
@@ -48,10 +50,24 @@ export class PrivacyEngine {
   }
 
   _processString(str) {
-    return str.replace(this.regex, (match, quoted, squoted, unquoted) => {
+    let result = str.replace(this.regex, (match, quoted, squoted, unquoted) => {
       const value = quoted || squoted || unquoted;
       const masked = maskString(value);
       return match.replace(value, masked);
+    });
+    result = this._maskEmails(result);
+    return result;
+  }
+
+  _maskEmails(str) {
+    return str.replace(EMAIL_REGEX, (email) => {
+      const atIdx = email.indexOf('@');
+      if (atIdx <= 0) return email;
+      const local = email.slice(0, atIdx);
+      const domain = email.slice(atIdx);
+      const keepLen = Math.max(1, Math.floor(local.length / 2));
+      const masked = local.slice(0, keepLen) + '*'.repeat(local.length - keepLen);
+      return masked + domain;
     });
   }
 

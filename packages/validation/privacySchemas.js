@@ -9,7 +9,11 @@ export const DEFAULT_KEYWORDS = [
   "secretkey", "secret_key", "secret",
   "clientsecret", "client_secret",
   "token", "access_token", "refresh_token",
-  "cookie", "session"
+  "cookie", "session",
+  "email", "mail",
+  "mật khẩu", "mật_khẩu", "matkhau", "mậtkhẩu",
+  "tên đăng nhập", "tên_đăng_nhập", "tendangnhap", "tênđăngnhập",
+  "tài khoản", "tài_khoản", "taikhoan", "tàikhoản",
 ];
 
 export function validatePrivacyConfig(config) {
