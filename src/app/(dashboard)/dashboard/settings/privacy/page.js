@@ -17,36 +17,92 @@ export default function PrivacyPage() {
   const [privacyEnabled, setPrivacyEnabled] = useState(true);
   const [customKeywords, setCustomKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState("");
+  const [keywordError, setKeywordError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/settings/privacy")
-      .then(res => res.json())
-      .then(data => {
-        setPrivacyEnabled(data.privacyEnabled);
-        setCustomKeywords(data.privacyCustomKeywords || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/privacy");
+      const data = await res.json();
+      setPrivacyEnabled(data.privacyEnabled);
+      setCustomKeywords(data.privacyCustomKeywords || []);
+    } catch (err) {
+      console.error("Failed to load privacy config:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   const handleAddKeyword = useCallback(() => {
+    setKeywordError("");
     const kw = newKeyword.trim().toLowerCase();
-    if (!kw) return;
-    if (!/^[a-z][a-z0-9_-]*$/.test(kw)) return;
-    if (customKeywords.includes(kw)) return;
-    if (customKeywords.length >= 50) return;
-    setCustomKeywords(prev => [...prev, kw]);
+    if (!kw) {
+      setKeywordError("Enter a keyword.");
+      return;
+    }
+    if (!/^[a-z][a-z0-9_-]*$/.test(kw)) {
+      setKeywordError("Keyword must start with a letter and contain only letters, digits, underscores, hyphens.");
+      return;
+    }
+    if (customKeywords.includes(kw)) {
+      setKeywordError(`"${kw}" already added.`);
+      return;
+    }
+    if (customKeywords.length >= 50) {
+      setKeywordError("Max 50 custom keywords reached.");
+      return;
+    }
+    const updated = [...customKeywords, kw];
+    setCustomKeywords(updated);
     setNewKeyword("");
+    // Immediately persist so privacy engine picks it up
+    setSaving(true);
+    fetch("/api/settings/privacy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ privacyCustomKeywords: updated }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Save failed");
+        setSaveMessage("Saved.");
+        setTimeout(() => setSaveMessage(""), 2000);
+      })
+      .catch(err => {
+        console.error("Failed to save keyword:", err);
+        setCustomKeywords(customKeywords); // revert
+        setKeywordError("Failed to save. Try again.");
+      })
+      .finally(() => setSaving(false));
   }, [newKeyword, customKeywords]);
 
   const handleRemoveKeyword = useCallback((kw) => {
-    setCustomKeywords(prev => prev.filter(k => k !== kw));
-  }, []);
+    const updated = customKeywords.filter(k => k !== kw);
+    setCustomKeywords(updated);
+    setSaving(true);
+    fetch("/api/settings/privacy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ privacyCustomKeywords: updated }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Save failed");
+      })
+      .catch(err => {
+        console.error("Failed to save after remove:", err);
+        setCustomKeywords(customKeywords); // revert
+      })
+      .finally(() => setSaving(false));
+  }, [customKeywords]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveMessage("");
     try {
       const res = await fetch("/api/settings/privacy", {
         method: "PATCH",
@@ -54,8 +110,11 @@ export default function PrivacyPage() {
         body: JSON.stringify({ privacyCustomKeywords: customKeywords }),
       });
       if (!res.ok) throw new Error("Failed to save");
+      setSaveMessage("Settings saved.");
+      setTimeout(() => setSaveMessage(""), 2000);
     } catch (err) {
       console.error("Failed to save privacy config:", err);
+      setSaveMessage("Save failed.");
     } finally {
       setSaving(false);
     }
@@ -63,18 +122,22 @@ export default function PrivacyPage() {
 
   const handleReset = useCallback(async () => {
     setLoading(true);
+    setKeywordError("");
+    setSaveMessage("");
     try {
       const res = await fetch("/api/settings/privacy", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ privacyCustomKeywords: [] }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setCustomKeywords(data.privacyCustomKeywords || []);
-      }
+      if (!res.ok) throw new Error("Reset failed");
+      const data = await res.json();
+      setCustomKeywords(data.privacyCustomKeywords || []);
+      setSaveMessage("Reset to defaults.");
+      setTimeout(() => setSaveMessage(""), 2000);
     } catch (err) {
       console.error("Failed to reset privacy config:", err);
+      setSaveMessage("Reset failed.");
     } finally {
       setLoading(false);
     }
@@ -131,23 +194,26 @@ export default function PrivacyPage() {
           </Card>
 
           <Card title="Custom Keywords" subtitle="Add extra keywords to mask" icon="edit_note">
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-1">
               <input
                 type="text"
                 value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
+                onChange={(e) => { setNewKeyword(e.target.value); setKeywordError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && handleAddKeyword()}
                 placeholder="e.g. clientid"
-                className="flex-1 px-3 py-2 rounded-lg bg-bg border border-border-subtle text-sm focus:outline-none focus:border-primary"
+                className={`flex-1 px-3 py-2 rounded-lg bg-bg border text-sm focus:outline-none focus:border-primary ${keywordError ? "border-red-500" : "border-border-subtle"}`}
               />
               <button
                 onClick={handleAddKeyword}
-                disabled={!newKeyword.trim() || customKeywords.length >= 50}
+                disabled={!newKeyword.trim() || customKeywords.length >= 50 || saving}
                 className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
               >
                 Add
               </button>
             </div>
+            {keywordError && (
+              <p className="text-xs text-red-500 mb-3">{keywordError}</p>
+            )}
             {customKeywords.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {customKeywords.map(kw => (
@@ -183,7 +249,7 @@ export default function PrivacyPage() {
             </div>
           </Card>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-2">
             <button
               onClick={handleSave}
               disabled={saving}
@@ -197,6 +263,9 @@ export default function PrivacyPage() {
             >
               Reset to Defaults
             </button>
+            {saveMessage && (
+              <span className="text-sm text-emerald-600 dark:text-emerald-400">{saveMessage}</span>
+            )}
           </div>
         </>
       )}
