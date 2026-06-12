@@ -60,24 +60,26 @@ function toImagePreviewSrc(value) {
   const trimmed = typeof value === "string" ? value.trim() : "";
   if (!trimmed) return "";
 
-  // Allow only safe remote URLs.
+  // Allow only strict data-image base64 URIs
+  const dataUriMatch = trimmed.match(/^data:image\/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=]+)$/i);
+  if (dataUriMatch) return trimmed;
+
+  // Allow only well-formed http/https URLs
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const parsed = new URL(trimmed);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.toString();
-    } catch {
+      if ((parsed.protocol === "http:" || parsed.protocol === "https:") && !/[\r\n<>"'`]/.test(trimmed)) {
+        return parsed.toString();
+      }
+    } catch (_) {
       return "";
     }
-    return "";
   }
 
-  // Allow only base64-encoded raster data URLs (block SVG and other active content).
-  const safeDataUrl = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i;
-  if (safeDataUrl.test(trimmed)) return trimmed;
-
-  // Treat raw base64 as PNG by default if it matches base64 charset.
-  const base64Only = /^[a-z0-9+/=\s]+$/i;
-  if (base64Only.test(trimmed)) return `data:image/png;base64,${trimmed}`;
+  // Treat raw base64 as PNG preview only when payload is valid base64
+  if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    return `data:image/png;base64,${trimmed}`;
+  }
 
   return "";
 }
