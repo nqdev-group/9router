@@ -29,18 +29,35 @@ const navItems = [
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
+/**
+ * Debug items are more technical and less frequently used, so we put them in a separate section below System.
+ * They are still accessible to all users, but won't clutter the main navigation for most users.
+ */
 const debugItems = [
   { href: "/dashboard/console-log", label: "Console Log", icon: "terminal" },
   { href: "/dashboard/translator", label: "Translator", icon: "translate" },
 ];
 
+/**
+ * System items are important for configuring the core functionality of 9Router, so they get their own section above Debug.
+ * These are features that users will likely need to access more frequently to manage their proxy server and compression context.
+ * Keeping them in the main navigation ensures they are easily discoverable and accessible.
+ */
 const systemItems = [
   { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
-  { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
-  { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/privacy", label: "Privacy Engine", icon: "lock" },
   { href: "/dashboard/settings/models-dev", label: "Models.dev", icon: "database" },
+];
+
+/**
+ * Compression Context is a key feature of 9Router that allows users to optimize their token usage and performance.
+ * It deserves its own section in the sidebar to highlight its importance and make it easily accessible for users to configure their RTK Engine and Caveman Engine settings.
+ * By placing it above the System section, we can also encourage users to explore and utilize these powerful features of 9Router.
+ */
+const compressionContextItems = [
+  { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
+  { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
 ];
 
 export default function Sidebar({ onClose }) {
@@ -61,7 +78,7 @@ export default function Sidebar({ onClose }) {
     fetch("/api/settings")
       .then(res => res.json())
       .then(data => { if (data.enableTranslator) setEnableTranslator(true); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Lazy check for new npm version on mount
@@ -69,7 +86,7 @@ export default function Sidebar({ onClose }) {
     fetch("/api/version")
       .then(res => res.json())
       .then(data => { if (data.hasUpdate) setUpdateInfo(data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const isActive = (href) => {
@@ -96,7 +113,7 @@ export default function Sidebar({ onClose }) {
       setShutdownCountdown(remaining);
       if (remaining <= 0) {
         clearInterval(timer);
-        fetch("/api/version/shutdown", { method: "POST" }).catch(() => {});
+        fetch("/api/version/shutdown", { method: "POST" }).catch(() => { });
         setIsDisconnected(true);
       }
     }, 1000);
@@ -189,6 +206,38 @@ export default function Sidebar({ onClose }) {
           {/* System section */}
           <div className="pt-3 mt-2 space-y-0.5">
             <p className="px-4 text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-2">
+              Compression Context
+            </p>
+
+            {/** Compression Context Items */}
+            {compressionContextItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  isActive(item.href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                )}
+              >
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[18px]",
+                    isActive(item.href) ? "fill-1" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  {item.icon}
+                </span>
+                <span className="text-[13px] font-medium">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* System section */}
+          <div className="pt-3 mt-2 space-y-0.5">
+            <p className="px-4 text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-2">
               System
             </p>
 
@@ -243,6 +292,7 @@ export default function Sidebar({ onClose }) {
               </div>
             )}
 
+            {/** System Items */}
             {systemItems.map((item) => (
               <Link
                 key={item.href}
