@@ -1,3 +1,5 @@
+import { kem } from "node-forge";
+
 // Provider alias to ID mapping
 const ALIAS_TO_PROVIDER_ID = {
   cc: "claude",
@@ -140,6 +142,7 @@ const ALIAS_TO_PROVIDER_ID = {
   glhf: "glhf",
   bb: "blackbox",
   blackbox: "blackbox",
+  kira: "kira",
 };
 
 /**

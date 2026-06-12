@@ -435,6 +435,7 @@ export const PROVIDERS = {
   "nous-research": { baseUrl: "https://inference-api.nousresearch.com/v1/chat/completions", format: "openai" },
   glhf: { baseUrl: "https://glhf.chat/api/openai/v1/chat/completions", format: "openai" },
   blackbox: { baseUrl: "https://api.blackbox.ai/chat/completions", format: "openai" },
+  kira: { baseUrl: "https://kiraai.vn/api/v1/chat/completions", format: "openai", headers: {} },
 };
 
 export const OLLAMA_LOCAL_DEFAULT_HOST = "http://localhost:11434";

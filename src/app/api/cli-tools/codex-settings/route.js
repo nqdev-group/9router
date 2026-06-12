@@ -20,6 +20,9 @@ const parsedToWritable = (obj) => obj ?? {};
 // Set a nested key from a flat dotted path, creating intermediate objects as needed
 const setNestedSection = (obj, dottedKey, value) => {
   const keys = dottedKey.split(".");
+  if (keys.some((key) => key === "__proto__" || key === "constructor" || key === "prototype")) {
+    return;
+  }
   let cur = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     if (cur[keys[i]] == null || typeof cur[keys[i]] !== "object") {
@@ -33,6 +36,9 @@ const setNestedSection = (obj, dottedKey, value) => {
 // Delete a nested key from a flat dotted path
 const deleteNestedSection = (obj, dottedKey) => {
   const keys = dottedKey.split(".");
+  if (keys.some((key) => key === "__proto__" || key === "constructor" || key === "prototype")) {
+    return;
+  }
   let cur = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     cur = cur?.[keys[i]];

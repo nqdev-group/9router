@@ -310,8 +310,8 @@ export const PROVIDER_MODELS = {
     { id: "nvidia/llama-nemotron-embed-vl-1b-v2:free", name: "NVIDIA Nemotron Embed VL 1B V2 (Free)", type: "embedding" },
     // TTS models
     { id: "openai/gpt-4o-mini-tts", name: "GPT-4o Mini TTS", type: "tts" },
-    { id: "openai/tts-1-hd",        name: "TTS-1 HD",        type: "tts" },
-    { id: "openai/tts-1",           name: "TTS-1",           type: "tts" },
+    { id: "openai/tts-1-hd", name: "TTS-1 HD", type: "tts" },
+    { id: "openai/tts-1", name: "TTS-1", type: "tts" },
     // Image models
     { id: "openai/dall-e-3", name: "DALL-E 3 (via OpenRouter)", type: "image", params: ["size", "quality", "style", "response_format"] },
     { id: "openai/gpt-image-1", name: "GPT Image 1 (via OpenRouter)", type: "image", params: ["n", "size", "quality", "response_format"] },
@@ -363,6 +363,14 @@ export const PROVIDER_MODELS = {
     { id: "qwen3-coder-plus", name: "Qwen3 Coder Plus" },
     { id: "qwen3-max", name: "Qwen3 Max" },
     { id: "qwen3-vl-plus", name: "Qwen3 VL Plus" },
+  ],
+  kira: [
+    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
+    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
+    { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
+    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
   ],
   "minimax-cn": [
     { id: "MiniMax-M3", name: "MiniMax M3", targetFormat: "claude" },

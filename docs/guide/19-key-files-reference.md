@@ -24,18 +24,26 @@
 
 | File | Mô tả |
 |------|-------|
-| `open-sse/index.js` | Public API barrel (74 lines) |
+| `open-sse/index.js` | Public API barrel (72 lines) |
 | `open-sse/config/providers.js` | Provider definitions (435 lines) |
 | `open-sse/config/providerModels.js` | Model catalog |
-| `open-sse/translator/index.js` | Translator registry + orchestration (260 lines) |
+| `open-sse/translator/index.js` | Translator registry + orchestration (222 lines) |
 | `open-sse/translator/formats.js` | Format constants |
-| `open-sse/handlers/chatCore.js` | Core chat orchestration (290 lines) |
-| `open-sse/services/provider.js` | Format detection, URL/header building (356 lines) |
-| `open-sse/services/combo.js` | Combo handler |
-| `open-sse/services/accountFallback.js` | Account fallback logic |
-| `open-sse/executors/index.js` | Executor registry |
+| `open-sse/handlers/chatCore.js` | Core chat orchestration (257 lines) |
+| `open-sse/services/provider.js` | Format detection, URL/header building (320 lines) |
+| `open-sse/services/combo.js` | Combo handler (174 lines) |
+| `open-sse/services/accountFallback.js` | Account fallback logic (194 lines) |
+| `open-sse/services/responseCache.js` | LRU response cache (78 lines) |
+| `open-sse/executors/index.js` | Executor registry (19 executors, 70 lines) |
 | `open-sse/executors/default.js` | Default OpenAI-compatible executor |
-| `open-sse/rtk/index.js` | RTK token compression entry (119 lines) |
+| `open-sse/rtk/index.js` | RTK token compression entry (218 lines) |
+| `open-sse/rtk/configResolver.js` | RTK config + intensity presets (131 lines) |
+| `open-sse/rtk/autodetect.js` | Auto-detect filter from content (127 lines) |
+| `open-sse/rtk/batchCompress.js` | Batch compression for small segments |
+| `open-sse/rtk/caveman.js` | Caveman mode injector (dispatch by format) |
+| `open-sse/rtk/cavemanPrompts.js` | 6-level caveman prompt templates |
+| `open-sse/rtk/preprocessors/contentCleaner.js` | Whitespace normalization preprocessor |
+| `open-sse/rtk/preprocessors/contextPruner.js` | Duplicate code block pruner |
 
 ## SSE Layer (src/sse/)
 
