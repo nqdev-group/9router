@@ -11,20 +11,20 @@
 - Lint: `npx eslint .`
 
 ## Key Architecture
-- Pure JS: ESM in `src/` & `open-sse/` (import/export); CommonJS in `cli/` (require)
-- Next.js 16 with Webpack (turbopack disabled), standalone output
+- ESM in `src/` & `open-sse/`; CommonJS in `cli/` (the npm-published package). Node >=18 required.
+- Next.js 16 with Webpack (turbopack disabled), standalone output. No formatter (eslint only).
 - URL rewrites: `/v1/*` → `/api/v1/*`, `/codex/*` → `/api/v1/responses`
-- App vs API routes: `/api/*` = API routes; `/(dashboard)/dashboard/`, `/login` = pages
-- Request flow: `route.js` → `chat.js` (combo/account loop) → `chatCore.js` (translate + dispatch) → executor → upstream
-- Proxy/auth: `src/dashboardGuard.js` is the real Express integration; `src/proxy.js` re-exports it
-- Import aliases (jsconfig.json): `@/*` → `./src/*`, `open-sse/*` → `./open-sse/*`, `@9router/*` → `./packages/*`
-- SQLite at `$DATA_DIR/db/data.sqlite` via repos in `src/lib/db/`; 4 driver adapters: better-sqlite3 (native, optional), sql.js (WASM fallback), node:sqlite, bun:sqlite
-- RTK token saver default-on in `translateRequest()` (compresses tool_result content)
-- Format translation uses OpenAI bridge: source → openai → target
-- MITM layer in `src/mitm/` for antigravity local proxy (separate server process)
-- `open-sse/executors/base.js` = BaseExecutor class; `default.js` for OpenAI-compatible; 19 specialized executors
-- `open-sse/services/` = 11 service modules (combo, model, provider, usage, tokenRefresh, accountFallback, oauthCredentialManager...)
-- `packages/components/` has isolated feature components (token-saver, caveman, cost, rtk); barrel export gotcha: use `export { default as X } from "./X.js"` NOT `export { X } from "./X.js"`
+- Routes: `/api/*` = API routes; `/(dashboard)/dashboard/`, `/login` = pages
+- Request flow: `route.js` → `src/sse/handlers/chat.js` (combo/account loop) → `open-sse/handlers/chatCore.js` (translate + dispatch) → executor → upstream
+- Two SSE layers: `src/sse/` (Next.js route handlers) → `open-sse/` (standalone SSE core, re-usable outside Next.js)
+- Proxy/auth: `src/dashboardGuard.js` is real middleware; `src/proxy.js` re-exports it
+- Import aliases: `@/*` → `./src/*`, `open-sse/*` → `./open-sse/*`, `@9router/*` → `./packages/*`
+- SQLite at `$DATA_DIR/db/data.sqlite` via repos in `src/lib/db/`; 4 driver adapters: better-sqlite3 (optional), sql.js (fallback), node:sqlite, bun:sqlite
+- RTK token saver ON by default in `translateRequest()` (runs before format translation)
+- Format translation: source → openai → target (OpenAI bridge)
+- MITM layer in `src/mitm/` = separate server process (antigravity local proxy)
+- `open-sse/executors/`: base.js, default.js (OpenAI-compat), specialized per non-standard provider
+- `packages/components/` barrel export: use `export { default as X } from "./X.js"` NOT `export { X } from "./X.js"`
 
 ## Environment Variables (Runtime)
 All from `.env.example`. Notable:
@@ -63,14 +63,9 @@ All from `.env.example`. Notable:
 - Docker: multi-arch (linux/amd64 + linux/arm64); auto-published to GHCR + Docker Hub on `v*` tags
 
 ## Models.dev Pricing Integration
-- Independent data source at `open-sse/services/modelsDevService.js`
-- Fetches `https://models.dev/catalog.json` → persists in SQLite KV scope `'modelsDevPricing'`
-- Config defaults in `src/shared/constants/modelsDevDefaults.js`
-- Repo: `src/lib/db/repos/modelsDevPricingRepo.js` (getSnapshot, saveSnapshot, getModelMap, saveModelMap)
-- API: `GET /api/models-dev` (status), `PATCH /api/models-dev` (settings), `POST /api/models-dev/sync` (sync), `DELETE /api/models-dev/sync` (clear)
-- Dashboard: `/dashboard/settings/models-dev` (toggle enabled/preferPrices/autoSyncHours)
-- Pricing resolver: `src/lib/db/repos/pricingRepo.js` — `getPricingForModel()` consults models.dev when enabled + preferPrices
-- Settings defaults in `src/lib/db/repos/settingsRepo.js`: `modelsDevEnabled: false`, `modelsDevPreferPrices: false`, `modelsDevAutoSyncHours: 24`
-- Auto-sync on server start if enabled + data stale (background, non-blocking)
-- Sync rate limit: 30s cooldown between manual syncs (HTTP 429)
-- Model ID mapping: strip provider/ prefix → exact match → fallback
+- Independent pricing source at `open-sse/services/modelsDevService.js`, persisted in SQLite KV scope `'modelsDevPricing'`
+- Config: `src/shared/constants/modelsDevDefaults.js`; Repo: `src/lib/db/repos/modelsDevPricingRepo.js`
+- API: `GET/PATCH /api/models-dev`, `POST/DELETE /api/models-dev/sync`; Dashboard at `/dashboard/settings/models-dev`
+- Pricing resolver in `src/lib/db/repos/pricingRepo.js` consults models.dev when enabled + preferPrices
+- Settings: `modelsDevEnabled: false`, `modelsDevPreferPrices: false`, `modelsDevAutoSyncHours: 24`
+- Auto-sync on start if enabled + stale; 30s cooldown between manual syncs; model ID mapping strips provider prefix

@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kira AI - API Chat AI by Huy Kira</title>
+  <meta name="description"
+    content="Trải nghiệm chatbot AI đỉnh cao, quản lý khóa API và xây dựng hệ thống API Proxy thông minh với nền tảng Kira AI.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" type="image/png" href="/favicon.png">
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css?v=1.1">
+</head>
+
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Global Confirmation Modal -->
+  <div id="confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card confirm-card">
+      <h3 id="confirm-title" class="modal-title">Xác nhận</h3>
+      <p id="confirm-message" class="modal-body">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+      <div class="modal-footer">
+        <button id="confirm-cancel-btn" class="btn btn-secondary">Hủy</button>
+        <button id="confirm-ok-btn" class="btn btn-danger">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Key Generation Result Modal -->
+  <div id="key-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card key-card animate-zoom">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-key text-gradient"></i> Đã tạo API Key thành công</h3>
+        <button class="close-modal-btn" onclick="closeKeyModal()">&times;</button>
+      </div>
+      <p class="modal-body text-secondary">Vui lòng sao chép khóa API bên dưới. Bạn sẽ <strong>không thể xem
+          lại</strong> khóa này sau khi đóng hộp thoại này vì lý do bảo mật.</p>
+
+      <div class="key-display-wrapper">
+        <input type="text" id="new-key-value" class="input-field key-input-display" readonly>
+        <button onclick="copyNewKey()" class="btn btn-primary btn-copy-modal" id="copy-modal-btn">
+          <i class="fa-regular fa-copy"></i> Sao chép
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button onclick="closeKeyModal()" class="btn btn-secondary w-full">Tôi đã lưu khóa, đóng hộp thoại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION CONTAINER -->
+  <div id="app" class="app-container">
+
+    <!-- 1. Giao diện Trang chủ (Homepage Layout) -->
+    <div id="home-screen" class="home-screen" style="display: flex;">
+      <!-- Sticky Navigation Header -->
+      <header class="home-header">
+        <div class="home-header-container">
+          <div class="logo">
+            <img src="/images/logo.png" class="logo-img" alt="Kira AI">
+            <span class="logo-text">Kira AI</span>
+          </div>
+
+          <nav class="home-nav">
+            <!-- Dynamic Login/Dashboard buttons -->
+            <div id="home-auth-nav" class="home-auth-actions"></div>
+          </nav>
+        </div>
+      </header>
+
+      <!-- Floating TubeLight Navbar (Centered inside viewport on desktop, floats at bottom on mobile) -->
+      <div class="tubelight-navbar">
+        <div class="tubelight-navbar-inner">
+          <a href="#tinh-nang" class="tubelight-nav-item active">
+            <span class="nav-text">Tính năng</span>
+            <span class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+          </a>
+          <a href="#mobile-app" class="tubelight-nav-item">
+            <span class="nav-text">Tải App</span>
+            <span class="nav-icon"><i class="fa-solid fa-mobile-screen-button"></i></span>
+          </a>
+          <a href="#bang-gia" class="tubelight-nav-item">
+            <span class="nav-text">Bảng giá API</span>
+            <span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span>
+          </a>
+          <a href="#testimonials" class="tubelight-nav-item">
+            <span class="nav-text">Khách hàng</span>
+            <span class="nav-icon"><i class="fa-solid fa-comments"></i></span>
+          </a>
+          <a href="#tin-tuc" class="tubelight-nav-item">
+            <span class="nav-text">Tin tức</span>
+            <span class="nav-icon"><i class="fa-solid fa-newspaper"></i></span>
+          </a>
+          <a href="/documents" target="_blank" class="tubelight-nav-item">
+            <span class="nav-text">Tài liệu API</span>
+            <span class="nav-icon"><i class="fa-solid fa-book"></i></span>
+          </a>
+
+          <!-- Active Lamp Indicator -->
+          <div class="tubelight-lamp">
+            <div class="tubelight-lamp-light">
+              <div class="lamp-glow-1"></div>
+              <div class="lamp-glow-2"></div>
+              <div class="lamp-glow-3"></div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Wrapper for home page main content sections -->
+    <div id="homepage-sections-content">
+      <!-- Hero Section Outer Wrapper -->
+      <div class="hero-section-outer">
+        <!-- Hero Section -->
+        <section class="hero-section">
+          <div class="hero-bg-glow"></div>
+
+          <!-- Left Side: Text Content -->
+          <div class="hero-content-left">
+            <span class="badge-new animate-pulse"><i class="fa-solid fa-rocket"></i> Mới: Hỗ trợ Kira 2.5 & 3.1
+              TTS</span>
+            <h1 class="hero-title">Kira AI Platform</h1>
+            <p class="hero-subtitle">Cung cấp các API AI tiên tiến, hỗ trợ Chat AI thế hệ mới, Tạo hình ảnh Kira Image,
+              Tạo
+              video Kira Video và Tổng hợp giọng nói tự nhiên với tốc độ cao.</p>
+            <div class="hero-actions">
+              <div class="btn-container-with-badge">
+                <span class="btn-badge-free">Free</span>
+                <button class="btn-premium-trial" onclick="onHeroStartClick()">
+                  Nhận 50k tokens
+                </button>
+              </div>
+
+              <button class="btn-premium-docs" onclick="window.location.href='/documents'">
+                <i class="fa-solid fa-book"></i> Tài liệu
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Side: Image Accordion -->
+          <div class="hero-accordion-right">
+            <div class="hero-accordion-container">
+              <!-- Item 1: Voice Assistant -->
+              <div class="accordion-item" data-index="0">
+                <img src="/images/kira_mobile_voice.png" alt="Voice Assistant"
+                  onerror="this.onerror=null; this.src='https://placehold.co/400x450/2d3748/ffffff?text=Voice+Assistant';">
+                <div class="accordion-overlay"></div>
+                <span class="accordion-title">Voice Assistant</span>
+              </div>
+              <!-- Item 2: AI Image Generation -->
+              <div class="accordion-item" data-index="1">
+                <img src="/images/kira_mobile_gallery.png" alt="AI Image Generation"
+                  onerror="this.onerror=null; this.src='https://placehold.co/400x450/2d3748/ffffff?text=Image+Generation';">
+                <div class="accordion-overlay"></div>
+                <span class="accordion-title">AI Image Generation</span>
+              </div>
+              <!-- Item 3: AI Chatbot + Local RAG -->
+              <div class="accordion-item" data-index="2">
+                <img src="/images/kira_mobile_app.png" alt="AI Chatbot + Local RAG"
+                  onerror="this.onerror=null; this.src='https://placehold.co/400x450/2d3748/ffffff?text=AI+Chatbot';">
+                <div class="accordion-overlay"></div>
+                <span class="accordion-title">AI Chatbot + RAG</span>
+              </div>
+              <!-- Item 4: AI Agent -->
+              <div class="accordion-item" data-index="3">
+                <img src="/images/kira_mobile_video.png" alt="AI Agent"
+                  onerror="this.onerror=null; this.src='https://placehold.co/400x450/2d3748/ffffff?text=AI+Agent';">
+                <div class="accordion-overlay"></div>
+                <span class="accordion-title">AI Agent</span>
+              </div>
+              <!-- Item 5: Kira Mobile App (Active index 4 by default) -->
+              <div class="accordion-item active" data-index="4">
+                <img src="/images/kira_mobile_hero.png" alt="Kira Mobile App"
+                  onerror="this.onerror=null; this.src='https://placehold.co/400x450/2d3748/ffffff?text=Kira+Mobile+App';">
+                <div class="accordion-overlay"></div>
+                <span class="accordion-title">Kira Mobile App</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Core Features Grid -->
+      <div class="features-section-outer">
+        <div class="features-bg-grid"></div>
+        <div class="features-glow-light"></div>
+
+        <section id="tinh-nang" class="features-section">
+          <div class="section-title">
+            <span class="tech-badge"><i class="fa-solid fa-microchip"></i> KIRA COGNITIVE SYSTEM</span>
+            <h2>Dịch vụ của <span class="text-gradient">Kira AI</span></h2>
+            <p>Tích hợp nhanh chóng, lập trình dễ dàng qua chuẩn kết nối API tương thích SDK OpenAI và với mọi ngôn ngữ
+              lập trình.</p>
+          </div>
+
+          <div class="features-grid">
+            <!-- Card 1: Chat AI -->
+            <div class="feature-card tech-card" style="--card-theme: var(--primary);">
+              <div class="card-glow-effect"></div>
+              <div class="card-decor-corners">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+              </div>
+
+              <div class="card-header-row">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon">
+                    <i class="fa-solid fa-comment-dots"></i>
+                  </div>
+                  <div class="icon-glow"></div>
+                </div>
+
+                <div class="card-header-meta">
+                  <span class="tech-metric"><i class="fa-solid fa-gauge-high"></i> ~150ms</span>
+                </div>
+              </div>
+
+              <h3>Chat AI</h3>
+              <p>Trò chuyện thông minh, phân tích mã nguồn và xử lý dữ liệu lập trình mượt mà với Kira 3.5/2.5.</p>
+
+              <ul class="tech-specs-list">
+                <li><i class="fa-solid fa-microchip"></i> Models: Kira 3.5 Flash & 2.5 Pro</li>
+                <li><i class="fa-solid fa-envelope-open-text"></i> Context: 1.0M Tokens Window</li>
+                <li><i class="fa-solid fa-terminal"></i> Hỗ trợ: Code assistant & RAG</li>
+              </ul>
+            </div>
+
+            <!-- Card 2: Tạo Hình Ảnh -->
+            <div class="feature-card tech-card" style="--card-theme: 280 75% 60%;">
+              <div class="card-glow-effect"></div>
+              <div class="card-decor-corners">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+              </div>
+
+              <div class="card-header-row">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon">
+                    <i class="fa-solid fa-image"></i>
+                  </div>
+                  <div class="icon-glow"></div>
+                </div>
+
+                <div class="card-header-meta">
+                  <span class="tech-metric"><i class="fa-solid fa-vector-square"></i> ULTRA-HD</span>
+                </div>
+              </div>
+
+              <h3>Tạo Hình Ảnh</h3>
+              <p>Chuyển đổi ý tưởng dạng văn bản thành hình ảnh chi tiết và sắc nét theo đúng tỉ lệ yêu cầu.</p>
+
+              <ul class="tech-specs-list">
+                <li><i class="fa-solid fa-wand-magic-sparkles"></i> Engine: Kira Image 3.1 & 3 Pro</li>
+                <li><i class="fa-solid fa-crop-simple"></i> Tỷ lệ: 16:9, 9:16, 1:1, 4:3</li>
+                <li><i class="fa-solid fa-copy"></i> Hỗ trợ: Image-to-Image ref</li>
+              </ul>
+            </div>
+
+            <!-- Card 3: Tạo Video -->
+            <div class="feature-card tech-card" style="--card-theme: 150 75% 45%;">
+              <div class="card-glow-effect"></div>
+              <div class="card-decor-corners">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+              </div>
+
+              <div class="card-header-row">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon">
+                    <i class="fa-solid fa-video"></i>
+                  </div>
+                  <div class="icon-glow"></div>
+                </div>
+
+                <div class="card-header-meta">
+                  <span class="tech-metric"><i class="fa-solid fa-film"></i> 60 FPS</span>
+                </div>
+              </div>
+
+              <h3>Tạo Video</h3>
+              <p>Sáng tạo các đoạn chuyển động video độc đáo, chất lượng từ prompts mô tả.</p>
+
+              <ul class="tech-specs-list">
+                <li><i class="fa-solid fa-video"></i> Engine: Kira Video 3.1 Generate</li>
+                <li><i class="fa-solid fa-clock"></i> Thời lượng: 4s - 8s per render</li>
+                <li><i class="fa-solid fa-camera"></i> Camera controls: Zoom/Pan/Orbit</li>
+              </ul>
+            </div>
+
+            <!-- Card 4: Tạo Giọng Nói -->
+            <div class="feature-card tech-card" style="--card-theme: 35 85% 55%;">
+              <div class="card-glow-effect"></div>
+              <div class="card-decor-corners">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+              </div>
+
+              <div class="card-header-row">
+                <div class="feature-icon-wrapper">
+                  <div class="feature-icon">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                  </div>
+                  <div class="icon-glow"></div>
+                </div>
+
+                <div class="card-header-meta">
+                  <span class="tech-metric"><i class="fa-solid fa-headphones"></i> HI-FI</span>
+                </div>
+              </div>
+
+              <h3>Tạo Giọng Nói (TTS)</h3>
+              <p>Tổng hợp giọng đọc tự nhiên đa dạng biểu cảm với kho 30 giọng đọc Kira chất lượng cao.</p>
+
+              <ul class="tech-specs-list">
+                <li><i class="fa-solid fa-volume-high"></i> Engine: Kira Voices 3.1 & 2.5</li>
+                <li><i class="fa-solid fa-globe"></i> Kho giọng: 30+ giọng nói Việt/Anh</li>
+                <li><i class="fa-solid fa-sliders"></i> Tính năng: Custom speed & pitch</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Interactive AI Models List -->
+          <div class="models-showcase-container">
+            <ul class="models-grid animate-slide-up" id="models-list-container">
+              <!-- Dynamically populated via JS -->
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- Mobile App Showcase Section -->
+      <section id="mobile-app" class="mobile-app-section">
+        <div class="mobile-app-container">
+          <!-- Left side: smartphone mockup visual as 3D circular gallery -->
+          <div class="mobile-app-visual circular-gallery-visual animate-slide-up">
+            <div class="circular-gallery-wrapper">
+              <div class="circular-gallery-inner" id="app-circular-gallery">
+                <!-- Item 1: Chat AI -->
+                <div class="circular-item" style="--item-angle: 0deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_app.png" alt="Kira AI Chat App">
+                    <div class="circular-item-overlay">
+                      <h4>Trò chuyện Chat AI</h4>
+                      <p>Trực quan, mượt mà trên di động</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 2: Voice Chat -->
+                <div class="circular-item" style="--item-angle: 45deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_voice.png" alt="Kira Voice Assistant">
+                    <div class="circular-item-overlay">
+                      <h4>Trợ lý Giọng nói</h4>
+                      <p>Đàm thoại tự nhiên thế hệ mới</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 3: Image Gallery -->
+                <div class="circular-item" style="--item-angle: 90deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_gallery.png" alt="Kira AI Art Gallery">
+                    <div class="circular-item-overlay">
+                      <h4>Thư viện Tạo ảnh</h4>
+                      <p>Mỹ thuật số trong lòng bàn tay</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 4: Video Generator -->
+                <div class="circular-item" style="--item-angle: 135deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_video.png" alt="Kira AI Video Generator">
+                    <div class="circular-item-overlay">
+                      <h4>Sáng tạo Video Clip</h4>
+                      <p>Dựng phim với prompt di động</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 5: Chat AI (duped) -->
+                <div class="circular-item" style="--item-angle: 180deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_app.png" alt="Kira AI Chat App">
+                    <div class="circular-item-overlay">
+                      <h4>Trò chuyện Chat AI</h4>
+                      <p>Trực quan, mượt mà trên di động</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 6: Voice Chat (duped) -->
+                <div class="circular-item" style="--item-angle: 225deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_voice.png" alt="Kira Voice Assistant">
+                    <div class="circular-item-overlay">
+                      <h4>Trợ lý Giọng nói</h4>
+                      <p>Đàm thoại tự nhiên thế hệ mới</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 7: Image Gallery (duped) -->
+                <div class="circular-item" style="--item-angle: 270deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_gallery.png" alt="Kira AI Art Gallery">
+                    <div class="circular-item-overlay">
+                      <h4>Thư viện Tạo ảnh</h4>
+                      <p>Mỹ thuật số trong lòng bàn tay</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- Item 8: Video Generator (duped) -->
+                <div class="circular-item" style="--item-angle: 315deg;">
+                  <div class="circular-item-card">
+                    <img src="/images/kira_mobile_video.png" alt="Kira AI Video Generator">
+                    <div class="circular-item-overlay">
+                      <h4>Sáng tạo Video Clip</h4>
+                      <p>Dựng phim với prompt di động</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right side: details and text -->
+          <div class="mobile-app-content">
+            <div class="section-title-left">
+              <span class="badge-accent"><i class="fa-solid fa-mobile-screen-button"></i> Ứng dụng di động</span>
+              <h2>Trải nghiệm Kira AI App</h2>
+              <p class="subtitle">Mang sức mạnh trí tuệ nhân tạo đi khắp mọi nơi. Trải nghiệm tốc độ xử lý nhanh chóng,
+                tương tác giọng nói tức thì ngay trên thiết bị di động của bạn.</p>
+            </div>
+
+            <ul class="mobile-features">
+              <li>
+                <div class="m-feat-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
+                <div class="m-feat-text">
+                  <h4>Đồng bộ hóa đám mây tức thời</h4>
+                  <p>Mọi cuộc hội thoại, lịch sử chat và các cài đặt cá nhân hóa đều được đồng bộ tự động giữa các phiên
+                    bản web và di động theo thời gian thực.</p>
+                </div>
+              </li>
+              <li>
+                <div class="m-feat-icon"><i class="fa-solid fa-microphone"></i></div>
+                <div class="m-feat-text">
+                  <h4>Trò chuyện giọng nói rảnh tay</h4>
+                  <p>Tận dụng công nghệ Kira TTS (Text-to-Speech) và Speech-to-Text thế hệ mới để trò chuyện trực tiếp
+                    bằng giọng nói tự nhiên, mượt mà giống như đang gọi điện thoại.</p>
+                </div>
+              </li>
+            </ul>
+
+            <div class="download-actions">
+              <a href="#"
+                onclick="event.preventDefault(); showToast('Phiên bản App Store cho iOS đang được duyệt!', 'info')"
+                class="btn-download download-appstore">
+                <i class="fa-brands fa-apple"></i>
+                <div class="download-text">
+                  <span>Tải về trên</span>
+                  <strong>App Store</strong>
+                </div>
+              </a>
+              <a href="#"
+                onclick="event.preventDefault(); showToast('Phiên bản Google Play cho Android đang được duyệt!', 'info')"
+                class="btn-download download-googleplay">
+                <i class="fa-brands fa-google-play"></i>
+                <div class="download-text">
+                  <span>Tải về trên</span>
+                  <strong>Google Play</strong>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats & Author Dashboard Wrapper -->
+        <div class="mobile-app-dashboard-wrapper">
+          <!-- Stats Dashboard Block -->
+          <div class="mobile-app-stats">
+            <div class="stat-item">
+              <div class="stat-num">4.8 ★</div>
+              <div class="stat-label">Đánh giá Store</div>
+            </div>
+            <div class="stat-item-divider"></div>
+            <div class="stat-item">
+              <div class="stat-num">100K+</div>
+              <div class="stat-label">Lượt tải về</div>
+            </div>
+            <div class="stat-item-divider"></div>
+            <div class="stat-item">
+              <div class="stat-num">99.9%</div>
+              <div class="stat-label">Uptime hệ thống</div>
+            </div>
+          </div>
+
+          <!-- Author Profile Card -->
+          <a href="https://huykira.net" target="_blank" class="mobile-app-author-card">
+            <img src="/images/huykira.webp" alt="Huy Kira" class="author-avatar">
+            <div class="author-info">
+              <div class="author-name">Huy Kira</div>
+              <div class="author-title">Full Stack Developer</div>
+              <div class="author-exp">12 years of experience</div>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- API Pricing Grid -->
+      <div class="pricing-section-outer">
+        <canvas id="pricing-starfield" class="pricing-starfield"></canvas>
+        <canvas id="pricing-spotlight-canvas" class="pricing-spotlight-canvas"></canvas>
+        <div class="pricing-glow-light"></div>
+
+        <section id="bang-gia" class="pricing-section">
+          <div class="section-title">
+            <span class="tech-badge"><i class="fa-solid fa-credit-card"></i> KIRA SUBSCRIPTIONS</span>
+            <h2>Các gói dịch vụ API</h2>
+            <p>Tối ưu hóa ngân sách của bạn với các gói cước linh hoạt. Tiết kiệm tới 20% khi chọn chu kỳ thanh toán
+              năm.</p>
+          </div>
+
+          <!-- Pricing Toggle (Monthly / Annual) -->
+          <div class="pricing-toggle-container">
+            <div class="pricing-toggle-wrapper">
+              <div class="pricing-toggle-pill" id="pricing-toggle-pill"></div>
+              <button class="pricing-toggle-btn active" id="btn-toggle-monthly" onclick="togglePricingPeriod(true)">
+                Hàng Tháng
+              </button>
+              <button class="pricing-toggle-btn" id="btn-toggle-annual" onclick="togglePricingPeriod(false)">
+                Hàng Năm <span class="discount-badge">Save 20%</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="pricing-grid">
+            <!-- Gói Dùng Thử -->
+            <div class="pricing-card">
+              <div class="pricing-card-glow"></div>
+              <div class="pricing-badge">Miễn phí</div>
+              <div class="pricing-card-header">
+                <h3>Dùng Thử</h3>
+                <p>Khám phá tính năng cơ bản của Kira AI.</p>
+              </div>
+              <div class="pricing-price-container">
+                <div class="price" id="price-free">0đ</div>
+                <div class="period">/ dùng thử</div>
+              </div>
+              <p class="plan-tokens">Đăng ký thành viên nhận ngay <strong>50.000 tokens</strong>.</p>
+              <ul class="plan-features">
+                <li><i class="fa-solid fa-circle-check text-success"></i> Chat, Ảnh, Giọng nói
+                </li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Tốc độ API tiêu chuẩn</li>
+                <li><i class="fa-solid fa-circle-xmark text-danger"></i> Không hỗ trợ tạo Video</li>
+              </ul>
+              <button class="btn btn-secondary w-full" onclick="onPricingClick('free')">Trải nghiệm ngay</button>
+            </div>
+
+            <!-- Gói 1 -->
+            <div class="pricing-card">
+              <div class="pricing-card-glow"></div>
+              <div class="pricing-card-header">
+                <h3>Kira Standard</h3>
+                <p>Phù hợp cho cá nhân & thử nghiệm ứng dụng.</p>
+              </div>
+              <div class="pricing-price-container">
+                <div class="price" id="price-plan1">50.000đ</div>
+                <div class="period" id="period-plan1">/ tháng</div>
+              </div>
+              <p class="plan-billing-detail" id="billing-plan1">Thanh toán theo tháng</p>
+              <p class="plan-tokens">Có <strong>5.000.000 tokens</strong> sử dụng hàng tháng.</p>
+              <ul class="plan-features">
+                <li><i class="fa-solid fa-circle-check text-success"></i> Chat, Ảnh, Giọng nói
+                </li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Tốc độ phản hồi cao</li>
+                <li><i class="fa-solid fa-circle-xmark text-danger"></i> Không hỗ trợ tạo Video</li>
+                <li><i class="fa-solid fa-circle-info text-warning"></i> Reset về không khi hết hạn tháng</li>
+              </ul>
+              <button class="btn btn-primary w-full" onclick="onPricingClick('plan1')">Đăng ký ngay</button>
+            </div>
+
+            <!-- Gói 2 -->
+            <div class="pricing-card featured">
+              <div class="pricing-card-glow"></div>
+              <div class="pricing-badge popular"><i class="fa-solid fa-star"></i> Phổ biến nhất</div>
+              <div class="pricing-card-header">
+                <h3>Kira Pro</h3>
+                <p>Lựa chọn tối ưu cho lập trình viên chuyên nghiệp.</p>
+              </div>
+              <div class="pricing-price-container">
+                <div class="price" id="price-plan2">100.000đ</div>
+                <div class="period" id="period-plan2">/ tháng</div>
+              </div>
+              <p class="plan-billing-detail" id="billing-plan2">Thanh toán theo tháng</p>
+              <p class="plan-tokens">Có <strong>12.000.000 tokens</strong> sử dụng hàng tháng.</p>
+              <ul class="plan-features">
+                <li><i class="fa-solid fa-circle-check text-success"></i> Đầy đủ tính năng và Video</li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Tốc độ phản hồi ưu tiên</li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Hỗ trợ tạo API Keys sử dụng dự án</li>
+                <li><i class="fa-solid fa-circle-info text-warning"></i> Reset về không khi hết hạn tháng</li>
+              </ul>
+              <button class="btn btn-primary w-full" onclick="onPricingClick('plan2')">Đăng ký ngay</button>
+            </div>
+
+            <!-- Gói 3 -->
+            <div class="pricing-card">
+              <div class="pricing-card-glow"></div>
+              <div class="pricing-card-header">
+                <h3>Kira Enterprise</h3>
+                <p>Giải pháp doanh nghiệp & dự án quy mô lớn.</p>
+              </div>
+              <div class="pricing-price-container">
+                <div class="price" id="price-plan3">300.000đ</div>
+                <div class="period" id="period-plan3">/ tháng</div>
+              </div>
+              <p class="plan-billing-detail" id="billing-plan3">Thanh toán theo tháng</p>
+              <p class="plan-tokens">Sử dụng <strong>Không giới hạn tokens</strong>.</p>
+              <ul class="plan-features">
+                <li><i class="fa-solid fa-circle-check text-success"></i> Mở khóa toàn bộ dịch vụ AI</li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Băng thông API ưu tiên tuyệt đối</li>
+                <li><i class="fa-solid fa-circle-check text-success"></i> Tạo API Keys không giới hạn</li>
+                <li><i class="fa-solid fa-circle-info text-warning"></i> Reset về không khi hết hạn tháng</li>
+              </ul>
+              <button class="btn btn-primary w-full" onclick="onPricingClick('plan3')">Đăng ký ngay</button>
+            </div>
+          </div>
+        </section>
+      </div>
+      <!-- Testimonials Section -->
+      <section id="testimonials" class="testimonials-section">
+        <div class="testimonials-container">
+          <div class="section-title text-center animate-slide-up">
+            <span class="tech-badge"><i class="fa-solid fa-comments"></i> Đánh giá khách hàng</span>
+            <h2>Khách hàng nói gì về <span class="text-gradient">Kira AI</span></h2>
+            <p>Khám phá trải nghiệm thực tế từ các nhà phát triển, nhà quản lý và nhà sáng tạo nội dung
+              đã nâng cao hiệu suất cùng Kira AI.</p>
+          </div>
+
+          <div class="testimonials-grid-wrapper" id="testimonials-dynamic-grid">
+            <p class="text-secondary text-center py-8" style="width: 100%;"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải đánh giá khách hàng...</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="news-section-outer">
+        <div class="news-section-inner" style="max-width: 1320px; margin: 0 auto; padding: 0 1.5rem;">
+          <div class="section-title text-center animate-slide-up">
+            <span class="tech-badge"><i class="fa-solid fa-newspaper"></i> KIRA CHRONICLES</span>
+            <h2>Tin tức & <span class="text-gradient">Cập nhật</span></h2>
+            <p>Theo dõi các thông tin công nghệ mới nhất và các tính năng vừa ra mắt tại Kira AI. Các sản phẩm AI tiếp
+              theo của Huy Kira</p>
+          </div>
+        </div>
+
+        <section id="tin-tuc" class="news-section" style="width: 100%; position: relative; overflow: hidden;">
+          <div class="stagger-carousel-container" id="news-carousel-container">
+            <p class="text-secondary text-center py-8" style="margin: 40px auto;"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải tin tức & cập nhật...</p>
+          </div>
+        </section>
+      </div> <!-- Closes news-section-outer -->
+    </div> <!-- Closes homepage-sections-content -->
+
+      <!-- Public Showcase Section -->
+      <div id="showcase-content-view" style="display: none; width: 100%; min-height: 60vh; background: #0b0b0f; color: hsl(var(--text-primary)); padding: 100px 0 2rem 0; box-sizing: border-box;">
+
+        <!-- Showcase Grid: 7 items per row, full width, no container padding -->
+        <div id="showcase-grid-full">
+          <p class="text-secondary text-center py-8" style="width: 100%;"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải không gian trưng bày...</p>
+        </div>
+      </div>
+
+      <!-- Info Page Section -->
+      <div id="info-page-view" style="display: none; width: 100%; min-height: 60vh; background: hsl(var(--bg-darker)); color: hsl(var(--text-primary)); padding: 120px 0 4rem 0; box-sizing: border-box;">
+        <div class="info-page-container" style="max-width: 1000px; margin: 0 auto; padding: 0 2rem;">
+          <div id="info-page-content"></div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="home-footer">
+        <div class="footer-bg-gradient"></div>
+        <div class="footer-container">
+          <div class="footer-grid">
+            <!-- Brand section -->
+            <div class="footer-brand">
+              <div class="footer-logo">
+                <img src="/images/logo.png" class="logo-img" alt="Kira AI">
+                <span class="logo-text">Kira AI</span>
+              </div>
+              <p class="brand-description">
+                Kira AI là nền tảng trí tuệ nhân tạo đa chức năng thế hệ mới, tích hợp các công nghệ tối tân phục vụ trò
+                chuyện thông minh, sáng tạo hình ảnh và giọng nói tự nhiên.
+              </p>
+            </div>
+
+            <!-- Links section 1 -->
+            <div class="footer-links-col">
+              <h4>Về chúng tôi</h4>
+              <ul>
+                <li><a href="/gioi-thieu" onclick="event.preventDefault(); window.history.pushState({}, '', '/gioi-thieu'); routeView();"><i class="fa-solid fa-circle-info"></i> Giới thiệu</a></li>
+                <li><a href="/dieu-khoan" onclick="event.preventDefault(); window.history.pushState({}, '', '/dieu-khoan'); routeView();"><i class="fa-solid fa-file-contract"></i> Điều khoản sử dụng</a></li>
+                <li><a href="/chinh-sach" onclick="event.preventDefault(); window.history.pushState({}, '', '/chinh-sach'); routeView();"><i class="fa-solid fa-shield-halved"></i> Chính sách bảo mật</a></li>
+                <li><a href="/lien-he" onclick="event.preventDefault(); window.history.pushState({}, '', '/lien-he'); routeView();"><i class="fa-solid fa-address-book"></i> Liên hệ</a></li>
+              </ul>
+            </div>
+
+            <!-- Links section 2 -->
+            <div class="footer-links-col">
+              <h4>Liên kết hữu ích</h4>
+              <ul>
+                <li><a href="/documents"><i class="fa-regular fa-file-lines"></i> Tài liệu hướng dẫn</a></li>
+                <li><a href="/faq" onclick="event.preventDefault(); window.history.pushState({}, '', '/faq'); routeView();"><i class="fa-regular fa-circle-question"></i> Câu hỏi thường gặp</a></li>
+                <li><a href="https://huykira.net" target="_blank"><i class="fa-solid fa-blog"></i> Blog tin tức</a></li>
+                <li><a href="/trung-bay" onclick="event.preventDefault(); window.history.pushState({}, '', '/trung-bay'); routeView();"><i class="fa-solid fa-earth-asia"></i> Không gian trưng bày</a></li>
+              </ul>
+            </div>
+
+            <!-- Contact section -->
+            <div class="footer-links-col">
+              <h4>Liên hệ</h4>
+              <ul class="contact-list">
+                <li>
+                  <i class="fa-regular fa-envelope"></i>
+                  <a href="mailto:huykira@gmail.com">huykira@gmail.com</a>
+                </li>
+                <li>
+                  <i class="fa-solid fa-phone"></i>
+                  <a href="tel:0358949680">0358 949 680</a>
+                </li>
+                <li>
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span>Đà Nẵng, Việt Nam</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <hr class="footer-divider" />
+
+          <!-- Footer bottom -->
+          <div class="footer-bottom">
+            <!-- Social icons -->
+            <div class="social-links">
+              <a href="#" aria-label="Facebook"
+                onclick="event.preventDefault(); showToast('Tính năng đang được cập nhật!', 'info')"><i
+                  class="fa-brands fa-facebook-f"></i></a>
+              <a href="#" aria-label="TikTok"
+                onclick="event.preventDefault(); showToast('Tính năng đang được cập nhật!', 'info')"><i
+                  class="fa-brands fa-tiktok"></i></a>
+              <a href="#" aria-label="Instagram"
+                onclick="event.preventDefault(); showToast('Tính năng đang được cập nhật!', 'info')"><i
+                  class="fa-brands fa-instagram"></i></a>
+              <a href="#" aria-label="YouTube"
+                onclick="event.preventDefault(); showToast('Tính năng đang được cập nhật!', 'info')"><i
+                  class="fa-brands fa-youtube"></i></a>
+            </div>
+
+            <!-- Copyright -->
+            <p class="copyright-text">
+              &copy; 2026 Kira AI Platform. Developed by Huy Kira. All rights reserved.
+            </p>
+          </div>
+        </div>
+
+        <!-- Text hover effect -->
+        <div class="footer-text-hover-container">
+          <svg id="footer-text-hover-svg" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="textGradient" gradientUnits="userSpaceOnUse" cx="50%" cy="50%" r="25%">
+                <stop offset="0%" stop-color="#eab308" />
+                <stop offset="25%" stop-color="#ef4444" />
+                <stop offset="50%" stop-color="#80eeb4" />
+                <stop offset="75%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#8b5cf6" />
+              </linearGradient>
+
+              <radialGradient id="revealMask" gradientUnits="userSpaceOnUse" r="20%" cx="50%" cy="50%">
+                <stop offset="0%" stop-color="white" />
+                <stop offset="100%" stop-color="black" />
+              </radialGradient>
+
+              <mask id="textMask">
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#revealMask)" />
+              </mask>
+            </defs>
+
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" stroke-width="0.3"
+              class="text-stroke-bg">
+              KIRA AI
+            </text>
+
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" stroke-width="0.3"
+              class="text-stroke-glow">
+              KIRA AI
+            </text>
+
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" stroke="url(#textGradient)"
+              stroke-width="0.3" mask="url(#textMask)" class="text-stroke-gradient">
+              KIRA AI
+            </text>
+          </svg>
+        </div>
+      </footer>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const svg = document.getElementById('footer-text-hover-svg');
+          const mask = document.getElementById('revealMask');
+          if (svg && mask) {
+            svg.addEventListener('mousemove', (e) => {
+              const rect = svg.getBoundingClientRect();
+              const x = ((e.clientX - rect.left) / rect.width) * 100;
+              const y = ((e.clientY - rect.top) / rect.height) * 100;
+              mask.setAttribute('cx', `${x}%`);
+              mask.setAttribute('cy', `${y}%`);
+            });
+
+            svg.addEventListener('mouseenter', () => {
+              svg.classList.add('hovered');
+            });
+
+            svg.addEventListener('mouseleave', () => {
+              svg.classList.remove('hovered');
+              mask.setAttribute('cx', '50%');
+              mask.setAttribute('cy', '50%');
+            });
+          }
+        });
+      </script>
+    </div>
+  </div>
+
+    <!-- 1.1 Popup Modal Đăng nhập / Đăng ký (Auth Modal Popup) -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+      <div class="auth-modal-card animate-scale-up">
+        <button class="close-auth-modal" onclick="closeAuthModal()">&times;</button>
+
+        <!-- Modal Tabs -->
+        <div class="auth-modal-tabs">
+          <button id="tab-btn-login" class="auth-tab-btn active" onclick="switchAuthTab('login')">Đăng nhập</button>
+          <button id="tab-btn-register" class="auth-tab-btn" onclick="switchAuthTab('register')">Đăng ký</button>
+        </div>
+
+        <!-- Login Form Content -->
+        <div id="auth-login-section" class="auth-tab-content">
+          <div class="auth-modal-body">
+            <div class="auth-avatar-circle">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <h3>Chào mừng trở lại!</h3>
+            <p class="auth-subtitle">Đăng nhập để kết nối với Kira AI và phát triển</p>
+
+            <div id="google-login-btn" style="display: flex; justify-content: center; width: 100%; margin-bottom: 15px;"></div>
+
+            <div class="auth-divider"><span>Hoặc sử dụng tài khoản</span></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+              <div class="form-group">
+                <label for="login-username"><i class="fa-regular fa-envelope"></i> Email hoặc Tên đăng nhập</label>
+                <input type="text" id="login-username" class="input-field" placeholder="Tên đăng nhập hoặc email..."
+                  required>
+              </div>
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label for="login-password"><i class="fa-solid fa-lock"></i> Mật khẩu</label>
+                  <a href="#" class="auth-link-forgot"
+                    onclick="event.preventDefault(); switchAuthTab('forgot')">Quên
+                    mật khẩu?</a>
+                </div>
+                <div style="position: relative; width: 100%;">
+                  <input type="password" id="login-password" class="input-field" placeholder="••••••••" required>
+                  <i class="fa-regular fa-eye-slash toggle-password-btn"
+                    onclick="togglePasswordVisibility('login-password', this)"></i>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-auth-submit" id="login-submit-btn">
+                Đăng nhập <i class="fa-solid fa-arrow-right-long"></i>
+              </button>
+            </form>
+            <div class="auth-footer-prompt">
+              Chưa có tài khoản? <a href="#" onclick="event.preventDefault(); switchAuthTab('register')">Đăng ký miễn
+                phí</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Forgot Password Form Content -->
+        <div id="auth-forgot-section" class="auth-tab-content" style="display: none;">
+          <div class="auth-modal-body">
+            <div class="auth-avatar-circle" style="background: rgba(200,121,65,0.1); color: hsl(var(--primary));">
+              <i class="fa-solid fa-key"></i>
+            </div>
+            <h3>Khôi phục mật khẩu</h3>
+            <p class="auth-subtitle">Nhập email để nhận mã OTP xác thực đặt lại mật khẩu</p>
+
+            <!-- Forgot step 1: Request OTP -->
+            <form id="forgot-password-form" onsubmit="handleForgotPassword(event)">
+              <div class="form-group">
+                <label for="forgot-email"><i class="fa-regular fa-envelope"></i> Địa chỉ Email</label>
+                <input type="email" id="forgot-email" class="input-field" placeholder="Nhập email tài khoản của bạn..." required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-auth-submit" id="forgot-submit-btn">
+                Gửi mã xác nhận OTP <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </form>
+
+            <!-- Forgot step 2: Reset Password (hidden by default) -->
+            <form id="reset-password-form" onsubmit="handleResetPassword(event)" style="display: none;">
+              <div class="form-group">
+                <label for="reset-code"><i class="fa-solid fa-shield-halved"></i> Mã xác nhận OTP</label>
+                <input type="text" id="reset-code" class="input-field" placeholder="Nhập mã OTP 6 chữ số..." required>
+              </div>
+              <div class="form-group">
+                <label for="reset-new-password"><i class="fa-solid fa-lock"></i> Mật khẩu mới</label>
+                <div style="position: relative; width: 100%;">
+                  <input type="password" id="reset-new-password" class="input-field" placeholder="Tối thiểu 6 ký tự..." required>
+                  <i class="fa-regular fa-eye-slash toggle-password-btn" onclick="togglePasswordVisibility('reset-new-password', this)"></i>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-auth-submit" id="reset-submit-btn">
+                Xác nhận đổi mật khẩu <i class="fa-solid fa-check"></i>
+              </button>
+            </form>
+
+            <div class="auth-footer-prompt">
+              Quay lại <a href="#" onclick="event.preventDefault(); switchAuthTab('login')">Đăng nhập</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Register Form Content -->
+        <div id="auth-register-section" class="auth-tab-content" style="display: none;">
+          <div class="auth-modal-body">
+            <div class="auth-avatar-circle">
+              <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h3>Đăng ký thành viên</h3>
+            <p class="auth-subtitle">Trở thành thành viên và trải nghiệm sức mạnh AI</p>
+
+            <div id="google-register-btn" style="display: flex; justify-content: center; width: 100%; margin-bottom: 15px;"></div>
+
+            <div class="auth-divider"><span>Hoặc điền thông tin</span></div>
+
+            <form id="register-form" onsubmit="handleRegister(event)">
+              <div class="form-group">
+                <label for="reg-username"><i class="fa-regular fa-user"></i> Tên đăng nhập</label>
+                <input type="text" id="reg-username" class="input-field" placeholder="Nhập tên đăng nhập viết liền..."
+                  required autocomplete="username">
+              </div>
+              <div class="form-group">
+                <label for="reg-email"><i class="fa-regular fa-envelope"></i> Email của bạn</label>
+                <input type="email" id="reg-email" class="input-field" placeholder="email@vi-du.com" required
+                  autocomplete="email">
+              </div>
+              <div class="form-group">
+                <label for="reg-password"><i class="fa-solid fa-lock"></i> Mật khẩu</label>
+                <div style="position: relative; width: 100%;">
+                  <input type="password" id="reg-password" class="input-field" placeholder="Tối thiểu 6 ký tự..."
+                    required autocomplete="new-password">
+                  <i class="fa-regular fa-eye-slash toggle-password-btn"
+                    onclick="togglePasswordVisibility('reg-password', this)"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="reg-confirm-password"><i class="fa-solid fa-lock"></i> Xác nhận mật khẩu</label>
+                <div style="position: relative; width: 100%;">
+                  <input type="password" id="reg-confirm-password" class="input-field"
+                    placeholder="Nhập lại mật khẩu..." required autocomplete="new-password">
+                  <i class="fa-regular fa-eye-slash toggle-password-btn"
+                    onclick="togglePasswordVisibility('reg-confirm-password', this)"></i>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-auth-submit" id="register-submit-btn">
+                Tạo tài khoản <i class="fa-solid fa-arrow-right-long"></i>
+              </button>
+            </form>
+            <div class="auth-footer-prompt">
+              Đã có tài khoản? <a href="#" onclick="event.preventDefault(); switchAuthTab('login')">Đăng nhập ngay</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- OTP Verify Form Content -->
+        <div id="auth-verify-section" class="auth-tab-content" style="display: none;">
+          <div class="auth-modal-body">
+            <div class="auth-avatar-circle" style="background: linear-gradient(135deg, #e0d5cb, #8c6239);">
+              <i class="fa-solid fa-envelope-circle-check"></i>
+            </div>
+            <h3>Xác minh Email</h3>
+            <p class="auth-subtitle">Một mã OTP đã được gửi tới địa chỉ email của bạn. Vui lòng nhập mã để hoàn tất đăng ký.</p>
+
+            <form id="verify-form" onsubmit="handleVerifyOTP(event)">
+              <div class="form-group">
+                <label for="verify-email"><i class="fa-regular fa-envelope"></i> Email của bạn</label>
+                <input type="email" id="verify-email" class="input-field" readonly style="background-color: rgba(0,0,0,0.05); color: #888;">
+              </div>
+              <div class="form-group">
+                <label for="verify-otp"><i class="fa-solid fa-key"></i> Nhập mã OTP (6 số)</label>
+                <input type="text" id="verify-otp" class="input-field" placeholder="Mã OTP gồm 6 chữ số..." required maxlength="6" pattern="\d{6}">
+              </div>
+              <button type="submit" class="btn btn-primary btn-auth-submit" id="verify-submit-btn">
+                Xác nhận & Đăng ký <i class="fa-solid fa-arrow-right-long"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.2 Popup Modal Chi Tiết Model (AI Model Details Modal) -->
+    <div id="model-details-modal" class="modal-overlay" style="display: none;">
+      <div class="model-details-modal-card animate-scale-up">
+        <button class="close-auth-modal" onclick="closeModelDetailsModal()">&times;</button>
+        <h3 id="modal-model-name" class="modal-title"
+          style="margin-bottom: 0.5rem; text-align: left; font-size: 1.5rem; font-weight: 700; color: hsl(var(--text-primary)); border: none; padding: 0;">
+          Model Name</h3>
+        <p id="modal-model-desc"
+          style="font-size: 0.9rem; color: hsl(var(--text-secondary)); margin-bottom: 1.5rem; line-height: 1.6; text-align: left;">
+          Model Description</p>
+
+        <div class="model-details-grid">
+          <div class="model-details-item">
+            <div class="model-details-label">Nhà cung cấp</div>
+            <div id="modal-model-provider" class="model-details-value">Provider</div>
+          </div>
+          <div class="model-details-item">
+            <div class="model-details-label">Dòng mô hình</div>
+            <div id="modal-model-family" class="model-details-value">Family</div>
+          </div>
+          <div class="model-details-item">
+            <div class="model-details-label">Token Ngữ Cảnh</div>
+            <div id="modal-model-context" class="model-details-value">Context</div>
+          </div>
+          <div class="model-details-item">
+            <div class="model-details-label">Định dạng đầu ra</div>
+            <div id="modal-model-formats" class="model-details-value">Formats</div>
+          </div>
+        </div>
+
+        <div id="modal-model-meta-container" class="model-details-meta-container" style="display: none;">
+          <h4 class="model-details-meta-title">Thông tin bổ sung</h4>
+          <div id="modal-model-meta">
+            <!-- Render metadata dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Giao diện chính (Dashboard Layout) -->
+    <div id="dashboard-screen" class="dashboard-screen" style="display: none;">
+
+      <!-- Mobile Sidebar Backdrop Overlay -->
+      <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+      <!-- Mobile Dashboard Header -->
+      <header class="mobile-dashboard-header">
+        <button class="menu-toggle-btn" onclick="toggleSidebar()" title="Mở danh mục">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="mobile-dashboard-logo">
+          <img src="/images/logo.png" class="logo-img" alt="Kira AI">
+          <span class="logo-title text-gradient">Kira AI</span>
+        </div>
+        <div class="mobile-dashboard-actions">
+          <a href="/" class="logo-home-link" onclick="event.preventDefault(); navigateToHome();" title="Về trang chủ">
+            <i class="fa-solid fa-house"></i>
+          </a>
+          <div class="mobile-dashboard-user" onclick="switchTab('guide')" title="Hướng dẫn sử dụng">
+            <i class="fa-solid fa-user-astronaut"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <img src="/images/logo.png" class="logo-img" alt="Kira AI">
+            <span class="logo-title text-gradient">Kira AI</span>
+          </div>
+          <div class="sidebar-header-actions">
+            <a href="/" class="logo-home-link" onclick="event.preventDefault(); navigateToHome();" title="Về trang chủ">
+              <i class="fa-solid fa-house"></i>
+            </a>
+            <button class="close-sidebar-btn" onclick="toggleSidebar()" title="Đóng danh mục">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="user-profile-badge" onclick="switchTab('profile')" style="cursor: pointer;" title="Cài đặt tài khoản">
+          <div class="user-avatar" id="user-avatar-container"><i class="fa-solid fa-user-astronaut"></i></div>
+          <div class="user-details">
+            <div class="username-display" id="user-display-name">Username</div>
+            <div style="display: flex; align-items: center; gap: 6px; margin: 2px 0;">
+              <span id="user-id-display"
+                style="font-size: 0.75rem; color: hsl(var(--text-muted)); font-family: monospace;"></span>
+              <button onclick="copyUserId()"
+                style="background: none; border: none; color: hsl(var(--text-muted)); cursor: pointer; font-size: 0.7rem; padding: 2px; display: inline-flex; align-items: center;"
+                title="Copy User ID">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+            <div class="user-role-pill" id="user-role-pill">USER</div>
+          </div>
+        </div>
+
+        <!-- Token Limit Status Box -->
+        <div class="sidebar-token-status" id="sidebar-token-status"
+          style="margin: 0.5rem 1.25rem 1.25rem 1.25rem; padding: 0.75rem; background: hsl(var(--bg-card-hover)); border: 1px solid hsl(var(--border)); border-radius: 8px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px;">
+          <div
+            style="display: flex; align-items: center; justify-content: space-between; font-weight: 500; color: hsl(var(--text-secondary));">
+            <span>Hạn mức còn lại:</span>
+            <i class="fa-solid fa-chart-pie" style="color: hsl(var(--primary));"></i>
+          </div>
+          <div id="user-token-limit-display" class="font-semibold text-primary" style="margin-bottom: 2px;">Đang tải...
+          </div>
+          <div class="token-progress-bar"
+            style="width: 100%; height: 6px; background: hsl(var(--border)); border-radius: 3px; overflow: hidden; margin: 2px 0;">
+            <div id="user-token-progress-fill"
+              style="width: 0%; height: 100%; background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent))); transition: width 0.3s ease;">
+            </div>
+          </div>
+          <div id="user-token-used-display"
+            style="font-size: 0.75rem; color: hsl(var(--text-muted)); text-align: right;">Đã dùng hôm nay: 0</div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <div class="menu-section-label">AI Tools</div>
+          <a href="#" class="menu-item active" id="menu-chat" onclick="event.preventDefault(); switchTab('chat')">
+            <span class="menu-icon"><i class="fa-regular fa-comments"></i></span> <span>Kira Chatbox</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-images" onclick="event.preventDefault(); switchTab('images')">
+            <span class="menu-icon"><i class="fa-regular fa-image"></i></span> <span>Kira Images</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-videos" onclick="event.preventDefault(); switchTab('videos')">
+            <span class="menu-icon"><i class="fa-solid fa-video"></i></span> <span>Kira Videos</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-voices" onclick="event.preventDefault(); switchTab('voices')">
+            <span class="menu-icon"><i class="fa-solid fa-volume-high"></i></span> <span>Kira Voices</span>
+          </a>
+
+          <div class="menu-section-label">Tiện ích</div>
+          <a href="#" class="menu-item" id="menu-gallery" onclick="event.preventDefault(); switchTab('gallery')">
+            <span class="menu-icon"><i class="fa-solid fa-photo-film"></i></span> <span>Thư viện Media</span>
+          </a>
+          <a href="/trung-bay" class="menu-item" id="menu-showcase" onclick="event.preventDefault(); window.history.pushState({}, '', '/trung-bay'); routeView();">
+            <span class="menu-icon"><i class="fa-solid fa-earth-asia"></i></span> <span>Trưng bày</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-developer" onclick="event.preventDefault(); switchTab('developer')">
+            <span class="menu-icon"><i class="fa-solid fa-code"></i></span> <span>Quản lý API Key</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-guide" onclick="event.preventDefault(); switchTab('guide')">
+            <span class="menu-icon"><i class="fa-regular fa-compass"></i></span> <span>Hướng dẫn sử dụng</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-admin" style="display: none;"
+            onclick="event.preventDefault(); switchTab('admin')">
+            <span class="menu-icon"><i class="fa-solid fa-sliders"></i></span> <span>Trang Quản Trị</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-admin-orders" style="display: none;"
+            onclick="event.preventDefault(); switchTab('orders')">
+            <span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span> <span>Quản lý đơn hàng</span>
+          </a>
+          <a href="#" class="menu-item" id="menu-my-orders" style="display: none;"
+            onclick="event.preventDefault(); switchTab('my-orders')">
+            <span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span> <span>Đơn hàng của tôi</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button onclick="handleLogout()" class="btn btn-logout" id="logout-btn">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Đăng Xuất</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Workspace Section -->
+      <main class="main-content" id="main-content-view">
+      </main>
+    </div>
+  </div>
+
+  <!-- Detail Showcase Lightbox Modal -->
+  <div id="showcase-lightbox" class="modal-overlay" style="display: none;" onclick="closeShowcaseLightbox()">
+    <div class="modal-card lightbox-card animate-zoom" style="max-width: 800px; width: 95%; max-height: 90vh; overflow-y: auto; background: hsl(var(--bg-card));" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" id="showcase-lightbox-title"><i class="fa-solid fa-circle-info text-gradient"></i> Chi Tiết Tác Phẩm</h3>
+        <button class="close-modal-btn" onclick="closeShowcaseLightbox()">&times;</button>
+      </div>
+      <div class="modal-body text-center" style="max-height: 60vh; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 8px; position: relative;">
+        <img id="showcase-lightbox-img" style="max-width: 100%; max-height: 60vh; display: none; object-fit: contain;">
+        <video id="showcase-lightbox-video" controls autoplay loop style="max-width: 100%; max-height: 60vh; display: none;"></video>
+      </div>
+      <div style="padding: 1.25rem; border-top: 1px solid hsl(var(--border)); text-align: left;" id="showcase-lightbox-prompt-container">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem;">
+          <img id="showcase-lightbox-avatar" src="/images/default-avatar.jpg" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid hsl(var(--border)); object-fit: cover;">
+          <div>
+            <div id="showcase-lightbox-author" style="font-weight: 600; font-size: 0.9rem; color: hsl(var(--text-primary));"></div>
+            <div style="font-size: 0.75rem; color: hsl(var(--text-muted));">Tác giả</div>
+          </div>
+        </div>
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: hsl(var(--primary)); font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Mô tả chi tiết (Prompt)</div>
+        <p id="showcase-lightbox-prompt" style="font-weight: 500; font-size: 0.95rem; color: hsl(var(--text-primary)); line-height: 1.5; margin: 0; text-align: left; word-break: break-word;"></p>
+        <div id="showcase-lightbox-meta" style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0.75rem; font-size: 0.8rem; color: hsl(var(--text-muted)); border-top: 1px dashed hsl(var(--border) / 0.5); padding-top: 0.75rem;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 1rem 1.25rem;">
+        <button class="btn btn-secondary" onclick="closeShowcaseLightbox()">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Create User Modal -->
+  <div id="create-user-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card animate-zoom">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-gradient"></i> Tạo Thành Viên Mới</h3>
+        <button class="close-modal-btn" onclick="closeCreateUserModal()">&times;</button>
+      </div>
+      <form id="create-user-form" onsubmit="handleCreateUser(event)">
+        <div class="modal-body">
+          <p class="text-secondary mb-4">Nhập thông tin tài khoản cho thành viên mới bên dưới.</p>
+
+          <div class="form-group">
+            <label for="admin-create-username"><i class="fa-regular fa-user"></i> Tên tài khoản</label>
+            <input type="text" id="admin-create-username" class="input-field"
+              placeholder="Nhập tên tài khoản (viết liền)..." required autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="admin-create-email"><i class="fa-regular fa-envelope"></i> Email liên hệ</label>
+            <input type="email" id="admin-create-email" class="input-field" placeholder="name@example.com" required
+              autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="admin-create-password"><i class="fa-solid fa-lock"></i> Mật khẩu đăng nhập</label>
+            <input type="password" id="admin-create-password" class="input-field"
+              placeholder="Mật khẩu tối thiểu 6 ký tự..." required autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label for="admin-create-role"><i class="fa-solid fa-user-shield"></i> Vai trò</label>
+            <select id="admin-create-role" class="input-field select-field">
+              <option value="user">User (Thành viên thông thường)</option>
+              <option value="admin">Admin (Quản trị viên toàn cục)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="admin-create-status"><i class="fa-solid fa-circle-check"></i> Trạng thái</label>
+            <select id="admin-create-status" class="input-field select-field">
+              <option value="active">Active (Hoạt động bình thường)</option>
+              <option value="suspended">Suspended (Tạm dừng/Khóa)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="admin-create-limit"><i class="fa-solid fa-gauge"></i> Hạn mức Token/Ngày</label>
+            <input type="number" id="admin-create-limit" class="input-field" placeholder="Không giới hạn..." min="0">
+            <small class="text-secondary mt-1 block">Để trống hoặc nhập 0 để cấu hình sử dụng không giới hạn.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" onclick="closeCreateUserModal()" class="btn btn-secondary">Hủy</button>
+          <button type="submit" class="btn btn-primary">Tạo tài khoản</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Change User Password Modal -->
+  <div id="change-password-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card animate-zoom">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-key text-gradient"></i> Đổi Mật Khẩu Thành Viên</h3>
+        <button class="close-modal-btn" onclick="closeChangePasswordModal()">&times;</button>
+      </div>
+      <form id="change-password-form" onsubmit="handleChangePassword(event)">
+        <div class="modal-body">
+          <p class="text-secondary mb-4">Nhập mật khẩu mới cho tài khoản <strong id="change-password-username-display"
+              class="text-gradient">username</strong> bên dưới.</p>
+
+          <input type="hidden" id="change-password-user-id">
+
+          <div class="form-group">
+            <label for="admin-change-password-value"><i class="fa-solid fa-lock"></i> Mật khẩu mới</label>
+            <input type="password" id="admin-change-password-value" class="input-field"
+              placeholder="Mật khẩu tối thiểu 6 ký tự..." required autocomplete="new-password">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" onclick="closeChangePasswordModal()" class="btn btn-secondary">Hủy</button>
+          <button type="submit" class="btn btn-primary">Đặt mật khẩu mới</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Set User Daily Token Limit Modal -->
+  <div id="set-limit-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card animate-zoom">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gauge text-gradient"></i> Đổi Hạn Mức Token Hàng Ngày</h3>
+        <button class="close-modal-btn" onclick="closeSetLimitModal()">&times;</button>
+      </div>
+      <form id="set-limit-form" onsubmit="handleSetLimit(event)">
+        <div class="modal-body">
+          <p class="text-secondary mb-4">Nhập hạn mức Token hàng ngày cho tài khoản <strong
+              id="set-limit-username-display" class="text-gradient">username</strong> bên dưới.</p>
+
+          <input type="hidden" id="set-limit-user-id">
+
+          <div class="form-group">
+            <label for="admin-set-limit-value"><i class="fa-solid fa-bolt"></i> Hạn mức Token/Ngày</label>
+            <input type="number" id="admin-set-limit-value" class="input-field" placeholder="Không giới hạn..." min="0">
+            <small class="text-secondary mt-1 block">Để trống hoặc nhập 0 để cấu hình sử dụng không giới hạn.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" onclick="closeSetLimitModal()" class="btn btn-secondary">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu hạn mức</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Log Detail Modal -->
+  <div id="log-detail-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card animate-zoom max-w-xl">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-invoice text-gradient"></i> Chi Tiết Giao Dịch API</h3>
+        <button class="close-modal-btn" onclick="closeLogDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="stats-grid grid-3 mb-4"
+          style="grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+          <div class="stats-card py-2" style="padding: 10px; text-align: center;">
+            <div class="stats-label" style="font-size: 10px; text-transform: uppercase;">Model</div>
+            <div class="stats-num text-gradient" style="font-size: 13px; font-weight: bold; margin-top: 5px;"
+              id="log-detail-model">-</div>
+          </div>
+          <div class="stats-card py-2" style="padding: 10px; text-align: center;">
+            <div class="stats-label" style="font-size: 10px; text-transform: uppercase;">Tokens</div>
+            <div class="stats-num text-gradient" style="font-size: 13px; font-weight: bold; margin-top: 5px;"
+              id="log-detail-tokens">0</div>
+          </div>
+          <div class="stats-card py-2" style="padding: 10px; text-align: center;">
+            <div class="stats-label" style="font-size: 10px; text-transform: uppercase;">Thời gian</div>
+            <div style="font-size: 10px; margin-top: 5px;" id="log-detail-time">-</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="text-secondary" style="font-size: 12px; font-weight: bold;"><i class="fa-solid fa-link"></i>
+            Endpoint & Backend API URL</label>
+          <div class="code-box-wrapper mt-1">
+            <pre class="code-block"
+              style="font-size: 11px; padding: 10px; border-radius: 6px; max-height: 80px; overflow-y: auto;"><code id="log-detail-urls" class="text-gradient" style="font-weight: 500;">GET /api/chat...</code></pre>
+          </div>
+        </div>
+
+        <div class="form-group mt-3" style="margin-top: 15px;">
+          <label class="text-secondary" style="font-size: 12px; font-weight: bold;"><i
+              class="fa-solid fa-comment-dots"></i> Prompt Đầu Vào (Input Messages)</label>
+          <div class="code-box-wrapper mt-1">
+            <pre class="code-block"
+              style="max-height: 150px; overflow-y: auto; font-size: 11px; padding: 10px; border-radius: 6px; background-color: #1E150F; color: #F5E6D3;"><code id="log-detail-prompt">...</code></pre>
+          </div>
+        </div>
+
+        <div class="form-group mt-3" style="margin-top: 15px;">
+          <label class="text-secondary" style="font-size: 12px; font-weight: bold;"><i
+              class="fa-solid fa-reply-all"></i> Dữ Liệu Phản Hồi Đầu Ra (Output Response)</label>
+          <div class="code-box-wrapper mt-1">
+            <pre class="code-block"
+              style="max-height: 150px; overflow-y: auto; white-space: pre-wrap; font-size: 11px; padding: 10px; border-radius: 6px; background-color: #1E150F; color: #F5E6D3;"><code id="log-detail-response">...</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" onclick="closeLogDetailModal()" class="btn btn-secondary">Đóng</button>
+        <button type="button" id="btn-delete-log-in-modal" class="btn btn-danger"><i class="fa-solid fa-trash-can"></i>
+          Xóa Log Này</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Loading Overlay -->
+  <div id="global-loading-overlay" class="modal-overlay" style="display: none; z-index: 9999; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; background: hsl(var(--bg-card)); padding: 30px; border-radius: 16px; border: 1px solid hsl(var(--border)); box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+      <i class="fa-solid fa-circle-notch fa-spin text-gradient" style="font-size: 3rem; color: hsl(var(--primary));"></i>
+      <span id="global-loading-text" style="font-weight: 600; color: hsl(var(--text-primary)); font-size: 1rem;">Đang xử lý, vui lòng đợi...</span>
+    </div>
+  </div>
+
+  <!-- External UI Animation Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Identity Services (GIS) for Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Core Front-End JavaScript Application -->
+  <script src="/js/app.js?v=1.3"></script>
+</body>
+
+</html>

@@ -73,6 +73,8 @@ const DEFAULT_SETTINGS = {
   },
   cavemanEnabled: false,
   cavemanLevel: "full",
+  privacyEnabled: true,
+  privacyCustomKeywords: [],
 };
 
 async function readRaw() {

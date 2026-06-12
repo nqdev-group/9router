@@ -227,6 +227,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       rtkConfig: chatSettings.rtkConfig || {},
       cavemanEnabled: !!chatSettings.cavemanEnabled,
       cavemanLevel: chatSettings.cavemanLevel || "full",
+      privacyEnabled: chatSettings.privacyEnabled !== false,
+      privacyCustomKeywords: Array.isArray(chatSettings.privacyCustomKeywords) ? chatSettings.privacyCustomKeywords : [],
       providerThinking,
       // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
