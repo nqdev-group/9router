@@ -1,256 +1,3 @@
-# v0.4.80 (2026-06-13)
-
-## Features
-- Vercel AI Gateway: support embeddings, images and credit usage (#1183)
-- Add MiMo Free no-auth provider (#1789)
-- Vertex: support ADC `authorized_user` credential
-- Cowork: re-enable Claude Cowork with preset-only stdio MCP
-- Codex: bulk add accounts via JSON (#1719)
-- Kiro: enable multi-endpoint failover for GenerateAssistantResponse (#1722)
-
-## Fixes
-- Security: re-auth on DB export/import + SSRF guard on web fetch
-- Auth: real client IP rate-limiting + remote default-password guard
-- Cerebras/Mistral: strip unsupported `client_metadata` from downstream requests (#1742)
-- SiliconFlow: update baseUrl `.cn` -> `.com` + curate verified model list (#1760)
-- Gemini-to-OpenAI: route unsigned thought parts to `reasoning_content` (#1752)
-- Claude-to-OpenAI: strip Anthropic billing header from system prompt (#1765)
-- Anthropic-compatible: send Bearer auth for third-party gateways (#1795)
-- Usage-stats: avoid partial stats on initial SSE race (#1767)
-- Proxy: use `export default` in proxy.js for Next.js 16 middleware detection
-- Claude passthrough: add body normalization
-- GitHub Copilot: refresh missing/expired token on models discovery (#1727) + add mappable gpt-5-mini/gpt-5.4-nano slots for Copilot MITM (#1653)
-- Kiro: auto-resolve profileArn to prevent 403 on IDC login, enhance profile ARN resolution, update endpoint to `runtime.us-east-1.kiro.dev` (#1713)
-- Tunnel: detect system-installed Tailscale via dual-socket probe (#1723) + non-blocking probes to prevent UI freeze
-- CommandCode: force `stream=true` in transformRequest (#1706)
-- Qoder: increase timeouts for reasoning models and improve stream handling
-- Dashboard: show provider node name instead of connection name in topology (#1770) + show explicit `kind="llm"` combos on combos page (#1684)
-
-## Docs
-- README: add Indonesian 9Router tutorial video (#1709)
-
-# v0.4.71 (2026-06-06)
-
-## Features
-- Caveman: add wenyan classical Chinese levels and sync upstream prompts; locale-based visibility on endpoint page
-- i18n: endpoint exposure notice across multiple languages + Russian README
-- Antigravity: add gemini-3.5-flash-extra-low (Low) model
-- xiaomi-tokenplan: add Claude-native MiMo V2.5 Pro alias via dedicated executor
-- Qoder: fetch latest model + dashboard import-model button (#1642)
-- MiniMax: add MiniMax-M3 + update Quota Tracker coding/CN (#1631)
-
-## Fixes
-- Codex: harden streaming timeouts (stall/connect raised to 60s, configurable per-provider), accept `response.done` event, and always emit a terminal `response.failed` + `[DONE]` for Responses passthrough when a stream closes, stalls, or aborts before a terminal event — prevents codex clients from hanging (#1648, #1680, #1688, #1618)
-- Codex: durable OAuth refresh lifecycle (#1664)
-- Tunnel: skip virtual interfaces to prevent false netchange watchdog
-- Claude: fix forced tool_choice 400 on cc/ OAuth route (#1592)
-- Proxy: raise Next client body limit to 128MB via `NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE` (#1529, #1572)
-- MiniMax: echo `reasoning_content` on follow-up turns to avoid 400 (#1543)
-- Kiro: handle 400 on tool-bearing history without client tools; add mappable "auto" model slot; fix binary EventStream crash + add models & TTS tool filtering
-- Antigravity: passthrough tab-autocomplete + mark default agent slot mandatory
-- Qoder: allow `qmodel_latest` model key (#1638)
-- Providers: restore one-connection guard for compatible/embedding nodes
-- Model-test: route image/STT probes to their real endpoints, harden STT ping; add opencode-go + xiaomi-tokenplan to connection test (#1576, #1628)
-
-## Improvements
-- Dashboard: reorganize menu actions across sidebar/header/profile
-- Translator: add data-driven coverage, bug-exposing cases, and real provider smoke tests
-
-# v0.4.66 (2026-05-29)
-
-## Features
-- Add Qoder provider: device-flow OAuth, COSY signing, WAF-bypass body encoding, live model catalog, dashboard quota tracker, 11 models (#1372)
-- Add new models: Claude Opus 4.8 (Claude Code), GPT 5.4 Mini (Codex)
-
-## Fixes
-- DeepSeek thinking mode: echo `reasoning_content` back on follow-up/tool-call turns so OpenCode-free and custom providers no longer 400 with "reasoning_content must be passed back" (#1543)
-- Reasoning injector: match deepseek/kimi model ids case-insensitively (covers custom providers using capitalized model names)
-- OpenCode suggested-models: include free models without the `-free` suffix, e.g. `big-pickle` (#1535)
-
-## Improvements
-- Codex: trim sunset models, keep gpt-5.5 / gpt-5.4 / gpt-5.3-codex family, add gpt-5.4-mini
-- volcengine-ark: refresh model list (add DeepSeek-V4-Flash/Pro, drop EOL entries)
-- Lower stream stall timeout 35s → 30s for faster hang detection
-
-# v0.4.63 (2026-05-26)
-
-## Fixes
-- GitHub Copilot: never route Gemini/Claude models to the `/responses` endpoint; prevents misleading "does not support Responses API" 400s (#1062)
-- proxyFetch: restore missing `Readable` import causing runtime `ReferenceError` in DNS-bypass fetch path
-
-## Improvements
-- Lower stream stall timeout from 60s → 35s for faster hang detection
-
-# v0.4.62 (2026-05-26)
-
-## Fixes
-- Codex: auto-retry when upstream drops mid-stream (no more hangs)
-- Codex: fix random 400/404 errors, tool-calling failures, and unstable prompt cache
-- MITM: support Antigravity 2.x 
-- Sanitize Read tool args to prevent retry loops from non-Anthropic models (#1144)
-- Implement json_schema fallback for OpenAI-compatible providers without native Structured Output (#1343)
-- Strip empty Read pages argument in OpenAI-to-Claude translator (#1354)
-- Forward Gemini output dimensions for embeddings (#1366)
-- Resolve setState-in-effect errors in dashboard components (#1362)
-- Gemini CLI: reuse stored OAuth project IDs for quota checks and show clearer setup guidance when the project is missing (#1271, #1428)
-
-## Features
-- Add Cloudflare Workers proxy deployer and pool integration (#1360)
-- Add Deno Deploy relays support and improved proxy pools dashboard layout (#1437)
-
-## Improvements
-- Refactor Tunnel into dedicated Cloudflare and Tailscale manager modules
-- Refactor tokenRefresh service with in-flight dedup to prevent refresh_token_reused errors
-
-# v0.4.59 (2026-05-21)
-
-## Fixes
-- OAuth: fix login flow on Windows
-
-# v0.4.58 (2026-05-21)
-
-## Features
-- xAI Grok provider (OAuth, API key, image)
-- Provider limits: paginated accounts with page size controls
-
-## Fixes
-- Tailscale: fix connection status on Windows (#1300)
-- Tunnel: fix false "checking" when tunnel URL is reachable
-- Stream: fix pipe errors on client disconnect/abort
-
-# v0.4.55 (2026-05-18)
-
-## Features
-- Xiaomi MiMo Token Plan: region selector (Singapore / China / Europe) — keys are cluster-specific
-- Antigravity: risk confirmation dialog before first connection
-- Gemini CLI: surface upstream retry delay on 429 errors
-
-## Fixes
-- MITM: cannot kill process on macOS under sudo (lsof not found in PATH)
-- Stream: false-positive stall timeout on Claude reasoning / Kiro responses
-- Tunnel: cannot re-enable after disable (stuck state)
-- Tunnel: cloudflared error messages now include log tail for easier debugging
-- Language switcher: applies selected locale immediately on close (#1234)
-- Antigravity OAuth: metadata now matches the official client
-
-## Improvements
-- Gemini CLI: bump engine to 0.34.0
-- Re-hide `qwen` (OAuth EOL) and `iflow` (not ready) providers
-
-# v0.4.52 (2026-05-17)
-
-## Features
-- Add Vercel AI Gateway provider support (#1183)
-- rtk: Kiro format tool result compression — handle conversationState.history & currentMessage, preserve error results, ~13.6% savings (#1194)
-
-## Fixes
-- openclaw: normalize agent.model object form `{primary, fallbacks}` before .startsWith → fix TypeError & 'not configured' status (#1216)
-- Usage Details pagination: stay inside mobile viewport <640px (#1218)
-- Fix test model error
-- Fix MIMO provider in Codex
-- Disable log file creation when using MITM AG
-
-# v0.4.50 (2026-05-16)
-
-## Fixes
-- Fix duplicate tray icon on macOS when hiding to tray
-- Fix tray not showing in background mode on macOS
-- Fix hide to tray broken on Windows/Linux
-- Fix Shutdown button in web UI not working
-
-# v0.4.49 (2026-05-16)
-
-## Features
-- Add Kiro provider support: full request/response translation, live model listing, reasoning content support
-- Add `buildOutput` RTK filter with autodetect for npm/yarn/cargo build logs
-- Add MITM warning notification in tray and dashboard
-
-## Improvements
-- Add modalities (input/output) to model configuration for OpenCode
-- Fix tray hide-to-tray: keep current process alive instead of spawning detached child (fixes macOS NSStatusItem ghost icon)
-- Fix tray kill: graceful shutdown with SIGTERM/SIGKILL escalation
-- Fix SIGHUP handling so macOS terminal close doesn't kill tray process
-- Hide deprecated providers (qwen, iflow, antigravity)
-- Update i18n across 32 languages
-
-## Fixes
-- Fix model check (test-models) blocked by dashboardGuard: pass machineId-based CLI token in internal self-calls
-
-# v0.4.46 (2026-05-15)
-
-## Breaking Changes
-- Tunnel public URL changed — old tunnel links no longer work, please reconnect to get the new URL
-
-# v0.4.44 (2026-05-15)
-
-## Features
-- Add Blackbox provider with `bb` alias (#1143)
-- Add Xiaomi token plan provider
-- Enhance model select modal UX + modal traffic lights (#1111)
-- Default Usage dashboard period to Today (#1141)
-
-## Fixes
-- Fix Cowork model selection and Windows CLI packaging (#1129)
-- Update provider name retrieval for compatibility provider (#1135)
-- Update JWT_SECRET handling
-
-# v0.4.41 (2026-05-14)
-
-## Features
-- Add jcode CLI tool integration with auto-configuration (#1047)
-- Redesign CLI Tools dashboard: grid layout (1/2/3 cols) + dedicated detail page per tool
-- Add drag-and-drop reordering for combo models (#1108)
-- Add Today period option to Usage & Analytics (#1063)
-- Add DeepSeek V4 Pro effort aliases (#950)
-
-## Fixes
-- fix(autostart): work on nvm + npm 9/10, actually register with launchctl (#1104, fixes #1082)
-- Fix Ollama usage not tracked/shown in UI (#1102)
-- fix(opencode): preserve DeepSeek reasoning content (#1099, fixes #1093)
-- Fix TUI input lag (replace enquirer with native readline, persistent raw mode)
-- fix(ui): show API key row actions on mobile (#1112)
-
-## Improvements
-- Sync DeepSeek TUI card style with other CLI tools (badges, layout, manual config modal)
-- Add official logos for Amp CLI, jcode, Qwen Code (replace generic icons)
-- Resize deepseek-tui icon 1024→128 with padding for visual consistency
-
-# v0.4.39 (2026-05-14)
-
-## Fixes
-- fix(docker): restore `/app/server.js` (v0.4.38 regression)
-
-# v0.4.38 (2026-05-13)
-
-## Features
-- Add DeepSeek TUI as CLI tool in dashboard (#1088)
-
-## Fixes
-- Fix broken Docker image in v0.4.36/v0.4.37 (#1096, #1097)
-
-## Improvements
-- Clean Docker tags + clearer pulls badge
-
-# v0.4.37 (2026-05-13)
-
-## Improvements
-- Security hardening — upgrade recommended
-
-# v0.4.36 (2026-05-13)
-
-## Features
-- Add MiniMax TTS provider support (#1043)
-- Docker images now published on both Docker Hub (`decolua/9router`) and GHCR — pull from your preferred registry
-
-## Improvements
-- Replace browser confirm dialogs with custom ConfirmModal (#1060)
-
-## Fixes
-- Fix Docker `Cannot find module 'next'` error in standalone build
-- Restore /app/server.js in Docker standalone build (#1064, #1067)
-- Fix CLI TUI menu arrow-key escape sequences leaking (^[[A^[[B)
-- Switch macOS/Linux tray to systray2 fork (fixes Kaspersky AV false-positive) (#1080)
-- Fix zoom controls contrast in topology view (#1066)
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -260,57 +7,130 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Generated by [`auto-changelog`](https://github.com/CookPete/auto-changelog).
 
-## [v--output](https://github.com/nqdev-group/9router/compare/v26.4.71...v--output)
+## [v1.0.6](https://github.com/nqdev-group/9router/compare/v26.4.71...v1.0.6)
 
 ### Merged
 
+- fix changelog [`#29`](https://github.com/nqdev-group/9router/pull/29)
+- feat(cmem): add observation toggle, purge all, and single delete controls [`#28`](https://github.com/nqdev-group/9router/pull/28)
+- feat(cmem): add observation toggle, purge all, and single delete controls [`#26`](https://github.com/nqdev-group/9router/pull/26)
+- Develop [`#25`](https://github.com/nqdev-group/9router/pull/25)
+- Master [`#24`](https://github.com/nqdev-group/9router/pull/24)
+- Master forked [`#23`](https://github.com/nqdev-group/9router/pull/23)
+- Potential fix for code scanning alert no. 27: DOM text reinterpreted as HTML [`#16`](https://github.com/nqdev-group/9router/pull/16)
+- Potential fix for code scanning alert no. 20: Insecure randomness [`#14`](https://github.com/nqdev-group/9router/pull/14)
+- QUYIT-565 Kế hoạch phát triển tính năng Security & Data Privacy cho 9Router [`#21`](https://github.com/nqdev-group/9router/pull/21)
+- Potential fix for code scanning alert no. 34: Incomplete URL substring sanitization [`#20`](https://github.com/nqdev-group/9router/pull/20)
+- Potential fix for code scanning alert no. 1: Workflow does not contain permissions [`#19`](https://github.com/nqdev-group/9router/pull/19)
+- Potential fix for code scanning alert no. 3: Replacement of a substring with itself [`#18`](https://github.com/nqdev-group/9router/pull/18)
+- Potential fix for code scanning alert no. 30: Prototype-polluting function [`#17`](https://github.com/nqdev-group/9router/pull/17)
+- Potential fix for code scanning alert no. 28: DOM text reinterpreted as HTML [`#13`](https://github.com/nqdev-group/9router/pull/13)
+- Potential fix for code scanning alert no. 26: DOM text reinterpreted as HTML [`#15`](https://github.com/nqdev-group/9router/pull/15)
+- Potential fix for code scanning alert no. 21: Insecure randomness [`#12`](https://github.com/nqdev-group/9router/pull/12)
 - QUYIT-564 Enhance RTK engine, integrate Models.dev pricing, and update docs [`#10`](https://github.com/nqdev-group/9router/pull/10)
 - Implement Caveman Engine and Token Saver features with dashboard [`#8`](https://github.com/nqdev-group/9router/pull/8)
 - Add RTK Engine components and integrate API with dashboard [`#7`](https://github.com/nqdev-group/9router/pull/7)
 - [WIP] Fix failing GitHub Actions job 'build-and-push' [`#6`](https://github.com/nqdev-group/9router/pull/6)
 - Add MCP server package and implement cost reporting features [`#3`](https://github.com/nqdev-group/9router/pull/3)
 
+### Fixed
+
+- fix(dashboard): show explicit kind="llm" combos on combos page [`#1682`](https://github.com/nqdev-group/9router/issues/1682)
+
 ### Commits
 
 - Refactor code structure for improved readability and maintainability [`92a9ba1`](https://github.com/nqdev-group/9router/commit/92a9ba143842075a067fab153eab447fb47b4cfa)
+- feat(cmem): add Contextual Memory engine with response cache support [`899e36e`](https://github.com/nqdev-group/9router/commit/899e36e533b2a7a55969261b368aa6b841be4bd1)
 - guide [`55cd011`](https://github.com/nqdev-group/9router/commit/55cd0115ec64e097153db487644d62d4ee797725)
 - feat: Add RTK Engine components and API integration [`8225311`](https://github.com/nqdev-group/9router/commit/82253118626592f3f6dfb77713724abfe7efa4ec)
+- kira ai provider [`3695247`](https://github.com/nqdev-group/9router/commit/369524794de758b809fc7565037861bb88c03fe8)
+- CHANGELOG-NQDEV [`76b0cf9`](https://github.com/nqdev-group/9router/commit/76b0cf9e8eebe21a653da1051f5087a877032235)
 - chore: update changelog for release [`2f49ddc`](https://github.com/nqdev-group/9router/commit/2f49ddc3a78a364d74dfbe478e327e6a6c25f286)
 - Refactor code structure for improved readability and maintainability [`f289e5d`](https://github.com/nqdev-group/9router/commit/f289e5df9fff5973e693ad75e1015aca511ca5e7)
 - feat(token-saver): Implement Token Saver feature with comprehensive stats, charts, and request tracking [`f338be6`](https://github.com/nqdev-group/9router/commit/f338be6eed5b711d15b12c6c83a164b9e16a12ac)
 - feat: Integrate Models.dev pricing support with API endpoints and dashboard settings [`de83f75`](https://github.com/nqdev-group/9router/commit/de83f751ef6b76762153533aad111ad42c9146ca)
 - feat: Enhance RTK engine and preprocessing for improved input token optimization [`5e0f481`](https://github.com/nqdev-group/9router/commit/5e0f48194db05929d376cad6dd6f54ce64135f06)
 - feat: implement cost reporting components including breakdown table, charts, and summary cards [`252d35f`](https://github.com/nqdev-group/9router/commit/252d35fcf129ca26c82efbf42a842adc6015685b)
+- feat(provider): add MiMo Free no-auth provider [`b40e96d`](https://github.com/nqdev-group/9router/commit/b40e96d0ef91bef65123a8af0fddd32e90251218)
 - feat: Add EditorConfig and models.dev pricing integration plan [`3db0e71`](https://github.com/nqdev-group/9router/commit/3db0e71b1ce071126d7d1fe44f7a384d0ff9aa61)
 - feat: Add Token Saver report plan with data collection and API endpoints [`94c830f`](https://github.com/nqdev-group/9router/commit/94c830f5621a170e2680660f955edbbcbb065cbd)
+- wiki [`df81fe0`](https://github.com/nqdev-group/9router/commit/df81fe07dd09d7fdc22ac74979a11964d8abe25a)
+- feat(providers/codex): bulk add accounts via JSON [`8962e46`](https://github.com/nqdev-group/9router/commit/8962e466d6a25ee546d54dc7a9a62faca46de177)
 - feat: Implement Caveman components and API for configuration management [`6caa4d2`](https://github.com/nqdev-group/9router/commit/6caa4d25ed1c21f27d1058e09fd49191ac106662)
+- environment-variables [`e1f4e86`](https://github.com/nqdev-group/9router/commit/e1f4e8669da6430bb8e57c89a20d9a3cc6433a16)
+- fix(auth): real client IP rate-limiting + remote default-password guard [`7648c34`](https://github.com/nqdev-group/9router/commit/7648c3412b403a29f04967c4b4e9725e228791d4)
 - docs: add Docker build guide for 9Router [`47420f5`](https://github.com/nqdev-group/9router/commit/47420f5d05e68d74cfbe5fc14cfc7f2aab47f101)
 - docs: add CLAUDE.md for project guidance and development commands [`071ec30`](https://github.com/nqdev-group/9router/commit/071ec300f096f0eed877a846b69ce8b47e3902da)
+- feat(cowork): re-enable Claude Cowork with preset-only stdio MCP [`f8b73fa`](https://github.com/nqdev-group/9router/commit/f8b73faf5d4da7c0753800e66f34d8267f0f3b46)
+- feat(vercel-ai-gateway): support embeddings, images and credit usage [`b33cbb0`](https://github.com/nqdev-group/9router/commit/b33cbb0280073a65db26697b682ee6174189528f)
+- fix(security): re-auth on DB export/import + SSRF guard on web fetch [`0c7c9de`](https://github.com/nqdev-group/9router/commit/0c7c9de00ae3ab81d6580e3cc368483c4c03f6fd)
 - feat: Add Caveman Engine page and update sidebar navigation [`f42f9b6`](https://github.com/nqdev-group/9router/commit/f42f9b6810710f60f944b462c3e0a76054a5f8f3)
+- add từ khóa [`07a8e4a`](https://github.com/nqdev-group/9router/commit/07a8e4a103d0e74c8b3540327b680733c183b19b)
 - feat: Add Caveman Engine configuration and dashboard plan [`2ab753d`](https://github.com/nqdev-group/9router/commit/2ab753d8deb2e6ab5de867fae4532ab72efac632)
 - Add CodeQL workflow for code analysis [`b9c9479`](https://github.com/nqdev-group/9router/commit/b9c947941d100f6827af90da5e4d9990c2192403)
 - feat: add usage analytics cost report implementation plan with detailed component structure and routing [`c2c7574`](https://github.com/nqdev-group/9router/commit/c2c75742a64d884e0c01800dcd4628d06ce80711)
 - feat: add MCP server package with essential functionality and configuration [`98ea3ea`](https://github.com/nqdev-group/9router/commit/98ea3ea0a451ebda0574da42a839e3a21b5c2632)
 - refactor: replace getProviderNameByAlias with getProviderByAlias for consistency in cost components [`44f977b`](https://github.com/nqdev-group/9router/commit/44f977b698ad14fe5a3cb1461f4275b85532888a)
+- fix(tunnel): detect system-installed Tailscale via dual-socket probe [`24a4f08`](https://github.com/nqdev-group/9router/commit/24a4f0863f274e60eab6f81292329aebd19876fa)
+- feat(kiro): enable multi-endpoint failover for GenerateAssistantResponse [`c24efe8`](https://github.com/nqdev-group/9router/commit/c24efe80f019af71b878391373813f5ec8304947)
+- Kế hoạch chi tiết được lưu tại: plans/security-privacy-plan.md [`aa4a580`](https://github.com/nqdev-group/9router/commit/aa4a580e898acb92b86d42dc2126bd4a2a60e7b4)
+- fix(tunnel): make tailscale probes non-blocking to prevent UI freeze [`289214a`](https://github.com/nqdev-group/9router/commit/289214a2eaba740923a01fe0086b53a503ca300b)
+- enhance Kiro profile ARN resolution [`b309261`](https://github.com/nqdev-group/9router/commit/b309261166055b849eb2a875415b92f132f67112)
+- feat(vertex): support ADC authorized_user credential [`9406bd1`](https://github.com/nqdev-group/9router/commit/9406bd18060635bd78cd1c725c3c1e3f3330206c)
+- update slidebar [`bc712e2`](https://github.com/nqdev-group/9router/commit/bc712e279cfbd80e76488753e41a29922314701e)
+- fix: add normalization for Claude passthrough bodies [`4443903`](https://github.com/nqdev-group/9router/commit/444390390001b9a3021c2a3be2339fa734394053)
 - feat: add docker-compose configuration for 9Router service [`818aa49`](https://github.com/nqdev-group/9router/commit/818aa492004b104409695e38d811b45551209be0)
+- fixbug not call to kira [`eb50ce7`](https://github.com/nqdev-group/9router/commit/eb50ce74dbe41b4251e2f4cca32092b12a00cecb)
+- update agent [`4c3a1a5`](https://github.com/nqdev-group/9router/commit/4c3a1a5d03d8ad95c8e59464e807667cff4fa123)
+- fix(kiro): auto-resolve profileArn to prevent 403 on IDC login [`f8c5922`](https://github.com/nqdev-group/9router/commit/f8c59227f6056633d70c4f00996490e422702505)
 - refactor: Enhance documentation for TokenSaverReport and CostReport components; update default period in TokenSaverReport [`39387b5`](https://github.com/nqdev-group/9router/commit/39387b568c7c6eb8aee2816f0b12fdf852615012)
+- v0.4.77 (2026-06-13) [`515e2cc`](https://github.com/nqdev-group/9router/commit/515e2cc4300ace55650ae366414cd51ef3d675df)
+- fix(siliconflow): update baseUrl .cn -&gt; .com + curate verified model list [`e6bac77`](https://github.com/nqdev-group/9router/commit/e6bac77696fcddc8fc93c6ed1f026ac330402543)
+- fix(copilot): add mappable gpt-5-mini/gpt-5.4-nano slots for Copilot MITM [`b2aa08a`](https://github.com/nqdev-group/9router/commit/b2aa08ad16f073236258298f643393452474c6fc)
 - docs: Update AGENTS.md for clarity and organization of key architecture and commands [`394c20a`](https://github.com/nqdev-group/9router/commit/394c20a2b2ea4a43f0d465462fe6451ee44c64de)
+- fix(qoder): increase timeouts for reasoning models and improve stream handling [`137a25e`](https://github.com/nqdev-group/9router/commit/137a25e9ac5a476cd85af4d2f9b54ab71e9bab2a)
+- fix(provider-topology): update label assignment to include nodeName [`05e483c`](https://github.com/nqdev-group/9router/commit/05e483c02eee226fd95dc980de24e38bb1e37b37)
+- fix(usage-stats): avoid partial stats on initial SSE race [`564f2ec`](https://github.com/nqdev-group/9router/commit/564f2ece0d071808cd9b53eeb0459bfdaeb8fe50)
+- fix(github): proactively refresh missing/expired Copilot token on models discovery [`c572c68`](https://github.com/nqdev-group/9router/commit/c572c68717ad7dc7cc2aec286571abe2efa65617)
+- cleanup(changelog): remove noise entries from CHANGELOG.md [`7695acd`](https://github.com/nqdev-group/9router/commit/7695acdd14b3fef409be0cffc4b26c612e946a50)
+- chore: update changelog for release [`b326720`](https://github.com/nqdev-group/9router/commit/b3267208d4aadfbf407e71947be298fcfac2eafa)
 - chore: update jsconfig paths and add utils index file [`c5bee11`](https://github.com/nqdev-group/9router/commit/c5bee114712f11b2e456ddffa215aae23f4bd912)
 - chore: update changelog for release [`c4b65b1`](https://github.com/nqdev-group/9router/commit/c4b65b103f1e931367294f35d6fbb58348d97f9a)
 - fix: Correct export syntax in TokenSaver components and improve button class formatting in TokenSaverReport [`dce7294`](https://github.com/nqdev-group/9router/commit/dce72947e98afc1fa7aabf95527746aae7a36c89)
+- fix(mitm): update Kiro API endpoint to runtime.us-east-1.kiro.dev [`dd5c575`](https://github.com/nqdev-group/9router/commit/dd5c575c65a4f3a371f96944ccccd8500886502c)
 - Potential fix for pull request finding [`ab93ca4`](https://github.com/nqdev-group/9router/commit/ab93ca464476fe7fa8b285d959ffae6990bed616)
 - fix: Update import paths for components and correct variable reference in StatsCards [`b540755`](https://github.com/nqdev-group/9router/commit/b54075573c185b2c80121897670ddbd974a87c80)
 - Potential fix for pull request finding [`e2ccde7`](https://github.com/nqdev-group/9router/commit/e2ccde7f994bfc44f5bbe040ae5ce1e537d624f1)
+- folder claude [`de1e489`](https://github.com/nqdev-group/9router/commit/de1e489b8994c19798492d537cebbe8572189c57)
+- fix(claude-to-openai): strip Anthropic billing header from system prompt [`0aaa5ab`](https://github.com/nqdev-group/9router/commit/0aaa5ab3c29fd13de95e8bc43c376a22e74a85be)
+- fix(gemini-to-openai): route unsigned thought parts to reasoning_content [`d9b0300`](https://github.com/nqdev-group/9router/commit/d9b030011f42e12a0cbb8464b8b2eba36e58c31a)
+- chore: update changelog for release [`eb6fc7b`](https://github.com/nqdev-group/9router/commit/eb6fc7bf53f8ede4a0b6ed88b3d008977df2b729)
 - Potential fix for pull request finding [`2cbe66c`](https://github.com/nqdev-group/9router/commit/2cbe66cc8593953f8c875a4d82453c009d659388)
-- fix: update workflow name and refine Docker image build conditions [`130acac`](https://github.com/nqdev-group/9router/commit/130acacaa14fe462c681b80f18cfe437d30e7749)
+- docs(readme): add Indonesian 9Router tutorial video [`8e31b5f`](https://github.com/nqdev-group/9router/commit/8e31b5ff2f9d3ef9682a1f4c2cd1a38f04bc9618)
 - fix(jsconfig): Update path mapping for @9router to include all package files [`ec511af`](https://github.com/nqdev-group/9router/commit/ec511afa02267cac1950741ece6d5ac4ba266a02)
 - fix: Await database adapter in Token Saver stats and chart data functions [`9feee1d`](https://github.com/nqdev-group/9router/commit/9feee1dc4150996d762e8573fc28d8512420912b)
-- docs: Update AGENTS.md to clarify import aliases and SQLite persistence details [`f446e13`](https://github.com/nqdev-group/9router/commit/f446e13b944afc0ccbe19639cf75c51d69cc07ac)
-- Potential fix for pull request finding [`07a714d`](https://github.com/nqdev-group/9router/commit/07a714d3df5ea98dd917d5ea3b2329805953d2c3)
-- chore(ci): update .version.txt for build 1.0.3 [`5391ac9`](https://github.com/nqdev-group/9router/commit/5391ac9f59c20f879b91a8770d446b0783f8cc69)
-- chore(ci): update .version.txt for build 1.0.2 [`c192263`](https://github.com/nqdev-group/9router/commit/c192263e58529fc0986a6c99dde9852b9c057698)
 - Fix JSX syntax error: escape '&gt;' in AdvancedSettings.js line 136 [`ed92135`](https://github.com/nqdev-group/9router/commit/ed921355749fcae8d1e8e87b8ffd3cc9d6e9ff65)
 - Initial plan [`8e27678`](https://github.com/nqdev-group/9router/commit/8e27678d1166e28e2f3f7f208589bb46f61360b9)
+- fix: update workflow name and refine Docker image build conditions [`130acac`](https://github.com/nqdev-group/9router/commit/130acacaa14fe462c681b80f18cfe437d30e7749)
+- them _Footer [`ea881fc`](https://github.com/nqdev-group/9router/commit/ea881fcf53919e1f9f29f41190ceb58558fbb11f)
+- fix(cerebras,mistral): strip unsupported client_metadata from downstream requests [`d652300`](https://github.com/nqdev-group/9router/commit/d652300e9e0c91d466f6b290482430562313ef91)
+- chore(config): rename changelog output to CHANGELOG-NQDEV.md [`30e40d3`](https://github.com/nqdev-group/9router/commit/30e40d3edf85037e9d3f995945e626a8712241fa)
+- fix(token-saver): normalize hitRate to string-safe parseFloat parsing [`b3847df`](https://github.com/nqdev-group/9router/commit/b3847df24e7c6fffb407ef65da2ccee608997bbc)
+- fix: use export default in proxy.js for Next.js 16 middleware detection [`bbc204b`](https://github.com/nqdev-group/9router/commit/bbc204b6019ddafcc9cc8a389e5511a4fdd1bbb4)
+- fix(anthropic-compatible): send Bearer auth for third-party gateways [`b977bf7`](https://github.com/nqdev-group/9router/commit/b977bf74149c704c91092f0e1db0372695f452bc)
+- .delete env example [`8674b7b`](https://github.com/nqdev-group/9router/commit/8674b7b97ec26b4b3a80b9722cd5b5dc1c84bda0)
+- update provider models [`5a0da57`](https://github.com/nqdev-group/9router/commit/5a0da57f49de44b1294a417f1396dd9170feaff2)
+- docs: Update AGENTS.md to clarify import aliases and SQLite persistence details [`f446e13`](https://github.com/nqdev-group/9router/commit/f446e13b944afc0ccbe19639cf75c51d69cc07ac)
+- fix(commandcode): force stream=true in transformRequest [`c5815ad`](https://github.com/nqdev-group/9router/commit/c5815ad3f0b4efdf307de26aab1c0dc577269a8b)
+- Potential fix for pull request finding 'CodeQL / Insecure randomness' [`38589ca`](https://github.com/nqdev-group/9router/commit/38589cac66cb2332a14dbc652688623887aabdef)
+- cập nhật [`e88bced`](https://github.com/nqdev-group/9router/commit/e88bced6c4b161f366c8abbf73ddbc282272b3a1)
+- environment-variables [`813f60a`](https://github.com/nqdev-group/9router/commit/813f60ad5af7d412a6b032e41501799d43c13ef3)
+- Potential fix for pull request finding [`07a714d`](https://github.com/nqdev-group/9router/commit/07a714d3df5ea98dd917d5ea3b2329805953d2c3)
+- chore(ci): update .version.txt for build 1.0.6 [`afc5c89`](https://github.com/nqdev-group/9router/commit/afc5c895965e4f37fcca799323cb3734ec9df838)
+- Update ChangeLog [`23da7b1`](https://github.com/nqdev-group/9router/commit/23da7b1fe3bb8edd2bdbdb63fbbb15a476b02c56)
+- chore(ci): update .version.txt for build 1.0.4 [`38e226c`](https://github.com/nqdev-group/9router/commit/38e226cad63009682844c827614d86714494d6fe)
+- chore(ci): update .version.txt for build 1.0.3 [`5391ac9`](https://github.com/nqdev-group/9router/commit/5391ac9f59c20f879b91a8770d446b0783f8cc69)
+- chore(ci): update .version.txt for build 1.0.2 [`c192263`](https://github.com/nqdev-group/9router/commit/c192263e58529fc0986a6c99dde9852b9c057698)
 - Potential fix for pull request finding [`b68ba8e`](https://github.com/nqdev-group/9router/commit/b68ba8e119296d9c25e7eb56a1734dd72075c1f6)
 - fix: update workflow name to include [NQDEV] prefix for clarity [`148652b`](https://github.com/nqdev-group/9router/commit/148652b2b0889d00878594461db42bd0faa2bf97)
 - chore(ci): update .version.txt for build 1.0.1 [`01fe596`](https://github.com/nqdev-group/9router/commit/01fe596653f4a81644bf987af2d3e827519f2a04)
