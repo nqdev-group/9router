@@ -6,6 +6,8 @@ import {
   SavingsTrendChart,
   RtkFilterBreakdown,
   CavemanLevelHistory,
+  CmemContextStats,
+  ResponseCacheStats,
   TokenSaverPerRequestTable,
 } from "@9router/components/token-saver";
 
@@ -122,6 +124,8 @@ export default function TokenSaverReport() {
           <TokenSaverOverview stats={stats} period={period} />
           <SavingsTrendChart chartData={chartData} />
           <RtkFilterBreakdown stats={stats} />
+          <CmemContextStats stats={stats} />
+          <ResponseCacheStats stats={stats} />
           <CavemanLevelHistory stats={stats} />
           <TokenSaverPerRequestTable data={perRequestData} onPageChange={handlePageChange} />
         </>
