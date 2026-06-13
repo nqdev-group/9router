@@ -164,6 +164,12 @@ export class MemoryStore {
     await this.db.run(`DELETE FROM cmem_observations WHERE id = ?`, [id]);
   }
 
+  async clearAllObservations() {
+    await this.db.run(`DELETE FROM cmem_observations`);
+    await this.db.run(`DELETE FROM cmem_sessions`);
+    await this.db.run(`DELETE FROM cmem_context_cache`);
+  }
+
   async getStats() {
     const total = await this.db.get(`SELECT COUNT(*) as count FROM cmem_observations`);
     const tokens = await this.db.get(`SELECT COALESCE(SUM(tokens),0) as total FROM cmem_observations`);

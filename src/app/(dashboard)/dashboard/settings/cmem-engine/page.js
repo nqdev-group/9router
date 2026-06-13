@@ -64,6 +64,7 @@ export default function CmemEnginePage() {
             tokenBudget: 4000,
             historyDepth: "session",
             maxObservations: 20,
+            observationsEnabled: true,
             compressionModel: null,
             summarizationEnabled: true,
             searchMode: "fts",

@@ -117,6 +117,11 @@ export class CmemEngine {
     return this.store.deleteObservation(id);
   }
 
+  async clearAllObservations() {
+    if (!this.store) return;
+    return this.store.clearAllObservations();
+  }
+
   async getStats() {
     const storeStats = this.store ? await this.store.getStats() : { totalObservations: 0, totalTokens: 0, byType: [] };
     const avgTokens = this._stats.totalInjectionCount > 0

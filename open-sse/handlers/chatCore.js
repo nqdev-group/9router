@@ -326,6 +326,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // CMEM: async capture after response completes
   const captureToCmem = () => {
     if (!cmemCapture) return;
+    if (cmemConfig?.observationsEnabled === false) return;
     cmemCapture.captureObservation({
       model,
       messages: body?.messages || body?.input || [],

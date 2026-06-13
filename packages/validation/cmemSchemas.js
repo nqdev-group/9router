@@ -28,6 +28,10 @@ export function validateCmemConfig(config) {
     errors.push("maxObservations must be between 1 and 100");
   }
 
+  if (config.observationsEnabled !== undefined && typeof config.observationsEnabled !== "boolean") {
+    errors.push("observationsEnabled must be a boolean");
+  }
+
   if (config.searchMode !== undefined && !VALID_SEARCH_MODES.includes(config.searchMode)) {
     errors.push(`Invalid searchMode: ${config.searchMode}`);
   }
