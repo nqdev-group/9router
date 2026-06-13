@@ -24,7 +24,7 @@ export default function TokenSaverOverview({ stats, period }) {
   const savingsPct = rtk.savingsPercent || 0;
   const cavemanSavingPct = caveman.estimatedSavingPercent || 0;
   const totalEstPct = combined.totalEstimatedSavingsPercent || 0;
-  const cacheHitPct = cache.hitRate || 0;
+  const cacheHitPct = parseFloat(cache.hitRate) || 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">

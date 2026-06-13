@@ -14,7 +14,7 @@ const fmtPct = (n) => `${(n || 0).toFixed(1)}%`;
 
 export default function ResponseCacheStats({ stats }) {
   const cache = stats?.responseCache || {};
-  const s = cache.stats || {};
+  const s = cache;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -35,7 +35,7 @@ export default function ResponseCacheStats({ stats }) {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-text-muted uppercase font-semibold">Hit Rate</span>
-            <span className="truncate text-lg font-bold text-primary">{fmtPct(s.hitRate || 0)}</span>
+            <span className="truncate text-lg font-bold text-primary">{fmtPct(parseFloat(s.hitRate) || 0)}</span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-text-muted uppercase font-semibold">Evictions</span>
