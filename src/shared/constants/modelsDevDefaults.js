@@ -1,0 +1,9 @@
+export const MODELS_DEV_CATALOG_URL = "https://models.dev/catalog.json";
+export const MODELS_DEV_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+export const MODELS_DEV_ENABLED_DEFAULT = false;
+export const MODELS_DEV_PREFER_DEFAULT = false;
+export const MODELS_DEV_FETCH_TIMEOUT_MS = 30000;
+export const MODELS_DEV_SCOPE = "modelsDevPricing";
+export const MODELS_DEV_SNAPSHOT_KEY = "snapshot";
+export const MODELS_DEV_MAP_KEY = "modelMap";
+export const MODELS_DEV_MANUAL_MAP_KEY = "manualMap";

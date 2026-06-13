@@ -1,0 +1,50 @@
+name: Sync Docs to Wiki
+run-name: "Wiki sync for ${{ github.ref_name }} by @${{ github.actor }}"
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout wiki repo
+        uses: actions/checkout@v4
+        with:
+          # https://github.com/nqdev-group/9router.wiki.git
+          repository: nqdev-group/9router.wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: wiki
+
+      - name: Sync docs/guide to wiki
+        run: |
+          rsync -av --delete --exclude='.git' --exclude='README.md' \
+            docs/guide/ wiki/
+          echo "---"
+          echo "Files synced:"
+          ls -la wiki/
+
+      - name: Commit and push to wiki
+        run: |
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "sync: update wiki from docs/guide (${{ github.ref_name }})"
+            git push
+            echo "Wiki updated successfully"
+          else
+            echo "No changes to commit"
+          fi

@@ -6,6 +6,17 @@ import { Modal, Button, Input, OAuthModal } from "@/shared/components";
 
 const GITLAB_COM = "https://gitlab.com";
 
+function getSafeBaseUrl(rawBaseUrl) {
+  const candidate = (rawBaseUrl || "").trim() || GITLAB_COM;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return GITLAB_COM;
+    return url.origin;
+  } catch {
+    return GITLAB_COM;
+  }
+}
+
 function getRedirectUri() {
   if (typeof window === "undefined") return "http://localhost/callback";
   const port = window.location.port || (window.location.protocol === "https:" ? "443" : "80");
@@ -135,7 +146,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
           <>
             <p className="text-xs text-text-muted">
               Create an OAuth app at{" "}
-              <a href={`${baseUrl.trim() || GITLAB_COM}/-/profile/applications`} target="_blank" rel="noreferrer" className="text-primary underline">
+              <a href={`${getSafeBaseUrl(baseUrl)}/-/profile/applications`} target="_blank" rel="noreferrer" className="text-primary underline">
                 GitLab Applications
               </a>{" "}
               with redirect URI{" "}
@@ -161,7 +172,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
           <>
             <p className="text-xs text-text-muted">
               Create a PAT at{" "}
-              <a href={`${baseUrl.trim() || GITLAB_COM}/-/user_settings/personal_access_tokens`} target="_blank" rel="noreferrer" className="text-primary underline">
+              <a href={`${getSafeBaseUrl(baseUrl)}/-/user_settings/personal_access_tokens`} target="_blank" rel="noreferrer" className="text-primary underline">
                 GitLab Access Tokens
               </a>{" "}
               with scopes: <code className="bg-sidebar px-1 rounded text-xs">api</code>,{" "}

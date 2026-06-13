@@ -115,10 +115,11 @@ export const APIKEY_PROVIDERS = {
   comfyui: { id: "comfyui", alias: "comfyui", name: "ComfyUI", icon: "account_tree", color: "#4CAF50", textIcon: "CF", website: "https://github.com/comfyanonymous/ComfyUI", serviceKinds: ["image"] },
   huggingface: { id: "huggingface", alias: "hf", name: "HuggingFace", icon: "face", color: "#FFD21E", textIcon: "HF", website: "https://huggingface.co", notice: { apiKeyUrl: "https://huggingface.co/settings/tokens" }, serviceKinds: ["image", "imageToText", "tts", "stt"], hiddenKinds: ["tts"], ttsConfig: { baseUrl: "https://api-inference.huggingface.co/models", authType: "apikey", authHeader: "bearer", format: "huggingface-tts", models: [{ id: "facebook/mms-tts-eng", name: "MMS TTS English" }, { id: "microsoft/speecht5_tts", name: "SpeechT5 TTS" }] }, sttConfig: { baseUrl: "https://api-inference.huggingface.co/models", authType: "apikey", authHeader: "bearer", format: "huggingface-asr", models: [{ id: "openai/whisper-large-v3", name: "Whisper Large v3 (HF)" }, { id: "openai/whisper-small", name: "Whisper Small (HF)" }] } },
   blackbox: { id: "blackbox", alias: "bb", name: "Blackbox AI", icon: "smart_toy", color: "#5B5FEF", textIcon: "BB", website: "https://blackbox.ai", notice: { apiKeyUrl: "https://www.blackbox.ai/api-management" }, serviceKinds: ["llm"] },
+  kira: { id: "kira", alias: "kira", name: "Kira AI", icon: "smart_toy", color: "#8B5CF6", textIcon: "KR", website: "https://kiraai.vn", notice: { text: "Kira AI - OpenAI-compatible API. Supports flash and pro models.", apiKeyUrl: "https://kiraai.vn/developer" }, serviceKinds: ["llm", "image", "video"] },
   chutes: { id: "chutes", alias: "ch", name: "Chutes AI", icon: "water_drop", color: "#ffffffff", textIcon: "CH", website: "https://chutes.ai", notice: { apiKeyUrl: "https://chutes.ai/app/api" } },
   // === Free-tier LLM providers (synced from OmniRoute) — DISABLED in UI ===
   // Uncomment to re-enable. Backend config (PROVIDERS, PROVIDER_MODELS, ALIAS_TO_PROVIDER_ID) remains active.
-  // agentrouter: { id: "agentrouter", alias: "agentrouter", name: "AgentRouter", icon: "router", color: "#10B981", textIcon: "AR", website: "https://agentrouter.org", notice: { text: "$200 free credits on signup - multi-model routing gateway.", apiKeyUrl: "https://agentrouter.org/register" }, passthroughModels: true, serviceKinds: ["llm"] },
+  agentrouter: { id: "agentrouter", alias: "agentrouter", name: "AgentRouter", icon: "router", color: "#10B981", textIcon: "AR", website: "https://agentrouter.org", notice: { text: "$200 free credits on signup - multi-model routing gateway.", apiKeyUrl: "https://agentrouter.org/register" }, passthroughModels: true, serviceKinds: ["llm"] },
   // aimlapi: { id: "aimlapi", alias: "aiml", name: "AI/ML API", icon: "hub", color: "#6366F1", textIcon: "AI", website: "https://aimlapi.com", notice: { text: "$0.025/day free — 200+ models (GPT-4o, Claude, Gemini, Llama) via single endpoint.", apiKeyUrl: "https://aimlapi.com/app/keys" }, passthroughModels: true, serviceKinds: ["llm", "image"] },
   // novita: { id: "novita", alias: "novita", name: "Novita AI", icon: "auto_awesome", color: "#FF4081", textIcon: "NV", website: "https://novita.ai", notice: { text: "$0.50 trial credits on signup (valid ~1 year).", apiKeyUrl: "https://novita.ai/settings/key-management" }, passthroughModels: true, serviceKinds: ["llm", "image"] },
   // modal: { id: "modal", alias: "mdl", name: "Modal", icon: "cloud_queue", color: "#7C3AED", textIcon: "MDL", website: "https://modal.com", notice: { text: "$30/month free credits for new accounts. Self-hosted OpenAI-compatible apps on /v1.", apiKeyUrl: "https://modal.com/settings/tokens" }, passthroughModels: true, serviceKinds: ["llm"], hasProviderSpecificData: true },
@@ -128,7 +129,7 @@ export const APIKEY_PROVIDERS = {
   // completions: { id: "completions", alias: "cpl", name: "Completions.me", icon: "bolt", color: "#F59E0B", textIcon: "CP", website: "https://completions.me", notice: { text: "Free unlimited access to Claude, GPT, Gemini.", apiKeyUrl: "https://completions.me" }, serviceKinds: ["llm"] },
   // enally: { id: "enally", alias: "enly", name: "Enally AI", icon: "school", color: "#8B5CF6", textIcon: "EN", website: "https://ai.enally.in", notice: { text: "Free for students and developers — OTP verification.", apiKeyUrl: "https://ai.enally.in/api" }, serviceKinds: ["llm"] },
   // freetheai: { id: "freetheai", alias: "fta", name: "FreeTheAi", icon: "lock_open", color: "#10B981", textIcon: "FT", website: "https://freetheai.xyz", notice: { text: "Community-run free tier — 16,000+ models, OpenAI-compatible.", apiKeyUrl: "https://freetheai.xyz" }, serviceKinds: ["llm"] },
-  // llm7: { id: "llm7", alias: "llm7", name: "LLM7.io", icon: "hub", color: "#6366F1", textIcon: "LM", website: "https://llm7.io", notice: { text: "Works without API key (use 'unused'). 2 req/s, 100 req/hr free.", apiKeyUrl: "https://token.llm7.io" }, serviceKinds: ["llm"] },
+  llm7: { id: "llm7", alias: "llm7", name: "LLM7.io", icon: "hub", color: "#6366F1", textIcon: "LM", website: "https://llm7.io", notice: { text: "Works without API key (use 'unused'). 2 req/s, 100 req/hr free.", apiKeyUrl: "https://token.llm7.io" }, serviceKinds: ["llm"] },
   // lepton: { id: "lepton", alias: "lepton", name: "Lepton AI", icon: "bolt", color: "#10B981", textIcon: "LP", website: "https://lepton.ai", notice: { apiKeyUrl: "https://dashboard.lepton.ai/credentials" }, serviceKinds: ["llm"] },
   // kluster: { id: "kluster", alias: "kluster", name: "Kluster AI", icon: "hub", color: "#8B5CF6", textIcon: "KL", website: "https://kluster.ai", notice: { text: "$5 free credits on signup — DeepSeek R1, Llama 4, Qwen3 235B.", apiKeyUrl: "https://kluster.ai/dashboard/api-keys" }, serviceKinds: ["llm"] },
   // ai21: { id: "ai21", alias: "ai21", name: "AI21 Labs", icon: "psychology_alt", color: "#0284C7", textIcon: "AI21", website: "https://www.ai21.com", notice: { text: "$10 trial credits on signup (valid 3 months).", apiKeyUrl: "https://studio.ai21.com/account/api-key" }, serviceKinds: ["llm"] },
@@ -178,15 +179,15 @@ export const WEB_COOKIE_PROVIDERS = {
 
 // Media provider kinds — each kind maps to a route and endpoint config
 export const MEDIA_PROVIDER_KINDS = [
-  { id: "embedding",   label: "Embedding",      icon: "data_array",        endpoint: { method: "POST", path: "/v1/embeddings" } },
-  { id: "image",       label: "Text to Image",  icon: "brush",             endpoint: { method: "POST", path: "/v1/images/generations" } },
-  { id: "imageToText", label: "Image to Text",  icon: "image_search",      endpoint: { method: "POST", path: "/v1/images/understanding" } },
-  { id: "tts",         label: "Text To Speech", icon: "record_voice_over", endpoint: { method: "POST", path: "/v1/audio/speech" } },
-  { id: "stt",         label: "Speech To Text", icon: "mic",               endpoint: { method: "POST", path: "/v1/audio/transcriptions" } },
-  { id: "webSearch",   label: "Web Search",     icon: "travel_explore",    endpoint: { method: "POST", path: "/v1/search" } },
-  { id: "webFetch",    label: "Web Fetch",      icon: "language",          endpoint: { method: "POST", path: "/v1/web/fetch" } },
-  { id: "video",       label: "Video",          icon: "movie",             endpoint: { method: "POST", path: "/v1/video/generations" } },
-  { id: "music",       label: "Music",          icon: "music_note",        endpoint: { method: "POST", path: "/v1/audio/music" } },
+  { id: "embedding", label: "Embedding", icon: "data_array", endpoint: { method: "POST", path: "/v1/embeddings" } },
+  { id: "image", label: "Text to Image", icon: "brush", endpoint: { method: "POST", path: "/v1/images/generations" } },
+  { id: "imageToText", label: "Image to Text", icon: "image_search", endpoint: { method: "POST", path: "/v1/images/understanding" } },
+  { id: "tts", label: "Text To Speech", icon: "record_voice_over", endpoint: { method: "POST", path: "/v1/audio/speech" } },
+  { id: "stt", label: "Speech To Text", icon: "mic", endpoint: { method: "POST", path: "/v1/audio/transcriptions" } },
+  { id: "webSearch", label: "Web Search", icon: "travel_explore", endpoint: { method: "POST", path: "/v1/search" } },
+  { id: "webFetch", label: "Web Fetch", icon: "language", endpoint: { method: "POST", path: "/v1/web/fetch" } },
+  { id: "video", label: "Video", icon: "movie", endpoint: { method: "POST", path: "/v1/video/generations" } },
+  { id: "music", label: "Music", icon: "music_note", endpoint: { method: "POST", path: "/v1/audio/music" } },
 ];
 
 export const OPENAI_COMPATIBLE_PREFIX = "openai-compatible-";

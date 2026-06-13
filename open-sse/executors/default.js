@@ -162,7 +162,16 @@ export class DefaultExecutor extends BaseExecutor {
     // Strip first-party Claude Code identity headers for non-Anthropic anthropic-compatible upstreams
     if (this.provider?.startsWith?.("anthropic-compatible-")) {
       const baseUrl = credentials?.providerSpecificData?.baseUrl || "";
-      const isOfficialAnthropic = baseUrl === "" || baseUrl.includes("api.anthropic.com");
+      let isOfficialAnthropic = baseUrl === "";
+      if (!isOfficialAnthropic) {
+        try {
+          const { hostname } = new URL(baseUrl);
+          isOfficialAnthropic =
+            hostname === "api.anthropic.com" || hostname.endsWith(".api.anthropic.com");
+        } catch {
+          isOfficialAnthropic = false;
+        }
+      }
       if (!isOfficialAnthropic) {
         // Some third-party Anthropic-compatible gateways require Bearer auth in
         // addition to x-api-key. Send both (x-api-key already set above) so

@@ -50,6 +50,17 @@ export {
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
 } from "./repos/pricingRepo.js";
 
+// Models.dev pricing
+export {
+  getSnapshot as getModelsDevSnapshot,
+  saveSnapshot as saveModelsDevSnapshot,
+  getModelMap as getModelsDevModelMap,
+  saveModelMap as saveModelsDevModelMap,
+  getManualMap as getModelsDevManualMap,
+  saveManualMap as saveModelsDevManualMap,
+  clearAll as clearModelsDevData,
+} from "./repos/modelsDevPricingRepo.js";
+
 // Disabled models
 export {
   getDisabledModels, getDisabledByProvider, disableModels, enableModels,
@@ -60,6 +71,7 @@ export {
   statsEmitter, trackPendingRequest, getActiveRequests,
   saveRequestUsage, getUsageHistory, getUsageStats, getChartData,
   appendRequestLog, getRecentLogs,
+  getTokenSaverStats, getTokenSaverChartData, getTokenSaverPerRequest,
 } from "./repos/usageRepo.js";
 
 // Request details
@@ -83,12 +95,14 @@ export async function exportDb() {
     customModels: [],
     mitmAlias: {},
     pricing: {},
+    modelsDevPricing: {},
   };
 
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'modelAliases'`)) out.modelAliases[r.key] = parseJson(r.value);
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'customModels'`)) out.customModels.push(parseJson(r.value));
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'mitmAlias'`)) out.mitmAlias[r.key] = parseJson(r.value);
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) out.pricing[r.key] = parseJson(r.value);
+  for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'modelsDevPricing'`)) out.modelsDevPricing[r.key] = parseJson(r.value);
 
   return out;
 }
@@ -107,7 +121,7 @@ export async function importDb(payload) {
     db.run(`DELETE FROM proxyPools`);
     db.run(`DELETE FROM apiKeys`);
     db.run(`DELETE FROM combos`);
-    db.run(`DELETE FROM kv WHERE scope IN ('modelAliases', 'customModels', 'mitmAlias', 'pricing')`);
+    db.run(`DELETE FROM kv WHERE scope IN ('modelAliases', 'customModels', 'mitmAlias', 'pricing', 'modelsDevPricing')`);
 
     // Settings
     if (payload.settings) {
@@ -157,9 +171,17 @@ export async function importDb(payload) {
     for (const [tool, mappings] of Object.entries(payload.mitmAlias || {})) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('mitmAlias', ?, ?)`, [tool, stringifyJson(mappings || {})]);
     }
-    for (const [provider, models] of Object.entries(payload.pricing || {})) {
-      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+  for (const [provider, models] of Object.entries(payload.pricing || {})) {
+    db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+  }
+
+  // Models.dev pricing
+  const md = payload.modelsDevPricing;
+  if (md) {
+    for (const [k, v] of Object.entries(md)) {
+      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('modelsDevPricing', ?, ?)`, [k, stringifyJson(v || {})]);
     }
+  }
   });
 
   return await exportDb();

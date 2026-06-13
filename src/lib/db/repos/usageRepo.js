@@ -255,12 +255,13 @@ export async function saveRequestUsage(entry) {
     // better-sqlite3 is sync → no JS yield mid-transaction → no race in same process.
     db.transaction(() => {
       db.run(
-        `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta, rtkSaved, rtkMeta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           entry.timestamp, entry.provider || null, entry.model || null,
           entry.connectionId || null, entry.apiKey || null, entry.endpoint || null,
           promptTokens, completionTokens, entry.cost || 0, entry.status || "ok",
           stringifyJson(tokens), stringifyJson({}),
+          entry.rtkSaved || 0, entry.rtkMeta ? stringifyJson(entry.rtkMeta) : null,
         ]
       );
 
@@ -696,6 +697,206 @@ function formatLogDate(date = new Date()) {
 }
 
 // No-op: request log is now derived from usageHistory table on read.
+// ─── Token Saver stats (RTK + Caveman) ──────────────────────────────────
+
+export async function getTokenSaverStats(period = "30d") {
+  const db = await getAdapter();
+  const now = Date.now();
+  const periodMs = { "today": 86400000, "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
+  const maxAge = periodMs[period];
+  let cutoff = null;
+  if (maxAge) {
+    if (period === "today") {
+      const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+      cutoff = startOfDay.toISOString();
+    } else {
+      cutoff = new Date(now - maxAge).toISOString();
+    }
+  }
+
+  const where = cutoff ? `WHERE timestamp >= ?` : "";
+  const params = cutoff ? [cutoff] : [];
+
+  const rows = db.all(`SELECT rtkSaved, rtkMeta, completionTokens, status FROM usageHistory ${where}`, params);
+
+  let totalRequests = 0;
+  let rtkTotalBytesBefore = 0;
+  let rtkTotalBytesAfter = 0;
+  let rtkTotalHits = 0;
+  let byFilter = {};
+  let rtkRequestCount = 0;
+  let totalOutputTokens = 0;
+
+  for (const r of rows) {
+    totalRequests++;
+    const saved = r.rtkSaved || 0;
+    if (saved > 0) {
+      rtkRequestCount++;
+      rtkTotalHits++;
+      const meta = r.rtkMeta ? parseJson(r.rtkMeta, {}) : {};
+      rtkTotalBytesBefore += meta.bytesBefore || 0;
+      rtkTotalBytesAfter += meta.bytesAfter || 0;
+      for (const hit of (meta.hits || [])) {
+        const f = hit.filter || "unknown";
+        if (!byFilter[f]) byFilter[f] = { saved: 0, hits: 0 };
+        byFilter[f].saved += hit.saved || 0;
+        byFilter[f].hits++;
+      }
+    }
+    totalOutputTokens += r.completionTokens || 0;
+  }
+
+  const rtkTotalSaved = rtkTotalBytesBefore - rtkTotalBytesAfter;
+  const rtkSavingsPercent = rtkTotalBytesBefore > 0 ? ((rtkTotalSaved / rtkTotalBytesBefore) * 100) : 0;
+
+  // Caveman: get current settings
+  let cavemanEnabled = false;
+  let cavemanLevel = "";
+  try {
+    const { getSettings } = await import("./settingsRepo.js");
+    const settings = await getSettings();
+    cavemanEnabled = !!settings.cavemanEnabled;
+    cavemanLevel = settings.cavemanLevel || "";
+  } catch {}
+
+  const cavemanEstimatePct = {
+    "lite": 20, "full": 40, "ultra": 60,
+    "wenyan-lite": 30, "wenyan": 50, "wenyan-ultra": 70
+  }[cavemanLevel] || 0;
+
+  const estimatedCavemanSaved = cavemanEnabled ? Math.round(totalOutputTokens * cavemanEstimatePct / 100) : 0;
+
+  // Top filters sorted by savings
+  const topFilters = Object.entries(byFilter)
+    .map(([filter, data]) => ({ filter, saved: data.saved, hits: data.hits }))
+    .sort((a, b) => b.saved - a.saved)
+    .slice(0, 10);
+
+  return {
+    period,
+    totalRequests,
+    rtk: {
+      enabled: true,
+      totalBytesBefore: rtkTotalBytesBefore,
+      totalBytesAfter: rtkTotalBytesAfter,
+      totalSaved: rtkTotalSaved,
+      savingsPercent: parseFloat(rtkSavingsPercent.toFixed(1)),
+      totalHits: rtkTotalHits,
+      requestCount: rtkRequestCount,
+      topFilters,
+    },
+    caveman: {
+      enabled: cavemanEnabled,
+      level: cavemanLevel,
+      estimatedSavingPercent: cavemanEstimatePct,
+      totalOutputTokens,
+      estimatedSavedTokens: estimatedCavemanSaved,
+      estimatedOutputWithoutCaveman: totalOutputTokens + estimatedCavemanSaved,
+    },
+    combined: {
+      totalInputSavedBytes: rtkTotalSaved,
+      totalOutputEstimatedSavedTokens: estimatedCavemanSaved,
+      totalEstimatedSavingsPercent: parseFloat(
+        (totalOutputTokens > 0 && rtkTotalBytesBefore > 0)
+          ? ((rtkTotalSaved + estimatedCavemanSaved) / (rtkTotalBytesBefore + totalOutputTokens) * 100).toFixed(1)
+          : "0"
+      ),
+    },
+  };
+}
+
+export async function getTokenSaverChartData(period = "7d") {
+  const db = await getAdapter();
+  const now = Date.now();
+
+  if (period === "today") {
+    const bucketCount = 24;
+    const bucketMs = 3600000;
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const startTime = startOfDay.getTime();
+    const bucketFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0 }));
+
+    const rows = db.all(`SELECT timestamp, promptTokens, completionTokens, rtkSaved FROM usageHistory WHERE timestamp >= ?`, [new Date(startTime).toISOString()]);
+    for (const r of rows) {
+      const t = new Date(r.timestamp).getTime();
+      if (t < startTime || t >= startTime + bucketCount * bucketMs) continue;
+      const idx = Math.floor((t - startTime) / bucketMs);
+      if (idx >= 0 && idx < bucketCount) {
+        buckets[idx].totalTokens += (r.promptTokens || 0) + (r.completionTokens || 0);
+        buckets[idx].rtkSaved += r.rtkSaved || 0;
+      }
+    }
+    return buckets;
+  }
+
+  if (period === "24h") {
+    const bucketCount = 24;
+    const bucketMs = 3600000;
+    const startTime = now - bucketCount * bucketMs;
+    const bucketFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0 }));
+    const rows = db.all(`SELECT timestamp, promptTokens, completionTokens, rtkSaved FROM usageHistory WHERE timestamp >= ?`, [new Date(startTime).toISOString()]);
+    for (const r of rows) {
+      const t = new Date(r.timestamp).getTime();
+      if (t < startTime || t > now) continue;
+      const idx = Math.min(Math.floor((t - startTime) / bucketMs), bucketCount - 1);
+      buckets[idx].totalTokens += (r.promptTokens || 0) + (r.completionTokens || 0);
+      buckets[idx].rtkSaved += r.rtkSaved || 0;
+    }
+    return buckets;
+  }
+
+  const bucketCount = period === "7d" ? 7 : period === "30d" ? 30 : 60;
+  const today = new Date();
+  const labelFn = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const dayRows = loadDaysInRange(db, bucketCount);
+  const dayMap = {};
+  for (const r of dayRows) dayMap[r.dateKey] = parseJson(r.data, {});
+
+  return Array.from({ length: bucketCount }, (_, i) => {
+    const d = new Date(today); d.setDate(d.getDate() - (bucketCount - 1 - i));
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dayData = dayMap[dateKey] || {};
+    const dayTokens = (dayData.promptTokens || 0) + (dayData.completionTokens || 0);
+
+    // Sum rtkSaved from raw history for this day (more precise than daily summary)
+    const dailyRows = db.all(`SELECT rtkSaved FROM usageHistory WHERE timestamp >= ? AND timestamp < ?`,
+      [`${dateKey}T00:00:00.000Z`, `${dateKey}T23:59:59.999Z`]);
+    const dayRtkSaved = dailyRows.reduce((sum, r) => sum + (r.rtkSaved || 0), 0);
+
+    return { label: labelFn(d), totalTokens: dayTokens, rtkSaved: dayRtkSaved };
+  });
+}
+
+export async function getTokenSaverPerRequest(page = 1, limit = 50) {
+  const db = await getAdapter();
+  const offset = (page - 1) * limit;
+  const totalRow = db.get(`SELECT COUNT(*) as count FROM usageHistory`);
+  const total = totalRow?.count || 0;
+
+  const rows = db.all(
+    `SELECT timestamp, provider, model, connectionId, rtkSaved, rtkMeta, completionTokens, status FROM usageHistory ORDER BY id DESC LIMIT ? OFFSET ?`,
+    [limit, offset]
+  );
+
+  const requests = rows.map(r => {
+    const meta = r.rtkMeta ? parseJson(r.rtkMeta, {}) : {};
+    return {
+      timestamp: r.timestamp,
+      provider: r.provider || "",
+      model: r.model || "",
+      connectionId: r.connectionId || undefined,
+      rtkSaved: r.rtkSaved || 0,
+      rtkFilters: meta.filtersUsed || [],
+      totalOutputTokens: r.completionTokens || 0,
+      status: r.status || "ok",
+    };
+  });
+
+  return { requests, total, page, limit };
+}
+
 export async function appendRequestLog() {}
 
 export async function getRecentLogs(limit = 200) {

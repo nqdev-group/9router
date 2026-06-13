@@ -1,0 +1,43 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "files.eol": "\n",
+    "files.exclude": {
+      "**/.vs": true,
+      "**/.svn": true,
+      "**/.git": true,
+      "**/.DS_Store": true,
+      // "**/packages": true,
+      "**/node_modules": true,
+      "**/__pycache__": true,
+      "**/.venv": true,
+      "**/env": true,
+      "**/bin": true,
+      "**/obj": true,
+      "**/$RECYCLE.BIN": true,
+      "**/System Volume Information": true,
+      // Some other necessary configurations for your *.code-workspace
+      "**/.obsidian": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true,
+      "**/.next": true,
+    },
+    // Some other necessary configurations for your *.code-workspace
+    "git.ignoreLimitWarning": true,
+    "cSpell.words": [
+      "venv",
+      "pycach"
+    ],
+    "sqltools.connections": [],
+    "sqltools.useNodeRuntime": true,
+    "dotnet.defaultSolution": "disable",
+    "powershell.cwd": "cmdtools",
+    "window.restoreWindows": ".",
+  },
+}
