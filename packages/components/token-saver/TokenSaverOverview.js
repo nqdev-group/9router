@@ -17,15 +17,18 @@ const fmtPct = (n) => `${(n || 0).toFixed(1)}%`;
 export default function TokenSaverOverview({ stats, period }) {
   const rtk = stats?.rtk || {};
   const caveman = stats?.caveman || {};
+  const cmem = stats?.cmem || {};
+  const cache = stats?.responseCache || {};
   const combined = stats?.combined || {};
 
   const savingsPct = rtk.savingsPercent || 0;
   const cavemanSavingPct = caveman.estimatedSavingPercent || 0;
   const totalEstPct = combined.totalEstimatedSavingsPercent || 0;
+  const cacheHitPct = cache.hitRate || 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 sm:gap-4">
         <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
           <span className="text-text-muted text-sm uppercase font-semibold">RTK Input Saved</span>
           <span className="truncate text-2xl font-bold text-success">{fmtBytes(rtk.totalSaved)}</span>
@@ -35,6 +38,16 @@ export default function TokenSaverOverview({ stats, period }) {
           <span className="text-text-muted text-sm uppercase font-semibold">RTK Requests</span>
           <span className="truncate text-2xl font-bold text-primary">{fmt(rtk.requestCount)}</span>
           <span className="text-[10px] text-text-muted">{fmt(rtk.totalHits)} filter hits</span>
+        </Card>
+        <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
+          <span className="text-text-muted text-sm uppercase font-semibold">CMEM Memories</span>
+          <span className="truncate text-2xl font-bold text-secondary">{fmt(cmem.observationsCount)}</span>
+          <span className="text-[10px] text-text-muted">{fmt(cmem.injectionsCount)} context injections</span>
+        </Card>
+        <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
+          <span className="text-text-muted text-sm uppercase font-semibold">Response Cache</span>
+          <span className="truncate text-2xl font-bold text-success">{fmt(cache.hits || 0)}</span>
+          <span className="text-[10px] text-text-muted">{fmtPct(cacheHitPct)} hit rate</span>
         </Card>
         <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
           <span className="text-text-muted text-sm uppercase font-semibold">Caveman Est. Saved</span>

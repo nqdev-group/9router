@@ -75,6 +75,22 @@ const DEFAULT_SETTINGS = {
   cavemanLevel: "full",
   privacyEnabled: true,
   privacyCustomKeywords: [],
+  responseCacheEnabled: false,
+  responseCacheMaxSize: 100,
+  responseCacheTtlMs: 300000,
+  cmemEnabled: false,
+  cmemConfig: {
+    mode: "code",
+    tokenBudget: 4000,
+    historyDepth: "session",
+    maxObservations: 20,
+    compressionModel: null,
+    summarizationEnabled: true,
+    searchMode: "fts",
+    contextSections: ["recent", "relevant", "project-facts"],
+    excludePrivateContent: true,
+    observationRetentionDays: 90,
+  },
 };
 
 async function readRaw() {

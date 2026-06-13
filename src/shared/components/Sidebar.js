@@ -58,6 +58,8 @@ const systemItems = [
 const compressionContextItems = [
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
+  { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
+  { href: "/dashboard/settings/response-cache", label: "Response Cache", icon: "cached" },
 ];
 
 export default function Sidebar({ onClose }) {
