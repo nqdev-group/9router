@@ -49,8 +49,8 @@ jobs:
 
       - name: Generate changelog
         run: |
-          # auto-changelog --unreleased --output CHANGELOG.md --commit-limit false --template keepachangelog
-          auto-changelog --unreleased --latest-version --output CHANGELOG.md --commit-limit false --template keepachangelog
+          # auto-changelog --unreleased --output CHANGELOG-NQDEV.md --commit-limit false --template keepachangelog
+          auto-changelog --unreleased --latest-version --output CHANGELOG-NQDEV.md --commit-limit false --template keepachangelog
 
       - name: Get default branch
         id: default_branch
@@ -61,7 +61,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
+          git add CHANGELOG-NQDEV.md
           if ! git diff --cached --quiet; then
             git commit -m "chore: update changelog for release ${{ github.event.release.tag_name }}"
           else
