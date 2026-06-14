@@ -3,7 +3,7 @@
  * @param {*} pathname - The current pathname of the page.
  * @returns { title: string, description: string, icon: string, breadcrumbs: array } The page information including title, description, icon, and breadcrumbs.
  */
-const getPageInfoUtil = (pathname) => {
+export const getPageInfoUtil = (pathname) => {
   // /token-saver
   if (pathname.includes("/token-saver"))
     return {
