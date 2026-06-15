@@ -96,6 +96,7 @@ const DEFAULT_SETTINGS = {
   providerAlertWebhookUrl: "",
   providerAlertCooldown: 15,
   providerAlertIgnoreProviders: "[]",
+  providerAlertState: {}, // { providerId: lastAlertAt }
 };
 
 async function readRaw() {

@@ -6,6 +6,7 @@ import Card from "@/shared/components/Card";
 export default function ProviderAlertPage() {
   const [enabled, setEnabled] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [showUrl, setShowUrl] = useState(false);
   const [cooldown, setCooldown] = useState(15);
   const [ignoreProviders, setIgnoreProviders] = useState([]);
   const [newIgnore, setNewIgnore] = useState("");
@@ -154,13 +155,28 @@ export default function ProviderAlertPage() {
       {enabled && (
         <>
           <Card title="Discord Webhook URL" subtitle="Enter your Discord channel webhook URL" icon="notifications">
-            <input
-              type="url"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-              className="w-full px-3 py-2 rounded-lg bg-bg border border-border-subtle text-sm focus:outline-none focus:border-primary"
-            />
+            <div className="relative">
+              <input
+                type={showUrl ? "url" : "text"}
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://discord.com/api/webhooks/..."
+                className="w-full px-3 pr-16 py-2 rounded-lg bg-bg border border-border-subtle text-sm focus:outline-none focus:border-primary font-mono"
+                autoComplete="off"
+              />
+              {webhookUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowUrl(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-text-main transition-colors"
+                >
+                  {showUrl ? "Hide" : "Show"}
+                </button>
+              )}
+            </div>
+            {!showUrl && webhookUrl && (
+              <p className="text-xs text-text-muted/50 mt-1 font-mono truncate">{webhookUrl}</p>
+            )}
             <p className="text-xs text-text-muted/60 mt-2">
               Create a webhook in your Discord server channel settings → Integrations → Webhooks.
             </p>
@@ -172,6 +188,18 @@ export default function ProviderAlertPage() {
                 Send Test
               </button>
             )}
+          </Card>
+
+          <Card title="Security Notice" subtitle="How to protect your webhook" icon="security">
+            <div className="space-y-3 text-sm text-text-muted">
+              <p>Your Discord webhook URL is stored as plaintext in the local SQLite database (<code className="px-1 rounded bg-surface-2 text-xs">data.sqlite</code>).</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Only the 9Router server (and users with DB access) can read it</li>
+                <li>Never commit your DB file to version control or expose it publicly</li>
+                <li>Anyone with the URL can post messages to your Discord channel</li>
+              </ul>
+              <p>If you suspect the webhook URL is compromised, regenerate it in Discord (Server Settings → Integrations → Webhooks → Delete & Create New).</p>
+            </div>
           </Card>
 
           <Card title="Cooldown" subtitle="Minimum time between alerts per provider" icon="timer">
