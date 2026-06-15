@@ -4,6 +4,7 @@ import edgeTts, { fetchEdgeTtsVoices } from "./edgeTts.js";
 import localDevice, { fetchLocalDeviceVoices } from "./localDevice.js";
 import elevenlabs, { fetchElevenLabsVoices } from "./elevenlabs.js";
 import openai from "./openai.js";
+import kira from "./kira.js";
 import openrouter from "./openrouter.js";
 import gemini, { fetchGeminiVoices } from "./gemini.js";
 import { FORMAT_HANDLERS } from "./genericFormats.js";
@@ -18,6 +19,7 @@ const SPECIAL_ADAPTERS = {
   openai,
   openrouter,
   gemini,
+  kira,
 };
 
 export function getTtsAdapter(provider) {
