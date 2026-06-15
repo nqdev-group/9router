@@ -92,6 +92,10 @@ const DEFAULT_SETTINGS = {
     excludePrivateContent: true,
     observationRetentionDays: 90,
   },
+  providerAlertEnabled: false,
+  providerAlertWebhookUrl: "",
+  providerAlertCooldown: 15,
+  providerAlertIgnoreProviders: "[]",
 };
 
 async function readRaw() {

@@ -237,6 +237,23 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     console.error(`❌ ${provider} [${status}]: ${reason}`);
   }
 
+  // Fire-and-forget: check if all accounts permanently down
+  getSettings().then(async (alertSettings) => {
+    if (!alertSettings.providerAlertEnabled || !alertSettings.providerAlertWebhookUrl) return;
+    try {
+      const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
+      if (ignoreList.includes(provider)) return;
+    } catch {}
+    const { checkAllAccountsDown, formatAlertMessage, sendDiscordAlert } = await import('@9router/provider-alert');
+    const providerId = resolveProviderId(provider);
+    const allConns = await getProviderConnections({ provider: providerId });
+    const result = checkAllAccountsDown(providerId, allConns, alertSettings.providerAlertCooldown || 15);
+    if (result?.shouldAlert) {
+      const embed = formatAlertMessage(providerId, result.downCount, result.totalCount, result.errors);
+      sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
+    }
+  }).catch(() => {});
+
   return { shouldFallback: true, cooldownMs };
 }
 
@@ -282,6 +299,26 @@ export async function clearAccountError(connectionId, currentConnection, model =
   }
 
   await updateProviderConnection(connectionId, clearObj);
+
+  // Fire-and-forget: check if provider recovered after clear
+  const connProvider = currentConnection?._connection?.provider || conn?.provider;
+  if (connProvider) {
+    getSettings().then(async (alertSettings) => {
+      if (!alertSettings.providerAlertEnabled || !alertSettings.providerAlertWebhookUrl) return;
+      try {
+        const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
+        if (ignoreList.includes(connProvider)) return;
+      } catch {}
+      const { checkRecovery, formatRecoveryMessage, sendDiscordAlert } = await import('@9router/provider-alert');
+      const providerId = resolveProviderId(connProvider);
+      const allConns = await getProviderConnections({ provider: providerId });
+      const result = checkRecovery(providerId, allConns);
+      if (result?.recovered) {
+        const embed = formatRecoveryMessage(providerId, result.availableCount, result.totalCount);
+        sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
+      }
+    }).catch(() => {});
+  }
 }
 
 /**
