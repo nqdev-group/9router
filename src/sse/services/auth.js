@@ -243,14 +243,14 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     try {
       const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
       if (ignoreList.includes(provider)) return;
-    } catch {}
+    } catch { }
     const { checkAllAccountsDown, formatAlertMessage, sendDiscordAlert, setLastAlertTime } = await import('@9router/provider-alert');
     const providerId = resolveProviderId(provider);
     // Restore persisted debounce from grouped state object
     const alertState = alertSettings.providerAlertState || {};
     const storedTs = alertState[providerId];
     if (storedTs) {
-      try { setLastAlertTime(providerId, new Date(storedTs).getTime()); } catch {}
+      try { setLastAlertTime(providerId, new Date(storedTs).getTime()); } catch { }
     }
     const allConns = await getProviderConnections({ provider: providerId });
     const result = checkAllAccountsDown(providerId, allConns, alertSettings.providerAlertCooldown || 15);
@@ -259,9 +259,9 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
       await sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
       // Atomic partial update to prevent overwriting other providers' states
       const nextState = { ...(alertSettings.providerAlertState || {}), [providerId]: new Date().toISOString() };
-      updateSettings({ providerAlertState: nextState }).catch(() => {});
+      updateSettings({ providerAlertState: nextState }).catch(() => { });
     }
-  }).catch(() => {});
+  }).catch(() => { });
 
   return { shouldFallback: true, cooldownMs };
 }
@@ -317,7 +317,7 @@ export async function clearAccountError(connectionId, currentConnection, model =
       try {
         const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
         if (ignoreList.includes(connProvider)) return;
-      } catch {}
+      } catch { }
       const { checkRecovery, formatRecoveryMessage, sendDiscordAlert } = await import('@9router/provider-alert');
       const providerId = resolveProviderId(connProvider);
       const allConns = await getProviderConnections({ provider: providerId });
@@ -328,9 +328,9 @@ export async function clearAccountError(connectionId, currentConnection, model =
         // Remove provider from state on recovery
         const nextState = { ...(alertSettings.providerAlertState || {}) };
         delete nextState[providerId];
-        updateSettings({ providerAlertState: nextState }).catch(() => {});
+        updateSettings({ providerAlertState: nextState }).catch(() => { });
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 

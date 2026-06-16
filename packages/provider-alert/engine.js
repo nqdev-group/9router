@@ -76,11 +76,19 @@ export function checkRecovery(provider, connections) {
   return null;
 }
 
+/**
+ * Formats an alert message when a provider has all accounts down.
+ * @param {*} provider
+ * @param {*} downCount
+ * @param {*} totalCount
+ * @param {*} errors
+ * @returns
+ */
 export function formatAlertMessage(provider, downCount, totalCount, errors = []) {
   const errorText = errors.map(e => `${e.name}: ${e.code ? `${e.code} ` : ""}${e.error}`).join("\n") || "N/A";
   return {
     embeds: [{
-      title: `Provider Down: ${provider}`,
+      title: `🚨 Provider Down: ${provider}`,
       description: `All ${totalCount} accounts have permanent failures.`,
       color: 15158332,
       fields: [
@@ -92,10 +100,17 @@ export function formatAlertMessage(provider, downCount, totalCount, errors = [])
   };
 }
 
+/**
+ * Formats a recovery message when a provider that was previously down has accounts available again.
+ * @param {*} provider
+ * @param {*} availableCount
+ * @param {*} totalCount
+ * @returns
+ */
 export function formatRecoveryMessage(provider, availableCount, totalCount) {
   return {
     embeds: [{
-      title: `Provider Recovered: ${provider}`,
+      title: `✅ Provider Recovered: ${provider}`,
       description: "Provider has available accounts again.",
       color: 3066993,
       fields: [
