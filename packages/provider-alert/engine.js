@@ -90,7 +90,7 @@ export function formatAlertMessage(provider, downCount, totalCount, errors = [],
   const providerLink = baseUrl ? `[${label}](${baseUrl.replace(/\/+$/, "")}/dashboard/providers/${encodeURIComponent(provider)})` : label;
   return {
     embeds: [{
-      title: `Provider Down: ${providerLink}`,
+      title: `🚨 Provider Down: ${providerLink}`,
       description: `All ${totalCount} accounts have permanent failures.`,
       color: 15158332,
       fields: [
