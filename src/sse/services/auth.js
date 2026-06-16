@@ -1,4 +1,4 @@
-import { getProviderConnections, validateApiKey, updateProviderConnection, updateSettings, getSettings } from "@/lib/localDb";
+import { getProviderConnections, validateApiKey, updateProviderConnection, updateSettings, getSettings, getProviderNodeById } from "@/lib/localDb";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
@@ -255,7 +255,13 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     const allConns = await getProviderConnections({ provider: providerId });
     const result = checkAllAccountsDown(providerId, allConns, alertSettings.providerAlertCooldown || 15);
     if (result?.shouldAlert) {
-      const embed = formatAlertMessage(providerId, result.downCount, result.totalCount, result.errors);
+      const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:20128";
+      const { AI_PROVIDERS: providersMap } = await import('@/shared/constants/providers');
+      let providerName = providersMap?.[providerId]?.name;
+      if (!providerName) {
+        try { const node = await getProviderNodeById(providerId); providerName = node?.name; } catch {}
+      }
+      const embed = formatAlertMessage(providerId, result.downCount, result.totalCount, result.errors, baseUrl, providerName);
       await sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
       // Atomic partial update to prevent overwriting other providers' states
       const nextState = { ...(alertSettings.providerAlertState || {}), [providerId]: new Date().toISOString() };

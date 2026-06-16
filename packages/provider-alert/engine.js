@@ -84,11 +84,13 @@ export function checkRecovery(provider, connections) {
  * @param {*} errors
  * @returns
  */
-export function formatAlertMessage(provider, downCount, totalCount, errors = []) {
+export function formatAlertMessage(provider, downCount, totalCount, errors = [], baseUrl = "", providerName = "") {
   const errorText = errors.map(e => `${e.name}: ${e.code ? `${e.code} ` : ""}${e.error}`).join("\n") || "N/A";
+  const label = providerName || provider;
+  const providerLink = baseUrl ? `[${label}](${baseUrl.replace(/\/+$/, "")}/dashboard/providers/${encodeURIComponent(provider)})` : label;
   return {
     embeds: [{
-      title: `🚨 Provider Down: ${provider}`,
+      title: `Provider Down: ${providerLink}`,
       description: `All ${totalCount} accounts have permanent failures.`,
       color: 15158332,
       fields: [
