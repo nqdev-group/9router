@@ -78,7 +78,7 @@ const DEFAULT_SETTINGS = {
   responseCacheEnabled: false,
   responseCacheMaxSize: 100,
   responseCacheTtlMs: 300000,
-  cmemEnabled: false,
+  cmemEnabled: true,
   cmemConfig: {
     mode: "code",
     tokenBudget: 4000,

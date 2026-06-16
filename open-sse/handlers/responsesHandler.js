@@ -19,9 +19,12 @@ import { convertResponsesStreamToJson } from "../transformer/streamToJsonConvert
  * @param {function} options.onRequestSuccess - Callback when request succeeds
  * @param {function} options.onDisconnect - Callback when client disconnects
  * @param {string} options.connectionId - Connection ID for usage tracking
+ * @param {boolean} options.cmemEnabled - Enable CMEM contextual memory
+ * @param {object} options.cmemConfig - CMEM configuration
+ * @param {object} options.db - Database adapter for CMEM storage
  * @returns {Promise<{success: boolean, response?: Response, status?: number, error?: string}>}
  */
-export async function handleResponsesCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, connectionId }) {
+export async function handleResponsesCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, connectionId, cmemEnabled, cmemConfig, db }) {
   // Convert Responses API format to Chat Completions format
   const convertedBody = convertResponsesApiFormat(body);
 
@@ -42,6 +45,9 @@ export async function handleResponsesCore({ body, modelInfo, credentials, log, o
     onRequestSuccess,
     onDisconnect,
     connectionId,
+    cmemEnabled,
+    cmemConfig,
+    db,
     sourceFormatOverride: "openai-responses"
   });
 
