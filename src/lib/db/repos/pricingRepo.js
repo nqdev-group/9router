@@ -152,7 +152,6 @@ export async function getPricingForModel(provider, model) {
   const modelsDevPrice = await getModelsDevPricingForModel(provider, model);
   if (modelsDevPrice) return modelsDevPrice;
 
-  const { getPricingForModel: resolveConst } = await import("@/shared/constants/pricing.js");
   return resolveConst(provider, model);
 }
 
