@@ -78,7 +78,7 @@ const DEFAULT_SETTINGS = {
   responseCacheEnabled: false,
   responseCacheMaxSize: 100,
   responseCacheTtlMs: 300000,
-  cmemEnabled: false,
+  cmemEnabled: true,
   cmemConfig: {
     mode: "code",
     tokenBudget: 4000,
@@ -92,6 +92,11 @@ const DEFAULT_SETTINGS = {
     excludePrivateContent: true,
     observationRetentionDays: 90,
   },
+  providerAlertEnabled: false,
+  providerAlertWebhookUrl: "",
+  providerAlertCooldown: 15,
+  providerAlertIgnoreProviders: "[]",
+  providerAlertState: {}, // { providerId: lastAlertAt }
 };
 
 async function readRaw() {
