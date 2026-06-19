@@ -1,0 +1,15 @@
+{
+  "name": "@9router/cmem",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./core": "./core/index.js",
+    "./capture": "./capture/index.js",
+    "./injection": "./injection/index.js",
+    "./config": "./config/defaults.js"
+  },
+  "description": "CMEM persistent context memory engine for 9Router",
+  "dependencies": {}
+}

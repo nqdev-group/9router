@@ -1,4 +1,4 @@
-import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings } from "@/lib/localDb";
+import { getProviderConnections, validateApiKey, updateProviderConnection, updateSettings, getSettings, getProviderNodeById } from "@/lib/localDb";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
@@ -237,6 +237,38 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     console.error(`❌ ${provider} [${status}]: ${reason}`);
   }
 
+  // Fire-and-forget: check if all accounts permanently down
+  void getSettings().then(async (alertSettings) => {
+    if (!alertSettings.providerAlertEnabled || !alertSettings.providerAlertWebhookUrl) return;
+    try {
+      const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
+      if (ignoreList.includes(provider)) return;
+    } catch { }
+    const { checkAllAccountsDown, formatAlertMessage, sendDiscordAlert, setLastAlertTime } = await import('@9router/provider-alert');
+    const providerId = resolveProviderId(provider);
+    // Restore persisted debounce from grouped state object
+    const alertState = alertSettings.providerAlertState || {};
+    const storedTs = alertState[providerId];
+    if (storedTs) {
+      try { setLastAlertTime(providerId, new Date(storedTs).getTime()); } catch { }
+    }
+    const allConns = await getProviderConnections({ provider: providerId });
+    const result = checkAllAccountsDown(providerId, allConns, alertSettings.providerAlertCooldown || 15);
+    if (result?.shouldAlert) {
+      const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:20128";
+      const { AI_PROVIDERS: providersMap } = await import('@/shared/constants/providers');
+      let providerName = providersMap?.[providerId]?.name;
+      if (!providerName) {
+        try { const node = await getProviderNodeById(providerId); providerName = node?.name; } catch {}
+      }
+      const embed = formatAlertMessage(providerId, result.downCount, result.totalCount, result.errors, baseUrl, providerName);
+      await sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
+      // Atomic partial update to prevent overwriting other providers' states
+      const nextState = { ...(alertSettings.providerAlertState || {}), [providerId]: new Date().toISOString() };
+      updateSettings({ providerAlertState: nextState }).catch(() => { });
+    }
+  }).catch(() => { });
+
   return { shouldFallback: true, cooldownMs };
 }
 
@@ -282,6 +314,30 @@ export async function clearAccountError(connectionId, currentConnection, model =
   }
 
   await updateProviderConnection(connectionId, clearObj);
+
+  // Fire-and-forget: check if provider recovered after clear
+  const connProvider = currentConnection?._connection?.provider || conn?.provider;
+  if (connProvider) {
+    void getSettings().then(async (alertSettings) => {
+      if (!alertSettings.providerAlertEnabled || !alertSettings.providerAlertWebhookUrl) return;
+      try {
+        const ignoreList = JSON.parse(alertSettings.providerAlertIgnoreProviders || "[]");
+        if (ignoreList.includes(connProvider)) return;
+      } catch { }
+      const { checkRecovery, formatRecoveryMessage, sendDiscordAlert } = await import('@9router/provider-alert');
+      const providerId = resolveProviderId(connProvider);
+      const allConns = await getProviderConnections({ provider: providerId });
+      const result = checkRecovery(providerId, allConns);
+      if (result?.recovered) {
+        const embed = formatRecoveryMessage(providerId, result.availableCount, result.totalCount);
+        await sendDiscordAlert(alertSettings.providerAlertWebhookUrl, embed);
+        // Remove provider from state on recovery
+        const nextState = { ...(alertSettings.providerAlertState || {}) };
+        delete nextState[providerId];
+        updateSettings({ providerAlertState: nextState }).catch(() => { });
+      }
+    }).catch(() => { });
+  }
 }
 
 /**

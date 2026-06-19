@@ -27,6 +27,8 @@ import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { PrivacyEngine } from "../privacy/PrivacyEngine.js";
 import { preprocessBody } from "../rtk/preprocessors/contentCleaner.js";
 import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
+import { CmemEngine } from "@9router/cmem";
+import { getResponseCache } from "../services/responseCache.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -35,7 +37,7 @@ import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
  * @param {object} options.credentials - Provider credentials
  * @param {string} options.sourceFormatOverride - Override detected source format (e.g. "openai-responses")
  */
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, privacyEnabled = true, privacyCustomKeywords, sourceFormatOverride, providerThinking }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, privacyEnabled = true, privacyCustomKeywords, sourceFormatOverride, providerThinking, cmemEnabled, cmemConfig, responseCacheEnabled, db }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
 
@@ -171,6 +173,48 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   });
   translatedBody = privacyEngine.process(translatedBody);
 
+  // CMEM: inject relevant memory context before dispatch
+  let cmemInjectedCount = 0;
+  if (cmemEnabled && db) {
+    try {
+      const cmemEngine = new CmemEngine({ enabled: true, config: cmemConfig, db });
+      await cmemEngine.init();
+      const injected = await cmemEngine.injectContext(translatedBody, finalFormat);
+      if (injected) {
+        translatedBody = injected;
+        cmemInjectedCount = 1;
+        log?.debug?.("CMEM", `injected memory context | budget=${cmemConfig?.tokenBudget || 4000}`);
+      }
+    } catch (e) {
+      log?.warn?.("CMEM", `injection error: ${e.message}`);
+    }
+  }
+
+  // Response Cache: check for identical non-streaming request
+  let cacheKey = null;
+  if (responseCacheEnabled && !stream) {
+    try {
+      const cache = getResponseCache();
+      const params = { temperature: body.temperature, max_tokens: body.max_tokens, top_p: body.top_p };
+      const hit = cache.get(model, translatedBody, params);
+      if (hit) {
+        log?.info?.("CACHE", `${model} | hash hit | ${finalFormat}`);
+        console.log(`[CACHE] ${model} | cache hit`);
+        trackPendingRequest(model, provider, connectionId, false);
+        appendRequestLog({ model, provider, connectionId, status: "200 OK (cached)" }).catch(() => { });
+        return {
+          success: true,
+          response: new Response(JSON.stringify(hit.content), {
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          })
+        };
+      }
+      cacheKey = { params };
+    } catch (e) {
+      log?.warn?.("CACHE", `lookup error: ${e.message}`);
+    }
+  }
+
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
@@ -294,25 +338,62 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, rtkStats };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, rtkStats, cmemEnabled, cmemConfig, db };
+  const cmemCapture = cmemEnabled && db ? new CmemEngine({ enabled: true, config: cmemConfig, db }) : null;
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
+
+  // CMEM: async capture after response completes
+  const captureToCmem = () => {
+    if (!cmemCapture) return;
+    if (cmemConfig?.observationsEnabled === false) return;
+    cmemCapture.captureObservation({
+      model,
+      messages: body?.messages || body?.input || [],
+      response: null,
+      provider,
+    }).catch(e => console.warn("[CMEM] capture error:", e.message));
+  };
+
+  // Helper: save response to cache (non-streaming only)
+  const saveToResponseCache = async (result) => {
+    if (!result?.success || !cacheKey) return;
+    try {
+      const respClone = result.response.clone();
+      const bodyText = await respClone.text();
+      let parsed;
+      try { parsed = JSON.parse(bodyText); } catch {}
+      if (parsed) {
+        const cache = getResponseCache();
+        cache.set(model, translatedBody, cacheKey.params, { content: parsed, usage: parsed.usage || {} });
+        log?.debug?.("CACHE", `${model} | saved`);
+      }
+    } catch (e) {
+      log?.warn?.("CACHE", `save error: ${e.message}`);
+    }
+  };
 
   // Provider forced streaming but client wants JSON
   if (!clientRequestedStreaming && providerRequiresStreaming) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, trackDone, appendLog });
-    if (result) { streamController.handleComplete(); return result; }
+    if (result) { await saveToResponseCache(result); streamController.handleComplete(); captureToCmem(); return result; }
   }
 
   // True non-streaming response
   if (!stream) {
     const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, reqLogger, toolNameMap, trackDone, appendLog });
+    await saveToResponseCache(result);
     streamController.handleComplete();
+    captureToCmem();
     return result;
   }
 
   // Streaming response
-  const { onStreamComplete } = buildOnStreamComplete({ ...sharedCtx });
+  const prevOnComplete = buildOnStreamComplete({ ...sharedCtx });
+  const onStreamComplete = () => {
+    if (prevOnComplete.onStreamComplete) prevOnComplete.onStreamComplete();
+    captureToCmem();
+  };
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete });
 }
 
