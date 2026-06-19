@@ -2,6 +2,7 @@ import { PROVIDERS } from "./providers.js";
 import REGISTRY from "../providers/registry/index.js";
 // PROVIDER_MODELS now built from providers/registry (transport + models co-located)
 import { PROVIDER_MODELS } from "../providers/index.js";
+import { buildTtsProviderModels } from "./ttsModels.js";
 import { modelQuotaFamily, modelStrip, modelTargetFormat } from "../providers/models/schema.js";
 import { CODEX_REVIEW_SUFFIX } from "../providers/models/helpers.js";
 
