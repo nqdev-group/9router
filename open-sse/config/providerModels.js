@@ -7,27 +7,7 @@ import { CODEX_REVIEW_SUFFIX } from "../providers/models/helpers.js";
 
 export { PROVIDER_MODELS };
 
-
-function withCodexReviewModels(models) {
-  return models.flatMap((model) => {
-    if ((model.type || "llm") !== "llm" || model.id.endsWith(CODEX_REVIEW_SUFFIX)) {
-      return [model];
-    }
-
-    return [
-      model,
-      {
-        ...model,
-        id: `${model.id}${CODEX_REVIEW_SUFFIX}`,
-        name: `${model.name} Review`,
-        upstreamModelId: model.upstreamModelId || model.id,
-        quotaFamily: "review",
-      },
-    ];
-  });
-}
-
-export const PROVIDER_MODELS = {
+export const CORE_PROVIDER_MODELS = {
   // OAuth Providers (using alias)
   cc: [  // Claude Code
     { id: "claude-opus-4-8", name: "Claude Opus 4.8" },
@@ -849,6 +829,25 @@ export const PROVIDER_MODELS = {
     { id: "gen3a_turbo", name: "Gen-3 Alpha Turbo", type: "video", params: [] },
   ],
 };
+
+function withCodexReviewModels(models) {
+  return models.flatMap((model) => {
+    if ((model.type || "llm") !== "llm" || model.id.endsWith(CODEX_REVIEW_SUFFIX)) {
+      return [model];
+    }
+
+    return [
+      model,
+      {
+        ...model,
+        id: `${model.id}${CODEX_REVIEW_SUFFIX}`,
+        name: `${model.name} Review`,
+        upstreamModelId: model.upstreamModelId || model.id,
+        quotaFamily: "review",
+      },
+    ];
+  });
+}
 
 // Helper functions
 export function getProviderModels(aliasOrId) {
