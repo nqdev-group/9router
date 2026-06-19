@@ -1,4 +1,6 @@
-import { platform, arch } from "os";
+// Barrel: PROVIDERS now built from providers/registry (transport co-located with models)
+import { PROVIDERS } from "../providers/index.js";
+export { PROVIDERS, PROVIDER_OAUTH } from "../providers/index.js";
 
 // === OS/Arch helpers ===
 function mapStainlessOs() {
@@ -26,7 +28,7 @@ const CLAUDE_API_HEADERS = {
   "Anthropic-Beta": "claude-code-20250219,interleaved-thinking-2025-05-14"
 };
 
-// Full Claude CLI fingerprint â€” required by providers that gate on client identity (e.g. agentrouter)
+// Full Claude CLI fingerprint — required by providers that gate on client identity (e.g. agentrouter)
 const CLAUDE_CLI_SPOOF_HEADERS = {
   "Anthropic-Version": "2023-06-01",
   "Anthropic-Beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05,advanced-tool-use-2025-11-20,effort-2025-11-24,structured-outputs-2025-12-15,fast-mode-2026-02-01,redact-thinking-2026-02-12,token-efficient-tools-2026-03-28",
@@ -198,10 +200,10 @@ export const PROVIDERS = {
   kiro: {
     // All three hosts resolve to the same regional CodeWhisperer streaming service
     // (GenerateAssistantResponse). They are alternate DNS surfaces, NOT separate quota
-    // buckets â€” AWS throttles per authenticated identity (token + profileArn), not per
+    // buckets — AWS throttles per authenticated identity (token + profileArn), not per
     // hostname. Listing them enables edge-level failover (5xx / connect timeout / a
     // degraded surface); it does NOT multiply 429 headroom. To actually spread 429 load,
-    // add multiple Kiro accounts â€” account rotation in sse/handlers/chat.js handles that.
+    // add multiple Kiro accounts — account rotation in sse/handlers/chat.js handles that.
     // Order: newest Kiro IDE endpoint first, legacy AWS domains as fallback.
     baseUrl: "https://runtime.us-east-1.kiro.dev/generateAssistantResponse",
     baseUrls: [
@@ -465,12 +467,9 @@ export function resolveOllamaLocalHost(credentials) {
   return (raw || OLLAMA_LOCAL_DEFAULT_HOST).replace(/\/$/, "");
 }
 
-export const XIAOMI_TOKENPLAN_REGIONS = {
-  sgp: "https://token-plan-sgp.xiaomimimo.com/v1",
-  cn: "https://token-plan-cn.xiaomimimo.com/v1",
-  ams: "https://token-plan-ams.xiaomimimo.com/v1"
-};
-export const XIAOMI_TOKENPLAN_DEFAULT_REGION = "sgp";
+// Region URLs single-source from registry xiaomi-tokenplan.transport
+export const XIAOMI_TOKENPLAN_REGIONS = PROVIDERS["xiaomi-tokenplan"]?.regions || {};
+export const XIAOMI_TOKENPLAN_DEFAULT_REGION = PROVIDERS["xiaomi-tokenplan"]?.defaultRegion;
 
 export function resolveXiaomiTokenplanBaseUrl(credentials) {
   const region = credentials?.providerSpecificData?.region;

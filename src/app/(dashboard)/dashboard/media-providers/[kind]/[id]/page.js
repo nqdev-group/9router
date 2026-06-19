@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Card, Badge, Button, AddCustomEmbeddingModal, NoAuthProxyCard, ProviderInfoCard } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
-import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, getProviderAlias, isCustomEmbeddingProvider, resolveProviderId } from "@/shared/constants/providers";
-import { getModelsByProviderId } from "@/shared/constants/models";
-import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
+import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, isCustomEmbeddingProvider } from "@/shared/constants/providers";
 import ConnectionsCard from "@/app/(dashboard)/dashboard/providers/components/ConnectionsCard";
 import ModelsCard from "@/app/(dashboard)/dashboard/providers/components/ModelsCard";
-import { TTS_PROVIDER_CONFIG } from "@/shared/constants/ttsProviders";
-import { getTtsVoicesForModel } from "open-sse/config/ttsModels.js";
-import { GOOGLE_TTS_LANGUAGES } from "open-sse/config/googleTtsLanguages.js";
+import { KIND_EXAMPLE_CONFIG } from "./components/exampleShared";
+import { EmbeddingExampleCard } from "./components/EmbeddingExampleCard";
+import { TtsExampleCard } from "./components/TtsExampleCard";
+import { GenericExampleCard } from "./components/GenericExampleCard";
+import { SttExampleCard } from "./components/SttExampleCard";
 
 // Shared row layout — defined outside components to avoid re-mount on re-render
 function Row({ label, children }) {

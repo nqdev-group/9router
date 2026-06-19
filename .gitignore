@@ -1,4 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+*.orig
 
 # dependencies
 /node_modules
@@ -72,6 +73,9 @@ ecosystem.config.*
 scripts/agSniffer/*
 gitbooks/*
 gitbook/README.md
+
+# Refactor backup reference (do not bundle/lint)
+open-sse.old/
 
 # ===== Ignore claude ai files =====
 .claude/*.local.json

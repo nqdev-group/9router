@@ -1,30 +1,49 @@
 // Provider definitions
+import REGISTRY from "open-sse/providers/registry/index.js";
+import { RISK_NOTICE } from "@/shared/constants/providersDisplay";
 
-const RISK_NOTICE = "⚠️ Risk Notice: This provider uses a subscription/OAuth session not officially licensed for proxy/router use. Account may be restricted or banned. Use at your own risk.";
+const MEDIA_ENTRY_KEYS = [
+  "serviceKinds", "ttsConfig", "sttConfig", "embeddingConfig",
+  "imageConfig", "imageToTextConfig", "videoConfig", "musicConfig",
+  "searchViaChat", "searchConfig", "fetchConfig",
+  "modelsFetcher", "mediaPriority", "hiddenKinds",
+];
 
-// Free Providers (kiro first, iflow last)
-export const FREE_PROVIDERS = {
-  kiro: { id: "kiro", alias: "kr", name: "Kiro AI", icon: "psychology_alt", color: "#FF6B35", deprecated: true, deprecationNotice: RISK_NOTICE, website: "https://kiro.dev", notice: { signupUrl: "https://kiro.dev" } },
-  // qwen: { id: "qwen", alias: "qw", name: "Qwen Code", icon: "psychology", color: "#10B981", mediaPriority: 999, deprecated: true, deprecationNotice: "Qwen OAuth free tier was discontinued by Alibaba on 2026-04-15. New connections will not work.", website: "https://chat.qwen.ai", notice: { signupUrl: "https://chat.qwen.ai" }, serviceKinds: ["llm", "tts"], ttsConfig: { baseUrl: "http://localhost:8000/v1/audio/speech", authType: "none", authHeader: "none", format: "openai", models: [{ id: "qwen3-tts", name: "Qwen3 TTS" }] } },
-  "gemini-cli": { id: "gemini-cli", alias: "gc", name: "Gemini CLI", icon: "terminal", color: "#4285F4", deprecated: true, deprecationNotice: RISK_NOTICE, website: "https://github.com/google-gemini/gemini-cli", notice: { signupUrl: "https://github.com/google-gemini/gemini-cli" } },
-  // gitlab: { id: "gitlab", alias: "gl", name: "GitLab Duo", icon: "code", color: "#FC6D26" },
-  // codebuddy: { id: "codebuddy", alias: "cb", name: "CodeBuddy", icon: "smart_toy", color: "#006EFF" },
-  qoder: { id: "qoder", alias: "qd", name: "Qoder", icon: "water_drop", color: "#EC4899", deprecated: true, deprecationNotice: RISK_NOTICE, website: "https://qoder.com", notice: { signupUrl: "https://qoder.com" } },
-  // iflow: { id: "iflow", alias: "if", name: "iFlow AI", icon: "water_drop", color: "#6366F1", website: "https://iflow.cn", notice: { signupUrl: "https://iflow.cn" } },
-  opencode: { id: "opencode", alias: "oc", name: "OpenCode Free", icon: "terminal", color: "#E87040", textIcon: "OC", noAuth: true, passthroughModels: true, modelsFetcher: { url: "https://opencode.ai/zen/v1/models", type: "opencode-free" } },
-  "mimo-free": { id: "mimo-free", alias: "mmf", name: "MiMo Code Free", icon: "smart_toy", color: "#FF6900", textIcon: "MF", noAuth: true, passthroughModels: true, modelsFetcher: { url: "https://models.dev/api.json", type: "mimo-free" } },
-};
+// Build provider UI object from registry entry
+function buildProviderEntry(r) {
+  const mediaFields = {};
+  if (r.media) Object.assign(mediaFields, r.media);
+  for (const k of MEDIA_ENTRY_KEYS) {
+    if (r[k] !== undefined) mediaFields[k] = r[k];
+  }
+  const display = { ...(r.display || {}) };
+  if (display.deprecationNotice === "RISK_NOTICE") display.deprecationNotice = RISK_NOTICE;
+  return {
+    ...display,
+    id: r.id,
+    alias: r.uiAlias || r.alias,
+    ...(r.hidden ? { hidden: true } : {}),
+    ...mediaFields,
+    ...(r.priority !== undefined ? { priority: r.priority } : {}),
+    ...(r.hasFree ? { hasFree: true } : {}),
+    ...(r.thinkingConfig ? { thinkingConfig: r.thinkingConfig } : {}),
+    ...(r.regions ? { regions: r.regions, defaultRegion: r.defaultRegion } : {}),
+    ...(r.hasProviderSpecificData ? { hasProviderSpecificData: true } : {}),
+    ...(r.noAuth ? { noAuth: true } : {}),
+    ...(r.passthroughModels ? { passthroughModels: true } : {}),
+    ...(r.hasOAuth ? { hasOAuth: true } : {}),
+    ...(r.authModes ? { authModes: r.authModes } : {}),
+    ...(r.authType ? { authType: r.authType } : {}),
+    ...(r.authHint ? { authHint: r.authHint } : {}),
+  };
+}
 
-// Free Tier Providers (has free access but may require account/API key)
-export const FREE_TIER_PROVIDERS = {
-  openrouter: { id: "openrouter", alias: "openrouter", name: "OpenRouter", icon: "router", color: "#F97316", textIcon: "OR", website: "https://openrouter.ai", notice: { text: "Free tier: 27+ free models, no credit card needed, 200 req/day. After $10 credit: 1,000 req/day.", apiKeyUrl: "https://openrouter.ai/settings/keys" }, modelsFetcher: { url: "https://openrouter.ai/api/v1/models", type: "openrouter-free" }, passthroughModels: true, serviceKinds: ["llm", "embedding", "tts", "imageToText"], embeddingConfig: { baseUrl: "https://openrouter.ai/api/v1/embeddings", authType: "apikey", authHeader: "bearer", models: [{ id: "openai/text-embedding-3-small", name: "Text Embedding 3 Small (OpenRouter)", dimensions: 1536 }, { id: "openai/text-embedding-3-large", name: "Text Embedding 3 Large (OpenRouter)", dimensions: 3072 }, { id: "openai/text-embedding-ada-002", name: "Text Embedding Ada 002 (OpenRouter)", dimensions: 1536 }] } },
-  nvidia: { id: "nvidia", alias: "nvidia", name: "NVIDIA NIM", icon: "developer_board", color: "#76B900", textIcon: "NV", website: "https://developer.nvidia.com/nim", notice: { text: "Free access for NVIDIA Developer Program members (prototyping & testing).", apiKeyUrl: "https://build.nvidia.com/settings/api-keys" }, serviceKinds: ["llm", "tts", "embedding"], ttsConfig: { baseUrl: "https://integrate.api.nvidia.com/v1/audio/speech", authType: "apikey", authHeader: "bearer", format: "nvidia-tts", models: [{ id: "fastpitch", name: "FastPitch" }, { id: "tacotron2", name: "Tacotron2" }] }, embeddingConfig: { baseUrl: "https://integrate.api.nvidia.com/v1/embeddings", authType: "apikey", authHeader: "bearer", models: [{ id: "nvidia/nv-embedqa-e5-v5", name: "NV EmbedQA E5 v5", dimensions: 1024 }] } },
-  ollama: { id: "ollama", alias: "ollama", name: "Ollama Cloud", icon: "cloud", color: "#ffffffff", textIcon: "OL", website: "https://ollama.com", notice: { text: "Free tier: light usage, 1 cloud model at a time (limits reset every 5h & 7d). Pro $20/mo · Max $100/mo.", apiKeyUrl: "https://ollama.com/settings/keys" } },
-  vertex: { id: "vertex", alias: "vx", name: "Vertex AI", icon: "cloud", color: "#4285F4", textIcon: "VX", website: "https://cloud.google.com/vertex-ai", notice: { text: "New Google Cloud accounts get $300 free credits. Requires GCP project + Service Account with Vertex AI API enabled.", apiKeyUrl: "https://console.cloud.google.com/iam-admin/serviceaccounts" } },
-  gemini: { id: "gemini", alias: "gemini", name: "Gemini", icon: "diamond", color: "#4285F4", textIcon: "GE", mediaPriority: 1, website: "https://ai.google.dev", notice: { apiKeyUrl: "https://aistudio.google.com/app/apikey" }, serviceKinds: ["llm", "embedding", "image", "imageToText", "webSearch", "tts", "stt"], sttConfig: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/models", authType: "apikey", authHeader: "key", format: "gemini-stt", models: [{ id: "gemini-2.5-pro", name: "Gemini 2.5 Pro (Best)" }, { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" }, { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite (Cheapest)" }, { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" }] }, searchViaChat: { defaultModel: "gemini-2.5-flash", pricingUrl: "https://ai.google.dev/pricing", freeTier: "Free tier: 15 RPM, 1M tokens/day on gemini-2.5-flash via AI Studio." }, embeddingConfig: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/models", authType: "apikey", authHeader: "key", models: [{ id: "text-embedding-004", name: "Text Embedding 004", dimensions: 768 }, { id: "embedding-001", name: "Embedding 001", dimensions: 768 }] }, ttsConfig: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/models", authType: "apikey", authHeader: "key", format: "gemini-tts", models: [{ id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS" }, { id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS" }] } },
-  "cloudflare-ai": { id: "cloudflare-ai", alias: "cf", name: "Cloudflare", icon: "cloud", color: "#F38020", textIcon: "CF", website: "https://developers.cloudflare.com/workers-ai/", notice: { text: "Workers AI free tier. Requires a Cloudflare API token and Account ID.", apiKeyUrl: "https://dash.cloudflare.com/profile/api-tokens" }, serviceKinds: ["llm", "image"], hasProviderSpecificData: true },
-  byteplus: { id: "byteplus", alias: "bpm", name: "BytePlus ModelArk", icon: "cloud", color: "#2563EB", textIcon: "BP", website: "https://console.byteplus.com/ark", notice: { text: "Free credits for new accounts. Access to Seed 2.0, Kimi K2 Thinking, GLM 4.7, GPT-OSS-120B models.", apiKeyUrl: "https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey" }, serviceKinds: ["llm"] },
-};
+const byCategory = (cat) => Object.fromEntries(
+  REGISTRY.filter(r => r.category === cat).map(r => [r.id, buildProviderEntry(r)])
+);
+
+export const FREE_PROVIDERS = byCategory("free");
+export const FREE_TIER_PROVIDERS = byCategory("freeTier");
 
 // Thinking config definitions
 // options: list of selectable modes ("auto" = no override from server)
@@ -43,16 +62,8 @@ export const THINKING_CONFIG = {
   }
 };
 
-const MINIMAX_TTS_MODELS = [
-  { id: "speech-2.8-hd", name: "Speech 2.8 HD" },
-  { id: "speech-2.8-turbo", name: "Speech 2.8 Turbo" },
-  { id: "speech-2.6-hd", name: "Speech 2.6 HD" },
-  { id: "speech-2.6-turbo", name: "Speech 2.6 Turbo" },
-  { id: "speech-02-hd", name: "Speech 02 HD" },
-  { id: "speech-02-turbo", name: "Speech 02 Turbo" },
-  { id: "speech-01-hd", name: "Speech 01 HD" },
-  { id: "speech-01-turbo", name: "Speech 01 Turbo" },
-];
+export const OAUTH_PROVIDERS = byCategory("oauth");
+export const APIKEY_PROVIDERS = byCategory("apikey");
 
 // OAuth Providers
 export const OAUTH_PROVIDERS = {
@@ -172,10 +183,7 @@ export const APIKEY_PROVIDERS = {
 };
 
 // Web Cookie Providers (use browser session cookie instead of API key)
-export const WEB_COOKIE_PROVIDERS = {
-  "grok-web": { id: "grok-web", alias: "gw", name: "Grok Web (Subscription)", icon: "auto_awesome", color: "#1DA1F2", textIcon: "GW", website: "https://grok.com", authType: "cookie", authHint: "Paste your sso= cookie value from grok.com", passthroughModels: true, serviceKinds: ["llm"] },
-  "perplexity-web": { id: "perplexity-web", alias: "pw", name: "Perplexity Web (Pro/Max)", icon: "search", color: "#20808D", textIcon: "PW", website: "https://www.perplexity.ai", authType: "cookie", authHint: "Paste your __Secure-next-auth.session-token cookie value from perplexity.ai", serviceKinds: ["llm"] },
-};
+export const WEB_COOKIE_PROVIDERS = byCategory("webCookie");
 
 // Media provider kinds — each kind maps to a route and endpoint config
 export const MEDIA_PROVIDER_KINDS = [
@@ -211,9 +219,9 @@ export const AI_PROVIDERS = { ...FREE_PROVIDERS, ...FREE_TIER_PROVIDERS, ...OAUT
 
 // Auth methods
 export const AUTH_METHODS = {
-  oauth: { id: "oauth", name: "OAuth", icon: "lock" },
-  apikey: { id: "apikey", name: "API Key", icon: "key" },
-  cookie: { id: "cookie", name: "Browser Cookie", icon: "cookie" },
+  oauth: { id: "oauth" },
+  apikey: { id: "apikey" },
+  cookie: { id: "cookie" },
 };
 
 // Helper: Get provider by alias
@@ -261,32 +269,14 @@ export function getProvidersByKind(kind) {
       if (p.hiddenKinds?.includes(kind)) return false;
       return true;
     })
-    .sort((a, b) => (a.mediaPriority ?? 100) - (b.mediaPriority ?? 100));
+    .sort((a, b) => (a.priority ?? a.mediaPriority ?? 999) - (b.priority ?? b.mediaPriority ?? 999));
 }
 
-// Providers that support usage/quota API
-export const USAGE_SUPPORTED_PROVIDERS = [
-  "claude",
-  "antigravity",
-  "kiro",
-  "qoder",
-  "github",
-  "codex",
-  "kimi-coding",
-  "ollama",
-  "gemini-cli",
-  "glm",
-  "glm-cn",
-  "minimax",
-  "minimax-cn",
-  "vercel-ai-gateway",
-];
+// Derive từ registry features flags
+export const USAGE_SUPPORTED_PROVIDERS = REGISTRY
+  .filter(r => r.features?.usage)
+  .map(r => r.id);
 
-// Subset that uses apikey auth (still surfaced on quota page)
-export const USAGE_APIKEY_PROVIDERS = [
-  "glm",
-  "glm-cn",
-  "minimax",
-  "minimax-cn",
-  "vercel-ai-gateway",
-];
+export const USAGE_APIKEY_PROVIDERS = REGISTRY
+  .filter(r => r.features?.usageApikey)
+  .map(r => r.id);
