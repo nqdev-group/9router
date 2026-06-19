@@ -94,6 +94,33 @@ export const TTS_MODELS_CONFIG = {
   "google-tts": {
     defaults: GOOGLE_TTS_LANGUAGES,
   },
+  revidapi: {
+    models: [
+      { id: "edge", name: "Edge TTS (Free)", type: "tts" },
+      { id: "capcut", name: "CapCut TTS", type: "tts" },
+      { id: "google", name: "Google TTS", type: "tts" },
+    ],
+    voices: {
+      edge: [
+        { id: "vi-VN-HoaiMyNeural", name: "Vietnamese Female", type: "tts" },
+        { id: "vi-VN-NamMinhNeural", name: "Vietnamese Male", type: "tts" },
+        { id: "en-US-JennyNeural", name: "English Female", type: "tts" },
+        { id: "en-US-GuyNeural", name: "English Male", type: "tts" },
+        { id: "ja-JP-NanamiNeural", name: "Japanese Female", type: "tts" },
+        { id: "ko-KR-SunHiNeural", name: "Korean Female", type: "tts" },
+        { id: "zh-CN-XiaoxiaoNeural", name: "Chinese Female", type: "tts" },
+      ],
+    },
+    allVoices: [
+      { id: "vi-VN-HoaiMyNeural", name: "Vietnamese Female", type: "tts" },
+      { id: "vi-VN-NamMinhNeural", name: "Vietnamese Male", type: "tts" },
+      { id: "en-US-JennyNeural", name: "English Female", type: "tts" },
+      { id: "en-US-GuyNeural", name: "English Male", type: "tts" },
+      { id: "ja-JP-NanamiNeural", name: "Japanese Female", type: "tts" },
+      { id: "ko-KR-SunHiNeural", name: "Korean Female", type: "tts" },
+      { id: "zh-CN-XiaoxiaoNeural", name: "Chinese Female", type: "tts" },
+    ],
+  },
   gemini: {
     models: [
       { id: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash TTS", type: "tts" },
