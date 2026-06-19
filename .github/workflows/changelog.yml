@@ -30,6 +30,11 @@ jobs:
       - name: Write version file
         run: echo "${{ env.VERSION }}" > .version.txt
 
+      # nếu có version từ tags thì ghi đè lại
+      - name: Override VERSION from tag if available
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
       - name: Commit and push .version.txt to repo
         run: |
           git config user.name "github-actions[bot]"
@@ -49,8 +54,8 @@ jobs:
 
       - name: Generate changelog
         run: |
-          # auto-changelog --unreleased --output CHANGELOG.md --commit-limit false --template keepachangelog
-          auto-changelog --unreleased --latest-version --output CHANGELOG.md --commit-limit false --template keepachangelog
+          # auto-changelog --unreleased --output CHANGELOG-NQDEV.md --commit-limit false --template keepachangelog
+          auto-changelog --unreleased --latest-version "${{ env.VERSION }}" --output CHANGELOG-NQDEV.md --commit-limit false --template keepachangelog
 
       - name: Get default branch
         id: default_branch
@@ -61,11 +66,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: update changelog for release ${{ github.event.release.tag_name }}"
+          if [ -f CHANGELOG-NQDEV.md ]; then
+            git add CHANGELOG-NQDEV.md
+
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: update changelog for release ${{ github.ref_name }}"
+            else
+              echo "No changes to commit"
+            fi
           else
-            echo "No changes to commit"
+            echo "ERROR: CHANGELOG-NQDEV.md was not generated"
+            exit 1
           fi
 
       - name: Push changes

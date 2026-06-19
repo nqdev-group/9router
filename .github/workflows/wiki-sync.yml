@@ -21,8 +21,8 @@ jobs:
       - name: Checkout wiki repo
         uses: actions/checkout@v4
         with:
-          # https://github.com/nguyenquy0710/9router.wiki.git
-          repository: nguyenquy0710/9router.wiki
+          # https://github.com/nqdev-group/9router.wiki.git
+          repository: nqdev-group/9router.wiki
           token: ${{ secrets.GITHUB_TOKEN }}
           path: wiki
 
@@ -30,7 +30,6 @@ jobs:
         run: |
           rsync -av --delete --exclude='.git' --exclude='README.md' \
             docs/guide/ wiki/
-          cp docs/guide/README.md wiki/Home.md
           echo "---"
           echo "Files synced:"
           ls -la wiki/

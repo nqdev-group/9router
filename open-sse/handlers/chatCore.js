@@ -1,11 +1,13 @@
 import { detectFormat, getTargetFormat } from "../services/provider.js";
 import { translateRequest } from "../translator/index.js";
 import { FORMATS } from "../translator/formats.js";
+import { normalizeClaudePassthrough } from "../translator/formats/claude.js";
 import { COLORS } from "../utils/stream.js";
 import { createStreamController } from "../utils/streamHandler.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { createRequestLogger } from "../utils/requestLogger.js";
 import { getModelTargetFormat, getModelStrip, getModelUpstreamId, getModelType, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
+import { PROVIDERS } from "../config/providers.js";
 import { createErrorResult, parseUpstreamError, formatProviderError } from "../utils/error.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
 import { handleBypassRequest } from "../utils/bypassHandler.js";
@@ -19,8 +21,14 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { getCapabilitiesForModel } from "../providers/capabilities.js";
+import { stripUnsupportedModalities } from "../translator/concerns/modality.js";
+import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
+import { PrivacyEngine } from "../privacy/PrivacyEngine.js";
 import { preprocessBody } from "../rtk/preprocessors/contentCleaner.js";
 import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
+import { CmemEngine } from "@9router/cmem";
+import { getResponseCache } from "../services/responseCache.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -29,7 +37,7 @@ import { pruneBody } from "../rtk/preprocessors/contextPruner.js";
  * @param {object} options.credentials - Provider credentials
  * @param {string} options.sourceFormatOverride - Override detected source format (e.g. "openai-responses")
  */
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, sourceFormatOverride, providerThinking }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkConfig, cavemanEnabled, cavemanLevel, privacyEnabled = true, privacyCustomKeywords, sourceFormatOverride, providerThinking, cmemEnabled, cmemConfig, responseCacheEnabled, db }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
 
@@ -66,7 +74,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   const clientRequestedStreaming = body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI;
-  const providerRequiresStreaming = provider === "openai" || provider === "codex" || provider === "commandcode";
+  const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;
   let stream = providerRequiresStreaming ? true : (body.stream !== false);
 
   // DeepSeek-TUI: interactive TUI panel sends stream:true and needs SSE.
@@ -94,11 +102,29 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const clientTool = detectClientTool(clientRawRequest?.headers || {}, body);
   const passthrough = isNativePassthrough(clientTool, provider);
 
+  // Expose raw client headers to translators/executors for session-id resolution
+  if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
+
+  // Auto-strip media blocks the model can't read (vision/audio/pdf) before translation.
+  if (!passthrough) {
+    const caps = getCapabilitiesForModel(provider, model);
+    if (stripUnsupportedModalities(body, sourceFormat, caps)) {
+      log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
+    }
+    // Convert remote image URLs to base64 for targets that can't fetch URLs.
+    try {
+      const n = await prefetchRemoteImages(body, sourceFormat, targetFormat, { signal: undefined });
+      if (n > 0) log?.debug?.("MODALITY", `prefetched ${n} remote image(s) for ${targetFormat}`);
+    } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
+  }
+
   let translatedBody;
   let toolNameMap;
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
     translatedBody = { ...body, model: upstreamModel };
+    // Normalize newer Cowork/CC beta shapes (adaptive thinking, mid-conversation system) the API rejects
+    if (clientTool === "claude") normalizeClaudePassthrough(translatedBody, upstreamModel);
   } else {
     translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool);
     if (!translatedBody) {
@@ -139,6 +165,55 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkStats = compressMessages(translatedBody, rtkEnabled, rtkConfig);
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
+
+  // Privacy: mask sensitive data before dispatch to provider
+  const privacyEngine = new PrivacyEngine({
+    enabled: privacyEnabled,
+    customKeywords: Array.isArray(privacyCustomKeywords) ? privacyCustomKeywords : [],
+  });
+  translatedBody = privacyEngine.process(translatedBody);
+
+  // CMEM: inject relevant memory context before dispatch
+  let cmemInjectedCount = 0;
+  if (cmemEnabled && db) {
+    try {
+      const cmemEngine = new CmemEngine({ enabled: true, config: cmemConfig, db });
+      await cmemEngine.init();
+      const injected = await cmemEngine.injectContext(translatedBody, finalFormat);
+      if (injected) {
+        translatedBody = injected;
+        cmemInjectedCount = 1;
+        log?.debug?.("CMEM", `injected memory context | budget=${cmemConfig?.tokenBudget || 4000}`);
+      }
+    } catch (e) {
+      log?.warn?.("CMEM", `injection error: ${e.message}`);
+    }
+  }
+
+  // Response Cache: check for identical non-streaming request
+  let cacheKey = null;
+  if (responseCacheEnabled && !stream) {
+    try {
+      const cache = getResponseCache();
+      const params = { temperature: body.temperature, max_tokens: body.max_tokens, top_p: body.top_p };
+      const hit = cache.get(model, translatedBody, params);
+      if (hit) {
+        log?.info?.("CACHE", `${model} | hash hit | ${finalFormat}`);
+        console.log(`[CACHE] ${model} | cache hit`);
+        trackPendingRequest(model, provider, connectionId, false);
+        appendRequestLog({ model, provider, connectionId, status: "200 OK (cached)" }).catch(() => { });
+        return {
+          success: true,
+          response: new Response(JSON.stringify(hit.content), {
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          })
+        };
+      }
+      cacheKey = { params };
+    } catch (e) {
+      log?.warn?.("CACHE", `lookup error: ${e.message}`);
+    }
+  }
 
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);
@@ -263,25 +338,62 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, rtkStats };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, rtkStats, cmemEnabled, cmemConfig, db };
+  const cmemCapture = cmemEnabled && db ? new CmemEngine({ enabled: true, config: cmemConfig, db }) : null;
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
+
+  // CMEM: async capture after response completes
+  const captureToCmem = () => {
+    if (!cmemCapture) return;
+    if (cmemConfig?.observationsEnabled === false) return;
+    cmemCapture.captureObservation({
+      model,
+      messages: body?.messages || body?.input || [],
+      response: null,
+      provider,
+    }).catch(e => console.warn("[CMEM] capture error:", e.message));
+  };
+
+  // Helper: save response to cache (non-streaming only)
+  const saveToResponseCache = async (result) => {
+    if (!result?.success || !cacheKey) return;
+    try {
+      const respClone = result.response.clone();
+      const bodyText = await respClone.text();
+      let parsed;
+      try { parsed = JSON.parse(bodyText); } catch {}
+      if (parsed) {
+        const cache = getResponseCache();
+        cache.set(model, translatedBody, cacheKey.params, { content: parsed, usage: parsed.usage || {} });
+        log?.debug?.("CACHE", `${model} | saved`);
+      }
+    } catch (e) {
+      log?.warn?.("CACHE", `save error: ${e.message}`);
+    }
+  };
 
   // Provider forced streaming but client wants JSON
   if (!clientRequestedStreaming && providerRequiresStreaming) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, trackDone, appendLog });
-    if (result) { streamController.handleComplete(); return result; }
+    if (result) { await saveToResponseCache(result); streamController.handleComplete(); captureToCmem(); return result; }
   }
 
   // True non-streaming response
   if (!stream) {
     const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, reqLogger, toolNameMap, trackDone, appendLog });
+    await saveToResponseCache(result);
     streamController.handleComplete();
+    captureToCmem();
     return result;
   }
 
   // Streaming response
-  const { onStreamComplete } = buildOnStreamComplete({ ...sharedCtx });
+  const prevOnComplete = buildOnStreamComplete({ ...sharedCtx });
+  const onStreamComplete = () => {
+    if (prevOnComplete.onStreamComplete) prevOnComplete.onStreamComplete();
+    captureToCmem();
+  };
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete });
 }
 

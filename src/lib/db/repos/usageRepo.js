@@ -749,6 +749,47 @@ export async function getTokenSaverStats(period = "30d") {
   const rtkTotalSaved = rtkTotalBytesBefore - rtkTotalBytesAfter;
   const rtkSavingsPercent = rtkTotalBytesBefore > 0 ? ((rtkTotalSaved / rtkTotalBytesBefore) * 100) : 0;
 
+  // CMEM: get stats from cmem tables
+  let cmemStats = {
+    observationsCount: 0,
+    totalTokens: 0,
+    injectionsCount: 0,
+    totalInjectedTokens: 0,
+    byType: {}
+  };
+  try {
+    const obsRows = db.all(`SELECT type, tokens FROM cmem_observations`);
+    for (const r of obsRows) {
+      cmemStats.observationsCount++;
+      cmemStats.totalTokens += r.tokens || 0;
+      const t = r.type || "note";
+      cmemStats.byType[t] = (cmemStats.byType[t] || 0) + 1;
+    }
+    const cacheRows = db.all(`SELECT token_count FROM cmem_context_cache`);
+    for (const r of cacheRows) {
+      cmemStats.injectionsCount++;
+      cmemStats.totalInjectedTokens += r.token_count || 0;
+    }
+  } catch (e) {
+    // Tables might not exist yet if CMEM never used
+  }
+
+  // Response Cache: get live stats from singleton
+  let responseCacheStats = { enabled: false, hits: 0, misses: 0, hitRate: "0%", evictions: 0, size: 0, maxSize: 100, ttlMs: 300000 };
+  try {
+    const { getResponseCache } = await import("open-sse/services/responseCache.js");
+    const { getSettings } = await import("./settingsRepo.js");
+    const settings = await getSettings();
+    if (settings.responseCacheEnabled) {
+      const cache = getResponseCache();
+      responseCacheStats = { ...cache.stats(), enabled: true };
+    } else {
+      responseCacheStats.enabled = false;
+    }
+  } catch (e) {
+    // responseCache module might not be available
+  }
+
   // Caveman: get current settings
   let cavemanEnabled = false;
   let cavemanLevel = "";
@@ -784,6 +825,25 @@ export async function getTokenSaverStats(period = "30d") {
       totalHits: rtkTotalHits,
       requestCount: rtkRequestCount,
       topFilters,
+    },
+    cmem: {
+      enabled: true,
+      observationsCount: cmemStats.observationsCount,
+      totalTokens: cmemStats.totalTokens,
+      injectionsCount: cmemStats.injectionsCount,
+      totalInjectedTokens: cmemStats.totalInjectedTokens,
+      avgInjectedTokens: cmemStats.injectionsCount > 0 ? Math.round(cmemStats.totalInjectedTokens / cmemStats.injectionsCount) : 0,
+      byType: cmemStats.byType
+    },
+    responseCache: {
+      enabled: responseCacheStats.enabled,
+      hits: responseCacheStats.hits || 0,
+      misses: responseCacheStats.misses || 0,
+      hitRate: responseCacheStats.hitRate || "0%",
+      evictions: responseCacheStats.evictions || 0,
+      size: responseCacheStats.size || 0,
+      maxSize: responseCacheStats.maxSize || 100,
+      ttlMs: responseCacheStats.ttlMs || 300000,
     },
     caveman: {
       enabled: cavemanEnabled,
@@ -901,7 +961,7 @@ export async function appendRequestLog() {}
 
 export async function getRecentLogs(limit = 200) {
   try {
-    const db = getAdapter();
+    const db = await getAdapter();
     const rows = db.all(
       `SELECT timestamp, provider, model, connectionId, promptTokens, completionTokens, status, tokens FROM usageHistory ORDER BY id DESC LIMIT ?`,
       [limit],

@@ -4,9 +4,10 @@
  */
 
 import { handleChatCore } from "./chatCore.js";
-import { convertResponsesApiFormat } from "../translator/helpers/responsesApiHelper.js";
+import { convertResponsesApiFormat } from "../translator/formats/responsesApi.js";
 import { createResponsesApiTransformStream } from "../transformer/responsesTransformer.js";
 import { convertResponsesStreamToJson } from "../transformer/streamToJsonConverter.js";
+import { SSE_HEADERS_CORS } from "../utils/sseConstants.js";
 
 /**
  * Handle /v1/responses request
@@ -19,9 +20,12 @@ import { convertResponsesStreamToJson } from "../transformer/streamToJsonConvert
  * @param {function} options.onRequestSuccess - Callback when request succeeds
  * @param {function} options.onDisconnect - Callback when client disconnects
  * @param {string} options.connectionId - Connection ID for usage tracking
+ * @param {boolean} options.cmemEnabled - Enable CMEM contextual memory
+ * @param {object} options.cmemConfig - CMEM configuration
+ * @param {object} options.db - Database adapter for CMEM storage
  * @returns {Promise<{success: boolean, response?: Response, status?: number, error?: string}>}
  */
-export async function handleResponsesCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, connectionId }) {
+export async function handleResponsesCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, connectionId, cmemEnabled, cmemConfig, db }) {
   // Convert Responses API format to Chat Completions format
   const convertedBody = convertResponsesApiFormat(body);
 
@@ -42,6 +46,9 @@ export async function handleResponsesCore({ body, modelInfo, credentials, log, o
     onRequestSuccess,
     onDisconnect,
     connectionId,
+    cmemEnabled,
+    cmemConfig,
+    db,
     sourceFormatOverride: "openai-responses"
   });
 
@@ -87,12 +94,7 @@ export async function handleResponsesCore({ body, modelInfo, credentials, log, o
       success: true,
       response: new Response(transformedBody, {
         status: 200,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": "*"
-        }
+        headers: { ...SSE_HEADERS_CORS }
       })
     };
   }

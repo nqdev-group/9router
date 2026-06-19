@@ -13,6 +13,7 @@ import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS } from "@/shared/constants/config";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS } from "@/shared/constants/providers";
 import { translate } from "@/i18n/runtime";
+import { getPageInfoUtil } from "@9router/utils/header.util";
 
 const getPageInfo = (pathname) => {
   if (!pathname) return { title: "", description: "", breadcrumbs: [] };
@@ -168,7 +169,9 @@ const getPageInfo = (pathname) => {
       icon: "api",
       breadcrumbs: [],
     };
-  return { title: "", description: "", breadcrumbs: [] };
+
+  return getPageInfoUtil(pathname);
+  // return { title: "", description: "", breadcrumbs: [] };
 };
 
 export default function Header({ onMenuClick, showMenuButton = true }) {

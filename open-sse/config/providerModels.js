@@ -1,32 +1,14 @@
 import { PROVIDERS } from "./providers.js";
+import REGISTRY from "../providers/registry/index.js";
+// PROVIDER_MODELS now built from providers/registry (transport + models co-located)
+import { PROVIDER_MODELS } from "../providers/index.js";
 import { buildTtsProviderModels } from "./ttsModels.js";
+import { modelQuotaFamily, modelStrip, modelTargetFormat } from "../providers/models/schema.js";
+import { CODEX_REVIEW_SUFFIX } from "../providers/models/helpers.js";
 
-// Provider models - Single source of truth
-// Key = alias (cc, cx, gc, qw, if, ag, gh for OAuth; id for API Key)
-// Field "provider" for special cases (e.g. AntiGravity models that call different backends)
+export { PROVIDER_MODELS };
 
-const CODEX_REVIEW_SUFFIX = "-review";
-
-function withCodexReviewModels(models) {
-  return models.flatMap((model) => {
-    if ((model.type || "llm") !== "llm" || model.id.endsWith(CODEX_REVIEW_SUFFIX)) {
-      return [model];
-    }
-
-    return [
-      model,
-      {
-        ...model,
-        id: `${model.id}${CODEX_REVIEW_SUFFIX}`,
-        name: `${model.name} Review`,
-        upstreamModelId: model.upstreamModelId || model.id,
-        quotaFamily: "review",
-      },
-    ];
-  });
-}
-
-export const PROVIDER_MODELS = {
+export const CORE_PROVIDER_MODELS = {
   // OAuth Providers (using alias)
   cc: [  // Claude Code
     { id: "claude-opus-4-8", name: "Claude Opus 4.8" },
@@ -211,6 +193,9 @@ export const PROVIDER_MODELS = {
     // { id: "minimax-m2.5-free", name: "MiniMax M2.5", targetFormat: "claude" },
     // { id: "trinity-large-preview-free", name: "Trinity Large Preview" },
   ],
+  mmf: [  // MiMo Free — free channel only serves mimo-auto
+    { id: "mimo-auto", name: "MiMo Auto" },
+  ],
 
   cl: [  // Cline
     { id: "anthropic/claude-opus-4.7", name: "Claude Opus 4.7" },
@@ -310,8 +295,8 @@ export const PROVIDER_MODELS = {
     { id: "nvidia/llama-nemotron-embed-vl-1b-v2:free", name: "NVIDIA Nemotron Embed VL 1B V2 (Free)", type: "embedding" },
     // TTS models
     { id: "openai/gpt-4o-mini-tts", name: "GPT-4o Mini TTS", type: "tts" },
-    { id: "openai/tts-1-hd",        name: "TTS-1 HD",        type: "tts" },
-    { id: "openai/tts-1",           name: "TTS-1",           type: "tts" },
+    { id: "openai/tts-1-hd", name: "TTS-1 HD", type: "tts" },
+    { id: "openai/tts-1", name: "TTS-1", type: "tts" },
     // Image models
     { id: "openai/dall-e-3", name: "DALL-E 3 (via OpenRouter)", type: "image", params: ["size", "quality", "style", "response_format"] },
     { id: "openai/gpt-image-1", name: "GPT Image 1 (via OpenRouter)", type: "image", params: ["n", "size", "quality", "response_format"] },
@@ -363,6 +348,14 @@ export const PROVIDER_MODELS = {
     { id: "qwen3-coder-plus", name: "Qwen3 Coder Plus" },
     { id: "qwen3-max", name: "Qwen3 Max" },
     { id: "qwen3-vl-plus", name: "Qwen3 VL Plus" },
+  ],
+  kira: [
+    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
+    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
+    { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
+    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
   ],
   "minimax-cn": [
     { id: "MiniMax-M3", name: "MiniMax M3", targetFormat: "claude" },
@@ -531,16 +524,27 @@ export const PROVIDER_MODELS = {
     { id: "voyage-multilingual-2", name: "Voyage Multilingual 2", type: "embedding" },
   ],
   siliconflow: [
+    // DeepSeek models
+    { id: "deepseek-ai/DeepSeek-V4-Pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-ai/DeepSeek-V4-Flash", name: "DeepSeek V4 Flash" },
     { id: "deepseek-ai/DeepSeek-V3.2", name: "DeepSeek V3.2" },
+    { id: "deepseek-ai/DeepSeek-V3.2-Exp", name: "DeepSeek V3.2 Exp" },
     { id: "deepseek-ai/DeepSeek-V3.1", name: "DeepSeek V3.1" },
+    { id: "deepseek-ai/DeepSeek-V3.1-Terminus", name: "DeepSeek V3.1 Terminus" },
     { id: "deepseek-ai/DeepSeek-R1", name: "DeepSeek R1" },
-    { id: "Qwen/Qwen3-235B-A22B-Instruct-2507", name: "Qwen3 235B" },
-    { id: "Qwen/Qwen3-Coder-480B-A35B-Instruct", name: "Qwen3 Coder 480B" },
-    { id: "Qwen/Qwen3-32B", name: "Qwen3 32B" },
+    // Qwen models
+    { id: "Qwen/Qwen3.5-397B-A17B", name: "Qwen 3.5 397B A17B" },
+    { id: "Qwen/Qwen3.5-122B-A10B", name: "Qwen 3.5 122B A10B" },
+    // GLM models
+    { id: "zai-org/GLM-5.1", name: "GLM 5.1" },
+    { id: "zai-org/GLM-5", name: "GLM 5" },
+    // Kimi models
+    { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6" },
     { id: "moonshotai/Kimi-K2.5", name: "Kimi K2.5" },
-    { id: "zai-org/GLM-4.7", name: "GLM 4.7" },
+    // Other models
     { id: "openai/gpt-oss-120b", name: "GPT OSS 120B" },
-    { id: "baidu/ERNIE-4.5-300B-A47B", name: "ERNIE 4.5 300B" },
+    { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5" },
+    { id: "inclusionAI/Ling-flash-2.0", name: "Ling Flash 2.0" },
   ],
   "xiaomi-mimo": [
     { id: "mimo-v2.5-pro", name: "MiMo V2.5 Pro" },
@@ -827,6 +831,25 @@ export const PROVIDER_MODELS = {
   ],
 };
 
+function withCodexReviewModels(models) {
+  return models.flatMap((model) => {
+    if ((model.type || "llm") !== "llm" || model.id.endsWith(CODEX_REVIEW_SUFFIX)) {
+      return [model];
+    }
+
+    return [
+      model,
+      {
+        ...model,
+        id: `${model.id}${CODEX_REVIEW_SUFFIX}`,
+        name: `${model.name} Review`,
+        upstreamModelId: model.upstreamModelId || model.id,
+        quotaFamily: "review",
+      },
+    ];
+  });
+}
+
 // Helper functions
 export function getProviderModels(aliasOrId) {
   return PROVIDER_MODELS[aliasOrId] || [];
@@ -854,15 +877,14 @@ export function findModelName(aliasOrId, modelId) {
 export function getModelTargetFormat(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return null;
-  const found = models.find(m => m.id === modelId);
-  return found?.targetFormat || null;
+  return modelTargetFormat(models.find(m => m.id === modelId));
 }
 
 export function getModelType(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return null;
   const found = models.find(m => m.id === modelId);
-  return found?.type || null;
+  return found?.kind || found?.type || null;
 }
 
 export function getModelUpstreamId(aliasOrId, modelId) {
@@ -877,29 +899,14 @@ export function getModelUpstreamId(aliasOrId, modelId) {
 
 export function getModelQuotaFamily(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
-  const found = models?.find(m => m.id === modelId);
-  return found?.quotaFamily || "normal";
+  return modelQuotaFamily(models?.find(m => m.id === modelId));
 }
 
-// OAuth providers that use short aliases (everything else: alias = id)
-const OAUTH_ALIASES = {
-  claude: "cc",
-  codex: "cx",
-  "gemini-cli": "gc",
-  qwen: "qw",
-  iflow: "if",
-  antigravity: "ag",
-  github: "gh",
-  kiro: "kr",
-  cursor: "cu",
-  "kimi-coding": "kmc",
-  kilocode: "kc",
-  cline: "cl",
-  opencode: "oc",
-  qoder: "qd",
-  vertex: "vertex",
-  "vertex-partner": "vertex-partner",
-};
+// OAuth short aliases — derived from registry `alias` (single source). everything else: alias = id.
+// vertex/vertex-partner keep alias=id (kept via the `|| id` fallback in consumers).
+export const OAUTH_ALIASES = Object.fromEntries(
+  REGISTRY.filter(r => r.alias && r.alias !== r.id).map(r => [r.id, r.alias])
+);
 
 // Derived from PROVIDERS — no need to maintain manually
 export const PROVIDER_ID_TO_ALIAS = Object.fromEntries(
@@ -914,6 +921,5 @@ export function getModelsByProviderId(providerId) {
 // Get strip list for a model entry (explicit opt-in only)
 // Returns array of content types to strip, e.g. ["image", "audio"]
 export function getModelStrip(alias, modelId) {
-  const entry = PROVIDER_MODELS[alias]?.find(m => m.id === modelId);
-  return entry?.strip || [];
+  return modelStrip(PROVIDER_MODELS[alias]?.find(m => m.id === modelId));
 }
