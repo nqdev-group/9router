@@ -90,11 +90,14 @@ async function fetchAudioAsBase64(audioUrl) {
   if (contentType.includes("wav")) format = "wav";
   else if (contentType.includes("ogg")) format = "ogg";
 
-  const { Buffer } = await import("node:buffer");
   const buf = await res.arrayBuffer();
   if (buf.byteLength < 100) throw new Error("RevidAPI returned empty audio");
 
-  return { base64: Buffer.from(buf).toString("base64"), format };
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+
+  return { base64: btoa(binary), format };
 }
 
 function sleep(ms) {
