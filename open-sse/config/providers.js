@@ -1,3 +1,5 @@
+import { platform, arch } from "os";
+
 // Barrel: PROVIDERS now built from providers/registry (transport co-located with models)
 import { PROVIDERS } from "../providers/index.js";
 export { PROVIDERS, PROVIDER_OAUTH } from "../providers/index.js";
