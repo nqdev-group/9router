@@ -37,6 +37,9 @@ const DEFAULT_SETTINGS = {
   modelsDevPreferPrices: false,
   modelsDevAutoSyncHours: 24,
   rtkEnabled: true,
+  headroomEnabled: false,
+  headroomUrl: "http://localhost:8787",
+  headroomCompressUserMessages: false,
   rtkConfig: {
     // Intensity
     intensity: "aggressive",                   // "minimal" | "moderate" | "aggressive" | "maximal"
@@ -73,6 +76,8 @@ const DEFAULT_SETTINGS = {
   },
   cavemanEnabled: false,
   cavemanLevel: "full",
+  ponytailEnabled: false,
+  ponytailLevel: "full",
   privacyEnabled: true,
   privacyCustomKeywords: [],
   responseCacheEnabled: false,
