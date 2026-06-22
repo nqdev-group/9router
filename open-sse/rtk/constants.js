@@ -1,7 +1,7 @@
 // RTK port constants (mirror Rust defaults)
 export const RAW_CAP = 10 * 1024 * 1024;      // 10 MiB
-export const MIN_COMPRESS_SIZE = 500;          // bytes; skip tiny blobs
-export const DETECT_WINDOW = 1024;             // autodetect peeks first N chars
+export const MIN_COMPRESS_SIZE = 200;          // bytes; skip tiny blobs
+export const DETECT_WINDOW = 4096;             // autodetect peeks first N chars
 export const GIT_DIFF_HUNK_MAX_LINES = 100;    // per-hunk line cap
 export const GIT_DIFF_CONTEXT_KEEP = 3;        // context lines around changes
 export const DEDUP_LINE_MAX = 2000;            // dedupLog truncation cap
@@ -47,6 +47,7 @@ export const FILTERS = {
   GIT_DIFF: "git-diff",
   GIT_STATUS: "git-status",
   GIT_LOG: "git-log",
+  GIT_SHOW: "git-show",
   GREP: "grep",
   FIND: "find",
   LS: "ls",
@@ -55,5 +56,13 @@ export const FILTERS = {
   SMART_TRUNCATE: "smart-truncate",
   READ_NUMBERED: "read-numbered",
   SEARCH_LIST: "search-list",
-  BUILD_OUTPUT: "build-output"
+  BUILD_OUTPUT: "build-output",
+  ESLINT: "eslint",
+  TSC_BUILD: "tsc-build",
+  JEST_TEST: "jest-test",
+  NPM_INSTALL: "npm-install",
+  PIP_INSTALL: "pip-install",
+  DOCKER_LOGS: "docker-logs",
+  ERROR_STACKTRACE: "error-stacktrace",
+  JSON_LOG: "json-log"
 };

@@ -12,6 +12,7 @@ import { getSettings } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
+import { getAdapter } from "@/lib/db/driver.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { handleComboChat, handleFusionChat } from "open-sse/services/combo.js";
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
@@ -20,6 +21,16 @@ import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
+import { maybeAutoSyncModelsDev } from "open-sse/services/modelsDevService.js";
+
+let modelsDevInitiated = false;
+
+async function ensureModelsDevInitialized() {
+  if (!modelsDevInitiated) {
+    modelsDevInitiated = true;
+    maybeAutoSyncModelsDev();
+  }
+}
 
 /**
  * Handle chat completion request
@@ -27,6 +38,9 @@ import { getProjectIdForConnection } from "open-sse/services/projectId.js";
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
+  // Lazy init: auto-sync models.dev on first request
+  ensureModelsDevInitialized();
+
   let body;
   try {
     body = await request.json();
@@ -252,6 +266,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       apiKey,
       ccFilterNaming: !!chatSettings.ccFilterNaming,
       rtkEnabled: !!chatSettings.rtkEnabled,
+      rtkConfig: chatSettings.rtkConfig || {},
       headroomEnabled: !!chatSettings.headroomEnabled,
       headroomUrl: chatSettings.headroomUrl || DEFAULT_HEADROOM_URL,
       headroomCompressUserMessages: !!chatSettings.headroomCompressUserMessages,
@@ -259,6 +274,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       cavemanLevel: chatSettings.cavemanLevel || "full",
       ponytailEnabled: !!chatSettings.ponytailEnabled,
       ponytailLevel: chatSettings.ponytailLevel || "full",
+      privacyEnabled: chatSettings.privacyEnabled !== false,
+      privacyCustomKeywords: Array.isArray(chatSettings.privacyCustomKeywords) ? chatSettings.privacyCustomKeywords : [],
+      cmemEnabled: !!chatSettings.cmemEnabled,
+      cmemConfig: chatSettings.cmemConfig || {},
+      responseCacheEnabled: !!chatSettings.responseCacheEnabled,
+      db: await getAdapter(),
       providerThinking,
       // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,

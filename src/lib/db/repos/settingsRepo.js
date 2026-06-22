@@ -34,14 +34,75 @@ const DEFAULT_SETTINGS = {
   outboundNoProxy: "",
   mitmRouterBaseUrl: DEFAULT_MITM_ROUTER_BASE,
   dnsToolEnabled: {},
+  modelsDevEnabled: false,
+  modelsDevPreferPrices: false,
+  modelsDevAutoSyncHours: 24,
   rtkEnabled: true,
   headroomEnabled: false,
   headroomUrl: DEFAULT_HEADROOM_URL,
   headroomCompressUserMessages: false,
+  rtkConfig: {
+    // Intensity
+    intensity: "aggressive",                   // "minimal" | "moderate" | "aggressive" | "maximal"
+    
+    // Per-filter control (null = use intensity default)
+    enabledFilters: null,                    // null = all; or { "git-diff": true, "grep": false, ... }
+    
+    // Size thresholds
+    minCompressSize: 200,                    // bytes (default: 200)
+    maxCompressSize: 10485760,               // bytes (10 MiB)
+    
+    // Truncation (smart-truncate)
+    truncateHeadLines: 120,                  // keep first N lines
+    truncateTailLines: 60,                   // keep last N lines
+    truncateThreshold: 250,                  // only truncate if > N lines
+    
+    // Dedup
+    dedupThreshold: 2,                       // consecutive identical lines to collapse
+    dedupEnabled: true,
+    
+    // Code stripping (comment/whitespace removal per language)
+    codeStrippingEnabled: false,
+    codeStrippingLanguages: ["js", "ts", "py", "rs", "go"],  // target languages
+    
+    // Raw output retention (for debugging)
+    rawOutputRetention: "none",              // "none" | "first_kb" | "full"
+    
+    // Auto-detection
+    autoDetectEnabled: true,                 // auto-detect filter from content
+    commandDetectionEnabled: false,          // detect command type (git, test, build, etc.)
+    
+    // Per-provider overrides (optional, phase 2)
+    providerOverrides: {},                   // { "claude": { intensity: "aggressive" }, ... }
+  },
   cavemanEnabled: false,
   cavemanLevel: "full",
   ponytailEnabled: false,
   ponytailLevel: "full",
+  privacyEnabled: true,
+  privacyCustomKeywords: [],
+  responseCacheEnabled: false,
+  responseCacheMaxSize: 100,
+  responseCacheTtlMs: 300000,
+  cmemEnabled: true,
+  cmemConfig: {
+    mode: "code",
+    tokenBudget: 4000,
+    historyDepth: "session",
+    maxObservations: 20,
+    observationsEnabled: true,
+    compressionModel: null,
+    summarizationEnabled: true,
+    searchMode: "fts",
+    contextSections: ["recent", "relevant", "project-facts"],
+    excludePrivateContent: true,
+    observationRetentionDays: 90,
+  },
+  providerAlertEnabled: false,
+  providerAlertWebhookUrl: "",
+  providerAlertCooldown: 15,
+  providerAlertIgnoreProviders: "[]",
+  providerAlertState: {}, // { providerId: lastAlertAt }
 };
 
 async function readRaw() {

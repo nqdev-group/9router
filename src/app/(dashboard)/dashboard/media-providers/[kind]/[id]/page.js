@@ -14,6 +14,76 @@ import { TtsExampleCard } from "./components/TtsExampleCard";
 import { GenericExampleCard } from "./components/GenericExampleCard";
 import { SttExampleCard } from "./components/SttExampleCard";
 
+// Shared row layout — defined outside components to avoid re-mount on re-render
+function Row({ label, children }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+      <span className="w-full text-xs font-medium text-text-muted sm:w-20 sm:shrink-0">{label}</span>
+      <div className="w-full min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+const DEFAULT_TTS_RESPONSE_EXAMPLE = `// Audio will appear here after running.
+// Example JSON response (response_format=json):
+{
+  "format": "mp3",
+  "audio": "//NExAANaAIIAUAAANNNNNNNN..." // base64 encoded MP3
+}`;
+
+const DEFAULT_RESPONSE_EXAMPLE = `{
+  "object": "list",
+  "data": [{
+    "object": "embedding",
+    "index": 0,
+    "embedding": [0.002301, -0.019212, 0.004815, -0.031249, ...]
+  }],
+  "model": "...",
+  "usage": { "prompt_tokens": 9, "total_tokens": 9 }
+}`;
+
+const CLOUDFLARE_TEST_IMAGE_URL = "https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png";
+const CLOUDFLARE_TEST_MASK_URL = "https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog-mask.png";
+
+function getImageEditDefaults(providerId, modelId) {
+  if (providerId !== "cloudflare-ai") return {};
+  if (modelId === "@cf/runwayml/stable-diffusion-v1-5-img2img") {
+    return { image: CLOUDFLARE_TEST_IMAGE_URL };
+  }
+  if (modelId === "@cf/runwayml/stable-diffusion-v1-5-inpainting") {
+    return { image: CLOUDFLARE_TEST_IMAGE_URL, mask_image: CLOUDFLARE_TEST_MASK_URL };
+  }
+  return {};
+}
+
+function toImagePreviewSrc(value) {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  if (!trimmed) return "";
+
+  // Allow only strict data-image base64 URIs
+  const dataUriMatch = trimmed.match(/^data:image\/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=]+)$/i);
+  if (dataUriMatch) return trimmed;
+
+  // Allow only well-formed http/https URLs
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      if ((parsed.protocol === "http:" || parsed.protocol === "https:") && !/[\r\n<>"'`]/.test(trimmed)) {
+        return parsed.toString();
+      }
+    } catch (_) {
+      return "";
+    }
+  }
+
+  // Treat raw base64 as PNG preview only when payload is valid base64
+  if (/^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    return `data:image/png;base64,${trimmed}`;
+  }
+
+  return "";
+}
+
 // MediaProviderDetailPage
 export default function MediaProviderDetailPage() {
   const { kind, id } = useParams();
@@ -177,9 +247,9 @@ export default function MediaProviderDetailPage() {
           config={
             kind === "webFetch" ? provider.fetchConfig
               : kind === "tts" ? provider.ttsConfig
-              : kind === "stt" ? provider.sttConfig
-              : kind === "embedding" ? provider.embeddingConfig
-              : provider.searchConfig || { mode: "chat-completions", defaultModel: provider.searchViaChat?.defaultModel, pricingUrl: provider.searchViaChat?.pricingUrl, freeTier: provider.searchViaChat?.freeTier }
+                : kind === "stt" ? provider.sttConfig
+                  : kind === "embedding" ? provider.embeddingConfig
+                    : provider.searchConfig || { mode: "chat-completions", defaultModel: provider.searchViaChat?.defaultModel, pricingUrl: provider.searchViaChat?.pricingUrl, freeTier: provider.searchViaChat?.freeTier }
           }
           provider={provider}
           title={`${kindConfig.label} Config`}

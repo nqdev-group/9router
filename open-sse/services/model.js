@@ -1,3 +1,4 @@
+import { kem } from "node-forge";
 import REGISTRY from "../providers/registry/index.js";
 
 // Alias→id derived from registry single-source: id→id, alias→id, aliases[]→id.
@@ -10,7 +11,28 @@ const MEDIA_ONLY_ALIASES = {
   "aws-polly": "aws-polly",
 };
 
-const ALIAS_TO_PROVIDER_ID = { ...MEDIA_ONLY_ALIASES };
+// Provider alias to ID mapping
+const CORE_ALIASES = {
+  cc: "claude",
+  cx: "codex",
+  gc: "gemini-cli",
+  qw: "qwen",
+  if: "iflow",
+  ag: "antigravity",
+  gh: "github",
+  kr: "kiro",
+  cu: "cursor",
+  kc: "kilocode",
+  kmc: "kimi-coding",
+  cl: "cline",
+  oc: "opencode",
+  ocg: "opencode-go",
+  qd: "qoder",
+  qoder: "qoder",
+  kira: "kira",
+};
+
+const ALIAS_TO_PROVIDER_ID = { ...CORE_ALIASES, ...MEDIA_ONLY_ALIASES };
 for (const entry of REGISTRY) {
   ALIAS_TO_PROVIDER_ID[entry.id] = entry.id;
   if (entry.alias) ALIAS_TO_PROVIDER_ID[entry.alias] = entry.id;
