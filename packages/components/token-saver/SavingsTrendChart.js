@@ -25,13 +25,17 @@ export default function SavingsTrendChart({ chartData }) {
 
   return (
     <Card className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
-      <h3 className="text-text-main font-semibold">Daily RTK Savings Trend</h3>
+      <h3 className="text-text-main font-semibold">Daily Savings Trend</h3>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="gradSavings" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
               <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="gradCmem" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
@@ -44,7 +48,19 @@ export default function SavingsTrendChart({ chartData }) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(value) => [fmt(value), "Tokens Saved"]}
+            formatter={(value, name) => {
+              const labels = { rtkSaved: "RTK Saved (bytes)", cmemInjectedTokens: "CMEM Injected (tokens)" };
+              return [fmt(value), labels[name] || name];
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="cmemInjectedTokens"
+            stroke="#6366f1"
+            strokeWidth={2}
+            fill="url(#gradCmem)"
+            dot={false}
+            activeDot={{ r: 3 }}
           />
           <Area
             type="monotone"
@@ -57,6 +73,10 @@ export default function SavingsTrendChart({ chartData }) {
           />
         </AreaChart>
       </ResponsiveContainer>
+      <div className="flex items-center gap-4 text-xs text-text-muted">
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 rounded bg-[#10b981]" /> RTK Saved</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 rounded bg-[#6366f1]" /> CMEM Injected</span>
+      </div>
     </Card>
   );
 }
@@ -65,7 +85,8 @@ SavingsTrendChart.propTypes = {
   chartData: PropTypes.arrayOf(
     PropTypes.shape({
       label: PropTypes.string.isRequired,
-      rtkSaved: PropTypes.number.isRequired,
+      rtkSaved: PropTypes.number,
+      cmemInjectedTokens: PropTypes.number,
     })
   ),
 };

@@ -373,13 +373,25 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 
   // CMEM: async capture after response completes
-  const captureToCmem = () => {
+  const captureToCmem = async (responseBody) => {
     if (!cmemCapture) return;
     if (cmemConfig?.observationsEnabled === false) return;
+    let respText = null;
+    if (responseBody) {
+      try {
+        if (typeof responseBody === "string") {
+          respText = responseBody;
+        } else if (typeof responseBody?.content === "string") {
+          respText = responseBody.content;
+        } else if (typeof responseBody === "object") {
+          respText = JSON.stringify(responseBody);
+        }
+      } catch {}
+    }
     cmemCapture.captureObservation({
       model,
       messages: body?.messages || body?.input || [],
-      response: null,
+      response: respText,
       provider,
     }).catch(e => console.warn("[CMEM] capture error:", e.message));
   };
@@ -405,7 +417,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Provider forced streaming but client wants JSON
   if (!clientRequestedStreaming && providerRequiresStreaming) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, trackDone, appendLog });
-    if (result) { await saveToResponseCache(result); streamController.handleComplete(); captureToCmem(); return result; }
+    if (result) { await saveToResponseCache(result); streamController.handleComplete(); if (result.response) { const c = result.response.clone(); c.text().then(t => captureToCmem(t)).catch(() => captureToCmem()); } else { captureToCmem(); } return result; }
   }
 
   // True non-streaming response
@@ -413,15 +425,15 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, reqLogger, toolNameMap, trackDone, appendLog });
     await saveToResponseCache(result);
     streamController.handleComplete();
-    captureToCmem();
+    if (result?.response) { const c = result.response.clone(); c.text().then(t => captureToCmem(t)).catch(() => captureToCmem()); } else { captureToCmem(); }
     return result;
   }
 
   // Streaming response
   const prevOnComplete = buildOnStreamComplete({ ...sharedCtx });
-  const onStreamComplete = () => {
-    if (prevOnComplete.onStreamComplete) prevOnComplete.onStreamComplete();
-    captureToCmem();
+  const onStreamComplete = (...args) => {
+    if (prevOnComplete.onStreamComplete) prevOnComplete.onStreamComplete(...args);
+    captureToCmem(args[0]);
   };
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete });
 }

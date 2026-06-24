@@ -60,6 +60,10 @@ export default function CmemContextStats({ stats }) {
             <span className="text-xs text-text-muted uppercase font-semibold">Avg. Injection</span>
             <span className="truncate text-lg font-bold">{fmtBytes(cmem.avgInjectedTokens)}</span>
           </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-text-muted uppercase font-semibold">Tokens Saved (est.)</span>
+            <span className="truncate text-lg font-bold text-success">{fmt(cmem.estimatedSavedTokens)}</span>
+          </div>
         </div>
       </Card>
 
