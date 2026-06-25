@@ -1,5 +1,9 @@
 # 9Router — Tài liệu Nghiệp vụ & Quy trình
 
+_Cập nhật: 2026-06-24 | Phiên bản: 0.5.8_
+
+---
+
 ## 1. TỔNG QUAN HỆ THỐNG
 
 ### 1.1 Giới thiệu
@@ -60,10 +64,12 @@ POST /v1/chat/completions
       ├── RTK compression (tool_result)
       ├── Headroom proxy (optional)
       ├── Caveman mode (terse output)
+      ├── CMEM injection (contextual memory)
       └── Ponytail mode (YAGNI prompt)
   └── Format detection + translation (source → OpenAI → target)
   └── Executor dispatch → upstream provider
   └── Response translation (target → OpenAI → source)
+  └── CMEM capture (async, post-response)
   └── Usage tracking + cost calculation
   └── SSE streaming or JSON response back to client
 ```
@@ -127,16 +133,18 @@ POST /v1/chat/completions
 | **Translator** | `open-sse/translator/` | Format conversion registry (13 formats) |
 | **RTK Engine** | `open-sse/rtk/` (15 files) | Tool_result compression (21 filters) |
 | **PrivacyEngine** | `open-sse/privacy/` | Mask API keys, passwords, tokens in request |
+| **CMEM Engine** | `packages/cmem/` (16 files) | Contextual memory injection + capture (opt-in) |
 | **Dashboard** | `src/app/(dashboard)/dashboard/` | 17 management pages |
 | **Auth Guard** | `src/dashboardGuard.js` | Middleware: JWT + API key + CLI token |
 | **Local DB** | `src/lib/db/` | SQLite layer (4 adapters, schema, repos, migrations) |
 | **Usage DB** | `src/lib/usageDb.js` | Usage tracking + request details |
+| **Provider Registry** | `open-sse/providers/registry/` (97 files) | Provider definitions, models, capabilities |
 
 ---
 
 ## 3. DOMAIN MODEL
 
-### 3.1 Database Schema (SQLite — 11 tables)
+### 3.1 Database Schema (SQLite — 11 tables + CMEM tables)
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -166,8 +174,8 @@ POST /v1/chat/completions
 │  ┌──────────────┐   ┌──────────────────┐   ┌──────────────────┐    │
 │  │  combos      │   │  usageHistory    │   │  requestDetails  │    │
 │  │  id, name    │   │  id, timestamp   │   │  id, timestamp   │    │
-│  │  models:JSON │   │  provider, model │   │  data (JSON)     │    │
-│  │  kind        │   │  tokens, cost    │   │                  │    │
+│  │  models:JSON │   │  provider, model │   │  provider, model │    │
+│  │  kind        │   │  tokens, cost    │   │  data (JSON)     │    │
 │  └──────────────┘   │  rtkSaved, meta  │   └──────────────────┘    │
 │                     └──────────────────┘                           │
 │  ┌──────────────┐                                                  │
@@ -175,6 +183,13 @@ POST /v1/chat/completions
 │  │  dateKey PK  │                                                  │
 │  │  data (JSON) │                                                  │
 │  └──────────────┘                                                  │
+│                                                                     │
+│  ┌──────────────────────────────┐                                   │
+│  │  CMEM Tables (opt-in)        │                                   │
+│  │  cmem_observations           │                                   │
+│  │  cmem_sessions               │                                   │
+│  │  cmem_context_cache + FTS5   │                                   │
+│  └──────────────────────────────┘                                   │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -194,6 +209,8 @@ ApiKey ──1:1──► MachineId (who generated)
 ApiKey ──N:1──► Settings.requireApiKey (toggle enforcement)
 
 UsageHistory ──N:1──► UsageDaily (aggregated)
+
+CmemObservations ──N:1──► Model/Provider (context memory entries)
 ```
 
 ### 3.3 Entity Field Details
@@ -206,6 +223,9 @@ UsageHistory ──N:1──► UsageDaily (aggregated)
 | **apiKeys** | `key` (HMAC-signed), `machineId` (who created), `isActive` | API keys cho CLI tools truy cập |
 | **usageHistory** | `provider`, `model`, `promptTokens`, `completionTokens`, `cost`, `status`, `rtkSaved` | Mỗi request một record |
 | **providerNodes** | `type`, `name`, `data` (JSON: baseUrl, apiType) | Custom compatible endpoints |
+| **cmem_observations** | `model`, `messages`, `response`, `provider`, `tokenCount` | Memory observations for contextual recall |
+| **cmem_sessions** | `sessionId`, `model`, `provider`, `startedAt` | Session tracking for CMEM |
+| **cmem_context_cache** | `queryHash`, `context`, `tokenCount`, `expiresAt` | FTS5-indexed cache for fast context retrieval |
 
 ---
 
@@ -243,7 +263,7 @@ User → Browser → /login
 ```
 POST /v1/chat/completions
   Header: Authorization: Bearer <apiKey>
-  
+
   └── Handler kiểm tra:
        ├── requireApiKey=fa*** → bỏ qua key check
        └── requireApiKey=tr** → xác thực HMAC:
@@ -258,7 +278,7 @@ POST /v1/chat/completions
 | # | Quy trình | Mô tả | Source chính |
 |---|-----------|-------|-------------|
 | 1 | **Chat Completion — Entry & Account Loop** | Xử lý chat request từ CLI tool, combo/account fallback | `src/sse/handlers/chat.js:40-313` |
-| 2 | **Chat Completion — Core Pipeline** | Preprocessing → translation → executor → stream | `open-sse/handlers/chatCore.js:42-432` |
+| 2 | **Chat Completion — Core Pipeline** | Preprocessing → translation → executor → stream | `open-sse/handlers/chatCore.js:42-444` |
 | 3 | **Combo & Account Fallback** | Auto fallback qua models/accounts | `open-sse/services/combo.js`, `accountFallback.js` |
 | 4 | **OAuth Connection** | Kết nối provider, auto token refresh | `src/app/api/oauth/*`, `open-sse/services/tokenRefresh.js` |
 | 5 | **RTK Token Saver** | Nén tool_result, 21 filters auto-detect | `open-sse/rtk/index.js` |
@@ -324,7 +344,7 @@ POST /v1/chat/completions
 
 ### Quy trình 2: Chat Completion — Core Pipeline
 
-**File**: `open-sse/handlers/chatCore.js` (lines 42-432)
+**File**: `open-sse/handlers/chatCore.js` (lines 42-444)
 **Mô tả**: Pipeline xử lý lõi — preprocessing → format translation → executor → response stream.
 
 ```
@@ -337,39 +357,69 @@ handleChatCore({ body, modelInfo, credentials, ... })
   │     ├── preprocessBody(): clean whitespace, dedup
   │     └── pruneBody(): context pruning (nếu messages >= 2)
   │
-  ├── 3. PrivacyEngine (line ~90)
-  │     └── Mask API keys, passwords, tokens in request
-  │
-  ├── 4. Provider thinking override (line 69-79)
+  ├── 3. Provider thinking override (line 69-79)
   │     └── mode "on/off" → extended thinking; "low/med/high" → reasoning_effort
   │
-  ├── 5. RTK compression (line ~100-120)
-  │     ├── compressMessages(): 21 filters auto-detect
-  │     └── compressWithHeadroom(): external /v1/compress proxy (optional)
+  ├── 4. Stream mode detection (line 81-105)
+  │     ├── Client requests streaming? → stream=true
+  │     ├── Provider forceStream? → stream=true
+  │     ├── Image generation model? → stream=false
+  │     ├── DeepSeek-TUI non-interactive? → stream=false
+  │     └── Client Accept: application/json? → stream=false
   │
-  ├── 6. Caveman mode (line ~130)
+  ├── 5. Native passthrough check (line 114-116)
+  │     └── CLI tool + provider same ecosystem → skip translation
+  │
+  ├── 6. Modality strip + image prefetch (line 121-131)
+  │     ├── stripUnsupportedModalities(): remove vision/audio blocks
+  │     └── prefetchRemoteImages(): convert URLs → base64
+  │
+  ├── 7. Format translation (line 141-148)
+  │     └── translateRequest(): source → OpenAI (intermediate) → target
+  │     ├── Passthrough? → only swap model + Bearer
+  │     └── Translation? → full format conversion
+  │
+  ├── 8. Tool deduplication (line 152-158)
+  │     └── Dedupe built-in tools when MCP equivalents present (Claude only)
+  │
+  ├── 9. Caveman injection (line 171-174)
   │     └── injectCaveman(): terse output system prompt
   │
-  ├── 7. Ponytail mode (line ~140)
-  │     └── injectPonytail(): YAGNI-first system prompt
+  ├── 10. RTK compression (line 177-179)
+  │      └── compressMessages(): 21 filters auto-detect tool_result
   │
-  ├── 8. CMEM injection (line ~155-170)
-  │     └── CmemEngine.injectContext(): contextual memory từ FTS5
+  ├── 11. Headroom proxy (line 182-184)
+  │      └── compressWithHeadroom(): external /v1/compress (fail-open)
   │
-  ├── 9. Format translation (line ~180-200)
-  │     └── translateRequest(): source → OpenAI (intermediate) → target
+  ├── 12. Caveman injection (second pass, line 187-190)
+  │      └── injectCaveman(): post-RTK injection
   │
-  ├── 10. Executor dispatch (line ~200-250)
+  ├── 13. PrivacyEngine (line 193-197)
+  │      └── Mask API keys, passwords, tokens in final body
+  │
+  ├── 14. CMEM injection (line 200-214)
+  │      └── CmemEngine.injectContext(): contextual memory từ FTS5
+  │
+  ├── 15. Ponytail injection (line 217-220)
+  │      └── injectPonytail(): YAGNI-first system prompt
+  │
+  ├── 16. Response Cache check (line 223-245)
+  │      └── getResponseCache().get(): LRU cache cho identical requests
+  │
+  ├── 17. Executor dispatch (line 247-324)
   │      └── getExecutor(provider).execute({ body, credentials, stream })
-  │      └── Upstream API call + SSE/JSON response
+  │      ├── 401/403 → refreshWithRetry() → retry once
+  │      └── Other errors → createErrorResult()
   │
-  ├── 11. Response translation (line ~280-290)
-  │      └── translateResponse(): provider chunks → client format
+  ├── 18. Response handling (line 370-438)
+  │      ├── Forced SSE→JSON (client wants JSON, provider streams)
+  │      ├── True non-streaming → handleNonStreamingResponse()
+  │      └── Streaming → handleStreamingResponse()
   │
-  ├── 12. CMEM capture (line ~295-330)
-  │      └── CmemEngine.captureObservation(): lưu observations
+  ├── 19. CMEM capture (line 376-397)
+  │      └── CmemEngine.captureObservation(): async post-response
   │
-  └── 13. Usage tracking (line ~350-400)
+  └── 20. Usage tracking
         ├── extract tokens from response
         ├── calculate cost (pricing lookup)
         ├── save usageHistory record
@@ -381,6 +431,8 @@ handleChatCore({ body, modelInfo, credentials, ... })
 - Stream controller disconnect-aware: client ngắt → dừng upstream call
 - 401/403 retry: refresh token + retry một lần
 - Response cache: LRU cache cho identical requests (tùy chọn, responseCacheEnabled)
+- Caveman inject TWICE: trước và sau RTK (RTK compress added text)
+- CMEM: inject trước dispatch, capture async sau response (fire-and-forget)
 
 ---
 
@@ -392,414 +444,359 @@ handleChatCore({ body, modelInfo, credentials, ... })
 ```
 Model String → "my-coding-stack"
   │
-  ├── Combo resolution: getComboModels("my-coding-stack")
-  │   └── Returns: ["cc/claude-opus-4-7", "glm/glm-5.1", "kr/claude-sonnet-4.5"]
+  ├── getComboModels() → lookup in combos table
+  │     ├── Found → array of model strings (ordered)
+  │     └── Not found → treat as single model
   │
-  └── handleComboChat():
-        ├── Try model 1: cc/claude-opus-4-7
-        │     ├── Get credentials for "cc" (filter available)
-        │     ├── Loop accounts:
-        │     │     ├── Account A → handleSingleModelChat()
-        │     │     │     ├── Success → done
-        │     │     │     └── 429/401/403/5xx → markAccountUnavailable()
-        │     │     └── Hết accounts → fallback model
-        │     └── Error eligible → fallback
-        │
-        ├── Try model 2: glm/glm-5.1
-        │     └── (same pattern)
-        │
-        └── Try model 3: kr/claude-sonnet-4.5
-              └── (same pattern, hết → all unavailable)
+  ├── Combo Strategy:
+  │     ├── "fallback" → handleComboChat():
+  │     │     ├── Try model[0] → success? → return
+  │     │     ├── Fail → try model[1] → success? → return
+  │     │     ├── Fail → try model[2] → ...
+  │     │     └── All fail → "All models unavailable"
+  │     │
+  │     └── "fusion" → handleFusionChat():
+  │           ├── Send same prompt to ALL models in parallel
+  │           ├── Judge model evaluates responses
+  │           └── Return best response
+  │
+  └── Within each model: Account Fallback Loop
+        ├── getProviderCredentials() → round-robin active accounts
+        ├── Account fails → markAccountUnavailable(cooldown)
+        ├── Try next account for same provider
+        └── All accounts fail → try next model in combo
 ```
 
-**Fallback-eligible HTTP statuses**: 401, 402, 403, 429, 5xx
-**Business Rules**:
-- Account cooldown: `retryAfterMs` (nếu provider trả về) hoặc exponential backoff
-- Combo strategy: "fallback" (từng model) hoặc "fusion" (song song + judge model)
-- Fusion mode: gửi request đến nhiều models đồng thời, judge chọn response tốt nhất
-- Combo sticky limit: optional sticky round-robin per combo
+**Cooldown Types**:
+- Rate limit (429): `resetsAtMs` từ provider response
+- Auth error (401/403): exponential backoff starting 5min
+- Generic error: exponential backoff starting 1min
+- All cooldowns: max 24h cap
 
 ---
 
-### Quy trình 4: OAuth Connection & Token Refresh
+### Quy trình 4: OAuth Connection
 
-**Files**: `src/app/api/oauth/[provider]/[action]/route.js`, `open-sse/services/tokenRefresh.js`
-**Mô tả**: Kết nối provider qua OAuth 2.0 PKCE hoặc device-code flow.
+**Files**: `src/app/api/oauth/*`, `open-sse/services/tokenRefresh.js`
+**Mô tả**: Kết nối provider qua OAuth, tự động refresh token.
 
 ```
-Dashboard UI → /api/oauth/{provider}/authorize
+Dashboard → Connect Provider
   │
-  ├── 1. Generate PKCE challenge + state
+  ├── OAuth 2.0 PKCE Flow:
+  │     ├── GET /api/oauth/[provider]/authorize
+  │     │   → redirect to provider auth server
+  │     ├── User approves
+  │     │   → callback to /api/oauth/[provider]/callback
+  │     └── Exchange code → access/refresh tokens
   │
-  ├── 2. Redirect user to provider OAuth page
+  ├── Device Code Flow (for providers without browser):
+  │     ├── POST /api/oauth/[provider]/device-code
+  │     │   → display code to user
+  │     ├── User enters code at provider URL
+  │     └── Poll /api/oauth/[provider]/poll → tokens
   │
-  ├── 3. User authorizes → callback → /api/oauth/{provider}/exchange
-  │     └── Exchange authorization code for access_token + refresh_token
+  ├── Token Refresh (runtime):
+  │     ├── checkAndRefreshToken() trước mỗi request
+  │     ├── refreshWithRetry() khi 401/403
+  │     └── updateProviderCredentials() → persist mới
   │
-  └── 4. Save providerConnection to DB
-        └── data: { accessToken, refreshToken, expiresAt, ... }
-
-In-request token refresh (chat.js:243):
-  checkAndRefreshToken(provider, credentials)
-    ├── accessToken còn hạn (buffer 5 phút)? → dùng tiếp
-    └── sắp hết hạn? → refreshAccessToken():
-          ├── Gọi provider refresh endpoint
-          ├── Lưu new tokens vào DB
-          └── Return updated credentials
+  └── Connection Test:
+        ├── POST /api/providers/[id]/test
+        └── executor.validate() hoặc execute() test call
 ```
-
-**Business Rules**:
-- Token expiry buffer: `TOKEN_EXPIRY_BUFFER_MS` = 5 phút trước hạn
-- Provider-specific refresh: Claude, Codex, GitHub, Google, Qwen, iFlow, Copilot — mỗi provider có refresh logic riêng
-- Có provider dùng device-code flow (Claude Code, Codex, Cursor) thay vì redirect
-- Refresh token fail → đánh dấu account unavailable + `refreshError` tracking
 
 ---
 
 ### Quy trình 5: RTK Token Saver
 
-**Files**: `open-sse/rtk/index.js`, `open-sse/rtk/filters/`
-**Mô tả**: Nén tool_result content trong request messages trước khi gửi lên LLM. Mặc định ON.
+**File**: `open-sse/rtk/index.js`, `open-sse/rtk/filters/`
+**Mô tả**: Nén tool_result content để giảm 20-40% input tokens.
 
 ```
-compressMessages(body)
+Translated Body (before dispatch)
   │
-  ├── 1. Scan tất cả messages
-  │     └── Tìm tool_result blocks (content có type="tool_result")
+  ├── RTK Compress (21 filters):
+  │     ├── git-diff: nén git diff output
+  │     ├── git-status: nén git status output
+  │     ├── grep: nén grep/ripgrep results
+  │     ├── find: nén find results
+  │     ├── ls: nén ls/dir listing
+  │     ├── tree: nén tree output
+  │     ├── dedup-log: nén duplicate log lines
+  │     ├── smart-truncate: truncate dài + summary
+  │     ├── read-numbered: nén file có line numbers
+  │     ├── search-list: nén search results
+  │     └── ... (11 more filters)
   │
-  ├── 2. Với mỗi tool_result:
-  │     ├── autodetect(content):
-  │     │     └── Đọc first 1KB → chọn filter
-  │     │           ├── "git-diff" → gitDiffFilter
-  │     │           ├── "grep" → grepFilter
-  │     │           ├── "ls" → lsFilter (short/detail variants)
-  │     │           ├── "tree" → treeFilter (depth-limited)
-  │     │           ├── "dedup-log" → dedupLogFilter (loại dòng trùng)
-  │     │           ├── "smart-truncate" → smartTruncateFilter
-  │     │           └── + 15 filters khác
-  │     └── applyFilter(content, filter):
-  │           ├── Thành công + output < original → replace
-  │           └── Lỗi/output >= original → keep nguyên bản
+  ├── Auto-detect: peek first 1KB of tool_result → pick filter
   │
-  └── 3. Trả về body đã compress (mutated in-place)
+  ├── Headroom (optional):
+  │     └── POST /v1/compress → external compression proxy
+  │
+  ├── Caveman (optional):
+  │     ├── lite: "say less" prompt
+  │     ├── full: terse technical output
+  │     └── ultra: extreme compression
+  │
+  └── Ponytail (optional):
+        ├── lite: YAGNI reminder
+        ├── full: lazy senior dev system prompt
+        └── ultra: extreme minimalism
 ```
 
-**21 Filters**: git-diff, git-status, dedup-log, grep, find, ls-long, ls, smart-truncate, read-numbered, search-list, log-repeat, file-list, tree, code-block, whitespace-clean, duplicate-line, json-compact, yaml-compact, csv-compact, xml-compact, url-params
-
-**Business Rules**:
-- Auto-detect filter từ first 1KB content (fail-safe)
-- Output > original → keep original (không làm lớn hơn)
-- Skip `is_error` / `status: "error"` tool results (bảo toàn error trace)
-- RTK chạy **trước** format translation (nên universal, không cần per-format adapters)
-- Default ON, toggle qua Dashboard → Endpoint → Token Saver
+**Fail-open guarantee**: Nếu filter throw hoặc output lớn hơn original → giữ nguyên text.
 
 ---
 
-### Quy trình 6: API Key Management
+### Quy trình 6-11: Summary
 
-**Files**: `src/app/api/keys/*`, `src/shared/utils/apiKey.js`
-**Mô tả**: Quản lý vòng đời API keys cho CLI tools truy cập 9Router.
-
-```
-Dashboard Admin → POST /api/keys
-  │
-  ├── 1. Generate API key
-  │     └── HMAC(secret: API_KEY******** data: UUID + machineId + timestamp)
-  │
-  ├── 2. Save to apiKeys table
-  │     └── id, key (hash), name, machineId, isActive, createdAt
-  │
-  └── 3. Return key plaintext (chỉ hiện 1 lần)
-
-CLI Tool → Request /v1/* with Authorization: Bearer <key>
-  └── isValidApiKey(key):
-        ├── HMAC verify signature
-        ├── Tìm key hash trong DB
-        └── isActive=true → valid / invalid
-```
+| # | Quy trình | Key Flow | Source |
+|---|-----------|----------|--------|
+| 6 | API Key Mgmt | CRUD API keys, HMAC-signed, machine ID tracking | `src/app/api/keys/*` |
+| 7 | Provider CRUD | Add/edit/test/delete providers, OAuth connect, connection pool | `src/app/api/providers/*` |
+| 8 | Usage Tracking | Per-request tokens → usageHistory → daily aggregate → dashboard charts | `src/lib/usageDb.js` |
+| 9 | Cloud Sync | Periodic sync providers/combos/keys to 9router.com cloud | `src/shared/services/cloudSyncScheduler.js` |
+| 10 | CMEM Engine | FTS5 search → inject context before dispatch → capture after response | `packages/cmem/` |
+| 11 | Dashboard Login | Password → JWT cookie → middleware verify → admin access | `src/app/api/auth/*` |
 
 ---
 
-### Quy trình 7: Provider CRUD
+## 7. PROVIDER SYSTEM
 
-**Files**: `src/app/api/providers/`
-**Mô tả**: CRUD provider connections, test kết nối, validate credentials.
+### 7.1 Provider Registry (97 files)
+
+Provider definitions live in `open-sse/providers/registry/{id}.js`. Each file exports:
+
+```js
+{
+  id: "provider-id",
+  category: "oauth" | "api-key" | "free" | "compatible",
+  display: { name, icon, color },
+  models: [...],
+  transport: { format, streamFormat },
+  oauth: { type, authUrl, tokenUrl, scopes },
+  pricing: { inputPer1M, outputPer1M },
+  capabilities: { vision, tools, streaming, ... }
+}
+```
+
+### 7.2 Executor System (22 adapters)
+
+| Executor | Provider | Notable Features |
+|----------|----------|-----------------|
+| `AntigravityExecutor` | antigravity | Custom protobuf format, session-id |
+| `AzureExecutor` | azure | Azure OpenAI endpoint, managed identity |
+| `GeminiCLIExecutor` | gemini-cli | Google OAuth, project-id injection |
+| `GithubExecutor` | github | OAuth device flow, token refresh |
+| `KiroExecutor` | kiro | AWS EventStream binary format |
+| `CodexExecutor` | codex | OpenAI Responses API, OAuth |
+| `CursorExecutor` | cursor | ConnectRPC protobuf, checksum |
+| `VertexExecutor` | vertex | GCP service account, region routing |
+| `QwenExecutor` | qwen | Alibaba OAuth |
+| `OpenCodeExecutor` | opencode | No-auth passthrough |
+| `OllamaLocalExecutor` | ollama-local | Local model, no auth |
+| `DefaultExecutor` | all others | OpenAI-compatible generic |
+
+### 7.3 Format Translation (13 formats)
 
 ```
-Dashboard Admin → /api/providers
-  │
-  ├── GET /api/providers → list all connections
-  │     └── Return: [{ id, provider, authType, name, testStatus, ... }]
-  │
-  ├── POST /api/providers → create connection
-  │     └── Body: { provider, authType, data: { apiKey/token }, name }
-  │     └── Save to providerConnections DB
-  │
-  ├── PUT /api/providers/{id} → update connection
-  │
-  ├── DELETE /api/providers/{id} → delete connection
-  │
-  ├── POST /api/providers/{id}/test → test connectivity
-  │     └── Gửi request test → provider → update testStatus/lastError
-  │
-  └── POST /api/providers/validate → validate without save (dry-run)
+Source Formats:
+  openai, openai-responses, claude, gemini, gemini-cli,
+  antigravity, kiro, cursor, ollama, commandcode, vertex
+
+Target Formats:
+  openai (chat completions), openai-responses, claude,
+  gemini, gemini-cli, antigravity, kiro, cursor,
+  ollama, commandcode, vertex
+
+Pipeline: source → OpenAI (intermediate) → target
+Direct routes skip lossy double-hop (e.g., claude→kiro)
 ```
+
+**OpenAI Bridge Pitfalls**: thinking/reasoning blocks, non-base64 images, tool IDs, is_error all lost when going through intermediate format.
 
 ---
 
-### Quy trình 8: Usage & Cost Tracking
+## 8. TOKEN SAVER SYSTEM
 
-**Files**: `src/lib/usageDb.js`, `src/lib/db/repos/usageRepo.js`
-**Mô tả**: Ghi log mọi request, tính cost, aggregate daily.
+### 8.1 RTK (Request Token Killer)
 
-```
-Sau mỗi request (chatCore.js post-stream)
-  │
-  ├── 1. Extract tokens từ upstream response
-  │     └── prompt_tokens, completion_tokens (hoặc estimate fallback)
-  │
-  ├── 2. Calculate cost
-  │     └── Pricing lookup: providerModels + user pricing overrides
-  │
-  ├── 3. Save usageHistory record
-  │     └── { timestamp, provider, model, connectionId, apiKey,
-  │            endpoint, promptTokens, completionTokens, cost,
-  │            status, rtkSaved, meta }
-  │
-  └── 4. Upsert usageDaily aggregate
-        └── Cộng dồn tokens/cost theo dateKey
+- **Input compression**: 21 content-aware filters for tool_result blocks
+- **Auto-detection**: no config needed, peek first 1KB
+- **Stats tracking**: saved tokens recorded in usageHistory
+- **Default ON**: toggle in Dashboard → Endpoint
 
-Dashboard → /api/usage/*
-  ├── GET /api/usage → monthly/weekly stats + breakdown
-  ├── GET /api/usage/requests → paginated request log
-  └── GET /api/usage/export → CSV export
-```
+### 8.2 Headroom (External Proxy)
 
----
+- Optional external `/v1/compress` proxy
+- Runs separately from 9Router
+- Fail-open: proxy down → send original
 
-### Quy trình 9: Cloud Sync
+### 8.3 Caveman Mode
 
-**Files**: `src/shared/services/cloudSyncScheduler.js`, `src/app/api/sync/cloud/route.js`
-**Mô tả**: Đồng bộ cấu hình (providers, combos, keys, aliases) giữa nhiều thiết bị.
+- Injects terse-output system prompt
+- 6 levels: lite, full, ultra, etc.
+- Reduces output tokens by up to 65%
 
-```
-Enable (Dashboard → POST /api/sync/cloud?action=enable):
-  ├── 1. Set cloudEnabled=true trong settings
-  ├── 2. Ensure API key tồn tại (cho cloud auth)
-  ├── 3. POST /sync/{machineId} → upload config lên cloud
-  └── 4. GET /{machineId}/v1/verify → verify kết nối
+### 8.4 Ponytail (Lazy Senior Dev)
 
-Auto-sync (scheduler, mỗi 30 phút):
-  CloudSyncScheduler
-    └── POST /api/sync/cloud?action=sync
-          ├── GET remote data từ cloud
-          └── Update local tokens/status nếu mới hơn
-
-Disable (Dashboard → POST /api/sync/cloud?action=disable):
-  ├── cloudEnabled=false
-  ├── DELETE /sync/{machineId}
-  └── Reset ANTHROPIC_BASE_URL về local (nếu cần)
-```
+- YAGNI-first system prompt injection
+- 3 levels: Lite, Full, Ultra
+- Fewer output tokens, less refactoring
 
 ---
 
-### Quy trình 10: CMEM Engine (Contextual Memory)
+## 9. CMEM ENGINE (Contextual Memory)
 
-**Files**: `packages/cmem/`
-**Mô tả**: Bộ nhớ ngữ cảnh — ghi nhớ observations từ conversation history để inject context vào request sau. Opt-in, disabled by default.
+### 9.1 Architecture
 
 ```
-Pipeline hooks trong chatCore.js:
-
-Pre-dispatch → injectContext():
-  ├── Nhận: { messages, systemPrompt, cmemConfig }
-  ├── Token budget check (cmemConfig.maxContextTokens)
-  ├── FTS5 search: Match context với session ID
-  ├── Format: OpenAI/Claude/Gemini-specific formatter
-  └── Inject relevant observations vào system message
-
-Post-response → captureObservation():
-  ├── Extract observations từ response
-  ├── Save to cmem_observations (FTS5 indexed)
-  ├── Update cmem_sessions metadata
-  └── Budget management: evict oldest nếu vượt threshold
+packages/cmem/
+  ├── CmemEngine.js       — Main orchestrator
+  ├── MemoryStore.js       — FTS5 search + storage
+  ├── Summarizer.js        — Response summarization
+  ├── ContextBuilder.js    — Context assembly
+  ├── TokenBudget.js       — Token counting
+  ├── Observer.js          — Observation capture
+  ├── Injector.js          — Context injection
+  └── formatters/          — OpenAI, Claude, Gemini formatters
 ```
 
-**Engine components**: `CmemEngine` (entry), `MemoryStore` (DB ops), `Summarizer` (extract key info), `ContextBuilder` (build injection), `TokenBudget` (budget mgmt), `Observer` (trigger rules), `Injector` (format-specific injection)
-**Storage**: SQLite FTS5 (`cmem_observations`, `cmem_sessions`, `cmem_context_cache`)
+### 9.2 Lifecycle
+
+```
+Pre-dispatch:
+  CmemEngine.injectContext(body, format)
+    ├── FTS5 search: find relevant past observations
+    ├── Token budget: fit within configured limit
+    └── Format-aware injection into system messages
+
+Post-response:
+  CmemEngine.captureObservation({ model, messages, response, provider })
+    ├── Summarize response
+    ├── Store in cmem_observations
+    └── Update cmem_context_cache (FTS5 indexed)
+```
+
+### 9.3 Opt-in / Privacy
+
+- **Disabled by default** (opt-in via Dashboard → Endpoint → CMEM)
+- Observations can be disabled per-config (`observationsEnabled: false`)
+- Data stays in local SQLite (no external service)
 
 ---
 
-### Quy trình 11: Dashboard Login
+## 10. DEPLOYMENT & ENVIRONMENT
 
-**Files**: `src/app/api/auth/*`
-**Mô tả**: Xác thực admin vào dashboard quản lý.
+### 10.1 Environment Variables
 
-```
-Browser → GET /login → render login form
-  │
-  └── Browser → POST /api/auth/login
-        ├── First login: password =*= INITIAL_PASSWORD
-        │     └── Hash + save to DB password_hash
-        ├── Subsequent: bcrypt.compare(password, savedHash)
-        └── Success → JWT.sign() → Set-Cookie (httpOnly, path=/)
-```
-
----
-
-## 7. API & INTEGRATION
-
-### 7.1 API Endpoint Map
-
-| Method | Path | Module | Mô tả |
-|--------|------|--------|-------|
-| POST | /v1/chat/completions | `src/app/api/v1/chat/completions/route.js` | Chat completions (OpenAI format) |
-| POST | /v1/messages | `src/app/api/v1/messages/route.js` | Chat (Claude format) |
-| POST | /v1/responses | `src/app/api/v1/responses/route.js` | OpenAI Responses API |
-| GET | /v1/models | `src/app/api/v1/models/route.js` | Danh sách models |
-| POST | /v1/embeddings | `src/app/api/v1/embeddings/route.js` | Embeddings |
-| POST | /v1/images/generations | `src/app/api/v1/images/generations/route.js` | Image generation |
-| POST | /v1/audio/speech | `src/app/api/v1/audio/speech/route.js` | Text-to-Speech |
-| POST | /v1/audio/transcriptions | `src/app/api/v1/audio/transcriptions/route.js` | Speech-to-Text |
-| POST | /v1/web/fetch | `src/app/api/v1/web/fetch/route.js` | Web fetch |
-| POST | /v1/search | `src/app/api/v1/search/route.js` | Web search |
-| POST | /api/auth/login | `src/app/api/auth/login/route.js` | Login |
-| GET/POST/PUT/DELETE | /api/providers/* | `src/app/api/providers/` | Provider CRUD |
-| GET/POST/PUT/DELETE | /api/keys/* | `src/app/api/keys/` | API key management |
-| GET/POST/PUT/DELETE | /api/combos/* | `src/app/api/combos/` | Combo management |
-| GET | /api/usage/* | `src/app/api/usage/` | Usage stats |
-| GET/POST | /api/oauth/* | `src/app/api/oauth/` | OAuth flows |
-| GET/POST | /api/settings/* | `src/app/api/settings/` | Settings management |
-| POST | /api/sync/cloud | `src/app/api/sync/cloud/route.js` | Cloud sync control |
-
-### 7.2 External Integrations
-
-| Integration | Type | Provider Examples |
-|-------------|------|------------------|
-| Chat completions | HTTP/SSE | Claude, Codex, Kiro, GLM, Gemini, OpenAI |
-| OAuth 2.0 PKCE | Auth flow | Claude Code, Codex, GitHub, Cursor, Kiro |
-| Device-code flow | Auth flow | Claude Code, Codex, Cursor |
-| API Key | Auth header | OpenAI, Anthropic, DeepSeek, Groq, 30+ providers |
-| SSE streaming | Response | Tất cả providers |
-| Web search | HTTP | Firecrawl, Jina Reader, Tavily, Exa, Serper |
-| Cloud sync | HTTP/JSON | 9router.com (external service) |
-| Web fetching | HTTP | Firecrawl, Jina, Tavily |
-
----
-
-## 8. CẤU HÌNH & TRIỂN KHAI
-
-### 8.1 Environment Variables
-
-| Biến | Mặc định | Chức năng |
-|------|---------|-----------|
-| `JWT_SECRET` | auto-generated | HMAC secret for JWT (dashboard auth cookie) |
-| `INITIAL_PASSWORD` | 123456 | Password first login |
-| `DATA_DIR` | ~/.9router | SQLite DB location |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | Auto-generated | Dashboard auth signing |
+| `INITIAL_PASSWORD` | `123456` | First login password |
+| `DATA_DIR` | `~/.9router` | SQLite + password hash |
 | `PORT` | 20128 | HTTP bind port |
-| `HOSTNAME` | 0.0.0.0 | Bind host |
-| `BASE_URL` | http://localhost:20128 | Server-side callback URL (cloud sync) |
-| `CLOUD_URL` | https://9router.com | Cloud sync endpoint |
-| `API_KEY_SECRET` | endpoint-proxy-api-key-secret | HMAC for API keys |
-| `MACHINE_ID_SALT` | endpoint-proxy-salt | Machine ID hash salt |
-| `ENABLE_REQUEST_LOGS` | false | Write request/response logs |
-| `REQUIRE_API_KEY` | false | Enforce Bearer key on /v1/* |
-| `OBSERVABILITY_ENABLED` | true | Telemetry |
-| `AUTH_COOKIE_SECURE` | false | Secure cookie flag (set true behind HTTPS) |
-| `NODE_ENV` | — | production/development |
+| `NODE_ENV` | runtime | Set `production` for deploy |
+| `BASE_URL` | `http://localhost:20128` | Internal sync URL |
+| `CLOUD_URL` | `https://9router.com` | Cloud sync endpoint |
+| `API_KEY_SECRET` | default | HMAC for API key gen |
+| `MACHINE_ID_SALT` | default | Machine ID hashing |
+| `ENABLE_REQUEST_LOGS` | `false` | Write logs to `logs/` |
+| `AUTH_COOKIE_SECURE` | `false` | Force Secure cookie |
+| `REQUIRE_API_KEY` | `false` | Enforce Bearer auth |
+| `HTTP_PROXY`/`HTTPS_PROXY` | empty | Outbound proxy |
 
-### 8.2 Deployment Options
-
-| Method | Command | Port |
-|--------|---------|------|
-| **Local dev** | `npm run dev` | 20127 |
-| **Production** | `npm run build && npm run start` | 20128 |
-| **Bun dev** | `npm run dev:bun` | 20127 |
-| **Bun prod** | `npm run build:bun && npm run start:bun` | 20128 |
-| **Docker** | `docker build -t 9router . && docker run -p 20128:20128 9router` | 20128 |
-| **CLI** | `npm install -g 9router && 9router` | 20128 |
-
-### 8.3 Database Layer
+### 10.2 Deployment Options
 
 ```
-Storage: $DATA_DIR/db/data.sqlite
-Backups: $DATA_DIR/db/backups/ (auto)
+Local:      npm run dev / npm run start
+VPS:        pm2 start npm --name 9router -- start
+Docker:     docker run -d -p 20128:20128 decolua/9router:latest
+Docker Compose: docker-compose.yml provided
+```
 
-Driver chain (first available wins):
-  bun:sqlite → better-sqlite3 → node:sqlite (Node 22.5+) → sql.js (WASM fallback)
+### 10.3 SQLite Driver Chain
 
-Schema:
-  11 tables: _meta, settings, providerConnections, providerNodes,
-             proxyPools, apiKeys, combos, kv, usageHistory,
-             usageDaily, requestDetails
-  + CMEM: cmem_observations, cmem_sessions, cmem_context_cache (FTS5)
-  Versioned migrations (current: v1)
+```
+bun:sqlite (Bun runtime)
+  → better-sqlite3 (optional, if build tools available)
+    → node:sqlite (Node >= 22.5)
+      → sql.js (WASM fallback, always works)
 ```
 
 ---
 
-## 9. PHỤ LỤC
+## 11. FAILURE MODES & RESILIENCE
 
-### 9.1 Codebase Statistics
+| Failure | Handling | Location |
+|---------|----------|----------|
+| Invalid JSON body | 400 Bad Request | `chat.js:44-50` |
+| Missing model | 400 Bad Request | `chat.js:97-100` |
+| Invalid API key | 401 Unauthorized | `chat.js:83-95` |
+| No credentials for provider | 404 Not Found | `chat.js:232-234` |
+| All accounts rate-limited | 503 + retry-after | `chat.js:225-230` |
+| Translation failure | 400 Bad Request | `chatCore.js:142-144` |
+| Executor network error | 502 Bad Gateway | `chatCore.js:305-324` |
+| Provider 401/403 | Token refresh + retry | `chatCore.js:327-347` |
+| Provider error response | Error forwarded to client | `chatCore.js:350-367` |
+| RTK compression error | Fail-open, keep original | `open-sse/rtk/index.js` |
+| CMEM injection error | Fail-open, skip injection | `chatCore.js:211-213` |
+| PrivacyEngine error | Fail-open, pass through | `chatCore.js:197` |
+| Headroom proxy down | Fail-open, skip compression | `open-sse/rtk/headroom.js` |
+| Cloud sync error | Log + continue local | `cloudSyncScheduler.js` |
+| DB migration missing | Auto-add columns/tables | `src/lib/db/migrate.js` |
+| Token refresh failure | Forward 401/403 to client | `chatCore.js:343-346` |
 
-| Metric | Value |
-|--------|-------|
-| Provider registry files | 97 |
-| Executors | 22 (+ DefaultExecutor) |
-| Dashboard pages | 17 routes |
-| DB tables | 11 + 3 CMEM |
-| RTK filters | 21 |
-| Format translators | 13 formats |
-| Test suite | Vitest in `tests/` |
-| Runtime | Node.js 18+ / Bun + Next.js 16 standalone |
+---
 
-### 9.2 Key Files Reference
+## 12. SECURITY BOUNDARIES
 
-| File | Lines | Vai trò |
+| Boundary | Mechanism | Notes |
+|----------|-----------|-------|
+| Dashboard auth | JWT cookie (HMAC-signed) | `JWT_SECRET` env var |
+| API key auth | HMAC verification | `API_KEY_SECRET` env var |
+| Provider secrets | Stored in SQLite `providerConnections.data` | Filesystem-level protection |
+| Cloud sync auth | API key + machine ID | `MACHINE_ID_SALT` env var |
+| PrivacyEngine | Regex mask in request body | Before dispatch to any provider |
+| Outbound proxy | Optional HTTP/SOCKS5 proxy | Per-provider or global config |
+
+---
+
+## 13. KEY FILE MAP
+
+| Path | Lines | Purpose |
 |------|-------|---------|
-| `src/sse/handlers/chat.js` | 313 | Entry — combo/account loop |
-| `open-sse/handlers/chatCore.js` | 432 | Core pipeline orchestrator |
-| `src/dashboardGuard.js` | 255 | Auth middleware (JWT + API key + CLI) |
-| `src/lib/db/schema.js` | 159 | DB table definitions |
-| `src/lib/db/repos/usageRepo.js` | ~820 | Usage tracking (largest repo) |
-| `open-sse/config/providerModels.js` | ~920 | Model catalog |
-| `open-sse/config/providers.js` | 68 | Provider barrel (from registry) |
-| `next.config.mjs` | 81 | URL rewrites + standalone config |
-| `src/app/api/v1/chat/completions/route.js` | 35 | Chat completions route |
-| `custom-server.js` | — | Production HTTP server (IP extraction) |
-
-### 9.3 Tech Debt & Known Issues
-
-| Issue | Severity | Location |
-|-------|----------|----------|
-| Stale `.orig` backup files | Low | `chat.js.orig`, `chatCore.js.orig`, `settingsRepo.js.orig` |
-| OpenAI bridge lossy (thinking, images, tool ids, is_error) | Medium | `open-sse/translator/` |
-| Duplicate exports lint errors | Low | `open-sse/config/providers.js`, `providerModels.js` |
-| `registry/index.js` auto-generated, must regenerate manually | Low | `open-sse/providers/registry/index.js` |
-| Build EPERM on Windows | Medium | Build pipeline |
-| Tests fail on Windows (NODE_PATH syntax) | Medium | `tests/` |
-| Merge conflict marker in page.js | Low | `src/app/(dashboard)/dashboard/media-providers/[kind]/[id]/page.js` |
-
-### 9.4 Glossary
-
-| Thuật ngữ | Định nghĩa |
-|-----------|-----------|
-| **Combo** | Chuỗi models fallback theo thứ tự ưu tiên (subscription → cheap → free) |
-| **Fusion** | Chiến lược combo chạy request song song đến nhiều models + judge |
-| **RTK** | Token compression engine (21 content-aware filters, auto-detect) |
-| **CMEM** | Contextual memory engine (FTS5 full-text search, opt-in) |
-| **SSE** | Server-Sent Events — streaming response format |
-| **Caveman** | Terse output mode — inject caveman-speak system prompt |
-| **Ponytail** | YAGNI-first lazy senior dev system prompt (Lite/Full/Ultra) |
-| **Headroom** | External `/v1/compress` proxy (optional, fail-open) |
-| **PrivacyEngine** | Request sanitizer — mask API keys, passwords, tokens |
-| **Executor** | Provider-specific HTTP + auth adapter |
-| **Format Translation** | Source → OpenAI (intermediate) → target format |
-| **Provider Node** | Custom OpenAI-compatible endpoint (self-hosted or third-party) |
-| **OAuth PKCE** | Proof Key for Code Exchange — secure OAuth 2.0 flow |
-| **Direct Route** | Skip OpenAI intermediate format (source → target directly) |
+| `src/sse/handlers/chat.js` | 313 | Main entry, combo/account loop |
+| `open-sse/handlers/chatCore.js` | 444 | Core pipeline orchestration |
+| `open-sse/executors/index.js` | 82 | Executor registry (22 adapters) |
+| `open-sse/translator/index.js` | - | Format translation registry |
+| `open-sse/rtk/index.js` | - | RTK compression engine |
+| `open-sse/privacy/PrivacyEngine.js` | - | Secret masking |
+| `packages/cmem/` (16 files) | - | Contextual memory engine |
+| `src/lib/db/schema.js` | 159 | SQLite schema (11 tables) |
+| `src/lib/db/driver.js` | - | 4-driver adapter chain |
+| `src/lib/db/repos/usageRepo.js` | 820 | Usage tracking (largest repo) |
+| `src/dashboardGuard.js` | - | Auth middleware |
+| `src/app/(dashboard)/dashboard/` | 17 pages | Dashboard UI |
+| `open-sse/providers/registry/` | 97 files | Provider definitions |
+| `next.config.mjs` | - | URL rewrites, standalone output |
 
 ---
 
-*Tài liệu được tạo từ phân tích codebase 9Router — Version 0.5.8*
-*Nguồn: github.com/decolua/9router*
+## 14. GLOSSARY
+
+| Term | Definition |
+|------|------------|
+| **Combo** | Ordered list of models for automatic fallback |
+| **RTK** | Request Token Killer — tool_result compression engine |
+| **Caveman** | Terse-output system prompt injector |
+| **Ponytail** | YAGNI-first "lazy senior dev" prompt injector |
+| **CMEM** | Contextual Memory engine (FTS5-based, opt-in) |
+| **Headroom** | External compression proxy (optional) |
+| **Executor** | Provider-specific HTTP adapter |
+| **Translator** | Format conversion between provider APIs |
+| **Passthrough** | Skip translation when CLI tool matches provider ecosystem |
+| **Cooldown** | Account unavailability period after error |
+| **Provider Node** | Custom OpenAI-compatible endpoint |
+| **Fusion** | Parallel multi-model with judge evaluation |
