@@ -9,7 +9,7 @@ import {
   CmemContextStats,
   ResponseCacheStats,
   TokenSaverPerRequestTable,
-} from "@9router/components/token-saver";
+} from "@9router/components/token-saver-report";
 
 /**
  * Defines the available time periods for filtering token saver statistics, along with their display labels.
@@ -44,8 +44,8 @@ export default function TokenSaverReport() {
     setError(null);
     try {
       const [statsRes, chartRes] = await Promise.all([
-        fetch(`/api/settings/token-saver?action=stats&period=${period}`),
-        fetch(`/api/settings/token-saver?action=chart&period=${period}`),
+        fetch(`/api/settings/token-saver-report?action=stats&period=${period}`),
+        fetch(`/api/settings/token-saver-report?action=chart&period=${period}`),
       ]);
       if (!statsRes.ok) throw new Error(`Stats: ${statsRes.status}`);
       if (!chartRes.ok) throw new Error(`Chart: ${chartRes.status}`);
@@ -65,7 +65,7 @@ export default function TokenSaverReport() {
 
   const loadPerRequest = useCallback(async (page = 1) => {
     try {
-      const res = await fetch(`/api/settings/token-saver?action=per-request&page=${page}&limit=50`);
+      const res = await fetch(`/api/settings/token-saver-report?action=per-request&page=${page}&limit=50`);
       if (!res.ok) return;
       const data = await res.json();
       setPerRequestData(data);
