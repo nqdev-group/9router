@@ -1,4 +1,5 @@
 // Auto-generated: static imports of all registry entries
+import extraProviders from "@9router/providers/registry/index.js";
 import p0 from "./alicode-intl.js";
 import p1 from "./alicode.js";
 import p2 from "./anthropic.js";
@@ -94,9 +95,11 @@ import p91 from "./xai.js";
 import p92 from "./xiaomi-mimo.js";
 import p93 from "./xiaomi-tokenplan.js";
 import p94 from "./youcom.js";
-import p94 from "./kira.js";
+import p95 from "./revidapi.js";
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default [
+  ...extraProviders,
   p0,
   p1,
   p2,
@@ -191,5 +194,6 @@ export default [
   p91,
   p92,
   p93,
-  p94
+  p94,
+  p95
 ];

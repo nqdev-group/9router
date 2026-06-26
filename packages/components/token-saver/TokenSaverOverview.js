@@ -25,6 +25,7 @@ export default function TokenSaverOverview({ stats, period }) {
   const cavemanSavingPct = caveman.estimatedSavingPercent || 0;
   const totalEstPct = combined.totalEstimatedSavingsPercent || 0;
   const cacheHitPct = parseFloat(cache.hitRate) || 0;
+  const totalCmemSaved = combined.totalCmemEstimatedSavedTokens || 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -42,7 +43,7 @@ export default function TokenSaverOverview({ stats, period }) {
         <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
           <span className="text-text-muted text-sm uppercase font-semibold">CMEM Memories</span>
           <span className="truncate text-2xl font-bold text-secondary">{fmt(cmem.observationsCount)}</span>
-          <span className="text-[10px] text-text-muted">{fmt(cmem.injectionsCount)} context injections</span>
+          <span className="text-[10px] text-text-muted">{fmt(cmem.injectionsCount)} context injections · {fmt(cmem.estimatedSavedTokens)} tok saved</span>
         </Card>
         <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
           <span className="text-text-muted text-sm uppercase font-semibold">Response Cache</span>
@@ -57,7 +58,7 @@ export default function TokenSaverOverview({ stats, period }) {
         <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
           <span className="text-text-muted text-sm uppercase font-semibold">Total Est. Savings</span>
           <span className="truncate text-2xl font-bold text-info">{fmtPct(totalEstPct)}</span>
-          <span className="text-[10px] text-text-muted">Combined input+output</span>
+          <span className="text-[10px] text-text-muted">RTK {fmtBytes(rtk.totalSaved)} + Caveman {fmt(caveman.estimatedSavedTokens)} + CMEM {fmt(totalCmemSaved)} tok</span>
         </Card>
       </div>
     </div>
