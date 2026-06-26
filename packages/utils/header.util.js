@@ -4,8 +4,8 @@
  * @returns { title: string, description: string, icon: string, breadcrumbs: array } The page information including title, description, icon, and breadcrumbs.
  */
 export const getPageInfoUtil = (pathname) => {
-  // /token-saver
-  if (pathname.includes("/token-saver"))
+  // /token-saver-report
+  if (pathname.includes("/token-saver-report"))
     return {
       title: "Token Saver Report",
       description: "Analyze token usage and optimize costs with actionable insights and recommendations to reduce token consumption and save money.",
