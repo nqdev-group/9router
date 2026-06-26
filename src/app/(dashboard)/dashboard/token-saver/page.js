@@ -1,13 +1,5 @@
-"use client";
-
-import { Suspense } from "react";
-import { CardSkeleton } from "@/shared/components";
-import TokenSaverReport from "./TokenSaverReport";
+import TokenSaverClient from "./TokenSaverClient";
 
 export default function TokenSaverPage() {
-  return (
-    <Suspense fallback={<CardSkeleton />}>
-      <TokenSaverReport />
-    </Suspense>
-  );
+  return <TokenSaverClient />;
 }
