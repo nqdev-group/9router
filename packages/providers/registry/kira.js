@@ -10,7 +10,7 @@ export default {
     textIcon: "KI",
     website: "https://kiraai.vn",
     notice: {
-      apiKeyUrl: "https://kiraai.vn/api-keys",
+      apiKeyUrl: "https://kiraai.vn/developer",
     },
   },
   category: "apikey",

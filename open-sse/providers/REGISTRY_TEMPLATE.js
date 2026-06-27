@@ -12,7 +12,7 @@
  */
 
 // import { CLAUDE_API_HEADERS, GOOGLE_OAUTH_CLIENT, OPENAI_COMPAT_BASE } from "./shared.js";
-
+/* eslint-disable import/no-anonymous-default-export */
 export default {
   // ── identity ────────────────────────────────────────────────────────────
   id: "example",                 // REQUIRED. kebab-case, unique.
