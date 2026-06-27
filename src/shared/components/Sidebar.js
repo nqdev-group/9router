@@ -25,7 +25,6 @@ const navItems = [
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
-  { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
@@ -61,6 +60,7 @@ const compressionContextItems = [
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
   { href: "/dashboard/settings/response-cache", label: "Response Cache", icon: "cached" },
+  { href: "/dashboard/token-saver-report", label: "Token Saver Report", icon: "savings" },
 ];
 
 export default function Sidebar({ onClose }) {
