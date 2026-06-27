@@ -798,27 +798,35 @@ export async function getTokenSaverStats(period = "30d") {
   const rtkTotalSaved = rtkTotalBytesBefore - rtkTotalBytesAfter;
   const rtkSavingsPercent = rtkTotalBytesBefore > 0 ? ((rtkTotalSaved / rtkTotalBytesBefore) * 100) : 0;
 
-  // CMEM: get stats from cmem tables
+  // CMEM: get stats from cmem tables (with period filter)
   let cmemStats = {
     observationsCount: 0,
     totalTokens: 0,
     injectionsCount: 0,
     totalInjectedTokens: 0,
+    estimatedSavedTokens: 0,
     byType: {}
   };
   try {
-    const obsRows = db.all(`SELECT type, tokens FROM cmem_observations`);
+    const cutoffEpoch = cutoff ? new Date(cutoff).getTime() : 0;
+    const obsRows = cutoff
+      ? db.all(`SELECT type, tokens FROM cmem_observations WHERE created_at_epoch >= ?`, [cutoffEpoch])
+      : db.all(`SELECT type, tokens FROM cmem_observations`);
     for (const r of obsRows) {
       cmemStats.observationsCount++;
       cmemStats.totalTokens += r.tokens || 0;
       const t = r.type || "note";
       cmemStats.byType[t] = (cmemStats.byType[t] || 0) + 1;
     }
-    const cacheRows = db.all(`SELECT token_count FROM cmem_context_cache`);
+    const cacheRows = cutoff
+      ? db.all(`SELECT token_count FROM cmem_context_cache WHERE created_at_epoch >= ?`, [cutoffEpoch])
+      : db.all(`SELECT token_count FROM cmem_context_cache`);
     for (const r of cacheRows) {
       cmemStats.injectionsCount++;
       cmemStats.totalInjectedTokens += r.token_count || 0;
     }
+    // CMEM saves tokens by injecting context instead of repeating info — injected tokens = tokens not wasted
+    cmemStats.estimatedSavedTokens = cmemStats.totalInjectedTokens;
   } catch (e) {
     // Tables might not exist yet if CMEM never used
   }
@@ -881,6 +889,7 @@ export async function getTokenSaverStats(period = "30d") {
       totalTokens: cmemStats.totalTokens,
       injectionsCount: cmemStats.injectionsCount,
       totalInjectedTokens: cmemStats.totalInjectedTokens,
+      estimatedSavedTokens: cmemStats.estimatedSavedTokens,
       avgInjectedTokens: cmemStats.injectionsCount > 0 ? Math.round(cmemStats.totalInjectedTokens / cmemStats.injectionsCount) : 0,
       byType: cmemStats.byType
     },
@@ -905,9 +914,10 @@ export async function getTokenSaverStats(period = "30d") {
     combined: {
       totalInputSavedBytes: rtkTotalSaved,
       totalOutputEstimatedSavedTokens: estimatedCavemanSaved,
+      totalCmemEstimatedSavedTokens: cmemStats.estimatedSavedTokens,
       totalEstimatedSavingsPercent: parseFloat(
-        (totalOutputTokens > 0 && rtkTotalBytesBefore > 0)
-          ? ((rtkTotalSaved + estimatedCavemanSaved) / (rtkTotalBytesBefore + totalOutputTokens) * 100).toFixed(1)
+        (totalOutputTokens > 0 || rtkTotalBytesBefore > 0 || cmemStats.estimatedSavedTokens > 0)
+          ? ((rtkTotalSaved + estimatedCavemanSaved + cmemStats.estimatedSavedTokens) / (rtkTotalBytesBefore + totalOutputTokens + cmemStats.totalInjectedTokens) * 100).toFixed(1)
           : "0"
       ),
     },
@@ -924,7 +934,7 @@ export async function getTokenSaverChartData(period = "7d") {
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
     const startTime = startOfDay.getTime();
     const bucketFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0 }));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0, cmemInjectedTokens: 0 }));
 
     const rows = db.all(`SELECT timestamp, promptTokens, completionTokens, rtkSaved FROM usageHistory WHERE timestamp >= ?`, [new Date(startTime).toISOString()]);
     for (const r of rows) {
@@ -944,7 +954,7 @@ export async function getTokenSaverChartData(period = "7d") {
     const bucketMs = 3600000;
     const startTime = now - bucketCount * bucketMs;
     const bucketFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0 }));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: bucketFn(startTime + i * bucketMs), totalTokens: 0, rtkSaved: 0, cmemInjectedTokens: 0 }));
     const rows = db.all(`SELECT timestamp, promptTokens, completionTokens, rtkSaved FROM usageHistory WHERE timestamp >= ?`, [new Date(startTime).toISOString()]);
     for (const r of rows) {
       const t = new Date(r.timestamp).getTime();
@@ -974,7 +984,17 @@ export async function getTokenSaverChartData(period = "7d") {
       [`${dateKey}T00:00:00.000Z`, `${dateKey}T23:59:59.999Z`]);
     const dayRtkSaved = dailyRows.reduce((sum, r) => sum + (r.rtkSaved || 0), 0);
 
-    return { label: labelFn(d), totalTokens: dayTokens, rtkSaved: dayRtkSaved };
+    // Sum CMEM injected tokens for this day
+    const dayStartEpoch = d.getTime();
+    const dayEndEpoch = dayStartEpoch + 86400000;
+    let dayCmemInjected = 0;
+    try {
+      const cacheRows = db.all(`SELECT token_count FROM cmem_context_cache WHERE created_at_epoch >= ? AND created_at_epoch < ?`,
+        [dayStartEpoch, dayEndEpoch]);
+      dayCmemInjected = cacheRows.reduce((sum, r) => sum + (r.token_count || 0), 0);
+    } catch { /* cmem tables may not exist */ }
+
+    return { label: labelFn(d), totalTokens: dayTokens, rtkSaved: dayRtkSaved, cmemInjectedTokens: dayCmemInjected };
   });
 }
 

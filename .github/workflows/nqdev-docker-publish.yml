@@ -1,4 +1,4 @@
-name: NQDEV Build and Push Docker Image
+name: 9Router Build and Push Docker Image
 
 on:
   push:
