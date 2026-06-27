@@ -4,6 +4,12 @@ import { getTokenSaverStats, getTokenSaverChartData, getTokenSaverPerRequest } f
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+/**
+ * Handle GET requests for the Token Saver Report API.
+ * @description This function handles GET requests for the Token Saver Report API. It retrieves statistics, chart data, or per-request data based on the provided query parameters.
+ * @param {*} request - The incoming request object containing query parameters for action, period, page, and limit.
+ * @returns {Promise<NextResponse>} A JSON response containing the requested data or an error message.
+ */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

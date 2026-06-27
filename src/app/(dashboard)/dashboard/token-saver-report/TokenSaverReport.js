@@ -38,46 +38,53 @@ export default function TokenSaverReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    try {
-      const [statsRes, chartRes] = await Promise.all([
-        fetch(`/api/settings/token-saver-report?action=stats&period=${period}`),
-        fetch(`/api/settings/token-saver-report?action=chart&period=${period}`),
-      ]);
-      if (!statsRes.ok) throw new Error(`Stats: ${statsRes.status}`);
-      if (!chartRes.ok) throw new Error(`Chart: ${chartRes.status}`);
-      const statsData = await statsRes.json();
-      const chartDataJson = await chartRes.json();
-      if (!cancelled) {
-        setStats(statsData);
-        setChartData(chartDataJson);
+
+    (async () => {
+      try {
+        const [statsRes, chartRes] = await Promise.all([
+          fetch(`/api/settings/token-saver-report?action=stats&period=${period}`),
+          fetch(`/api/settings/token-saver-report?action=chart&period=${period}`),
+        ]);
+        if (cancelled) return;
+        setLoading(true);
+        setError(null);
+        if (!statsRes.ok) throw new Error(`Stats: ${statsRes.status}`);
+        if (!chartRes.ok) throw new Error(`Chart: ${chartRes.status}`);
+        const statsData = await statsRes.json();
+        const chartDataJson = await chartRes.json();
+        if (!cancelled) {
+          setStats(statsData);
+          setChartData(chartDataJson);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err) {
-      if (!cancelled) setError(err.message);
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
+    })();
+
     return () => { cancelled = true; };
   }, [period]);
 
-  const loadPerRequest = useCallback(async (page = 1) => {
-    try {
-      const res = await fetch(`/api/settings/token-saver-report?action=per-request&page=${page}&limit=50`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setPerRequestData(data);
-    } catch {
-      // silent
-    }
+  const loadPerRequest = useCallback((page = 1) => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/settings/token-saver-report?action=per-request&page=${page}&limit=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPerRequestData(data);
+      } catch {
+        // silent
+      }
+    })();
   }, []);
 
   useEffect(() => {
-    const cleanup = loadStats();
+    const cancel = loadStats();
     loadPerRequest(1);
-    return () => { cleanup?.then((fn) => fn?.()); };
+    return cancel;
   }, [loadStats, loadPerRequest]);
 
   const handlePageChange = (page) => {
