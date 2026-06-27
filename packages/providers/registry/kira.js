@@ -17,6 +17,12 @@ export default {
   transport: {
     baseUrl: "https://kiraai.vn/api/v1/chat/completions",
     validateUrl: "https://kiraai.vn/api/v1/models",
+    usage: {
+      url: "https://kiraai.vn/developer?usage=true",
+      urls: [
+        "https://kiraai.vn/developer?usage=true"
+      ]
+    },
   },
   models: [
     { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },

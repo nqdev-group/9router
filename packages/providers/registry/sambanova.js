@@ -25,6 +25,12 @@ export default {
     format: "openai",            // "openai" | "claude" | "gemini" | "openai-responses" | ...
     validateUrl: "https://api.sambanova.ai/v1/models",
     headers: { "Content-Type": "application/json" },
+    usage: {
+      url: "https://cloud.sambanova.ai/plans/usage",
+      urls: [
+        "https://cloud.sambanova.ai/plans/usage"
+      ]
+    },
     modelsFetcher: { url: "https://api.sambanova.ai/v1/models", type: "openai" }, // dynamic model list.
   },
   models: [
