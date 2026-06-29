@@ -96,7 +96,7 @@ import p92 from "./xai.js";
 import p93 from "./xiaomi-mimo.js";
 import p94 from "./xiaomi-tokenplan.js";
 import p95 from "./youcom.js";
-import p95 from "./revidapi.js";
+import p96 from "./revidapi.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -196,5 +196,6 @@ export default [
   p92,
   p93,
   p94,
-  p95
+  p95,
+  p96
 ];
