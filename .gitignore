@@ -76,6 +76,8 @@ gitbook/README.md
 
 # Refactor backup reference (do not bundle/lint)
 open-sse.old/
+.graphifyignore
+graphify-out/*
 
 # ===== Ignore claude ai files =====
 .claude/*.local.json
