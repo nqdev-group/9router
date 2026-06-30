@@ -48,12 +48,12 @@ RUN mkdir -p /app/data && chown -R node:node /app && \
 RUN apk --no-cache upgrade && apk --no-cache add su-exec python3 py3-pip && \
   pip3 install --break-system-packages "headroom-ai[proxy]" && \
   printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\n\
-if [ "${ENABLE_HEADROOM:-false}" = "true" ]; then\n\
+  if [ "${ENABLE_HEADROOM:-false}" = "true" ]; then\n\
   HEADROOM_PORT="${HEADROOM_PORT:-8787}"\n\
   echo "[entrypoint] Starting Headroom proxy on port $HEADROOM_PORT"\n\
   su-exec node headroom proxy --port "$HEADROOM_PORT" &\n\
-fi\n\
-exec su-exec node "$@"\n' > /entrypoint.sh && \
+  fi\n\
+  exec su-exec node "$@"\n' > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
 EXPOSE 20128
