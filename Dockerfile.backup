@@ -25,6 +25,8 @@ ENV PORT=20128
 ENV HOSTNAME=0.0.0.0
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/app/data
+ENV ENABLE_HEADROOM=false
+ENV HEADROOM_PORT=8787
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
@@ -43,8 +45,15 @@ RUN mkdir -p /app/data && chown -R node:node /app && \
   ln -sf /app/data-home /root/.9router 2>/dev/null || true
 
 # Fix permissions at runtime (handles mounted volumes)
-RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
-  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\nexec su-exec node "$@"\n' > /entrypoint.sh && \
+RUN apk --no-cache upgrade && apk --no-cache add su-exec python3 py3-pip && \
+  pip3 install --break-system-packages "headroom-ai[proxy]" && \
+  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\n\
+if [ "${ENABLE_HEADROOM:-false}" = "true" ]; then\n\
+  HEADROOM_PORT="${HEADROOM_PORT:-8787}"\n\
+  echo "[entrypoint] Starting Headroom proxy on port $HEADROOM_PORT"\n\
+  su-exec node headroom proxy --port "$HEADROOM_PORT" &\n\
+fi\n\
+exec su-exec node "$@"\n' > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
 EXPOSE 20128
