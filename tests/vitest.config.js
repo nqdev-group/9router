@@ -24,6 +24,7 @@ export default defineConfig({
       { find: /^open-sse\//, replacement: resolve(__dirname, "../open-sse") + "/" },
       { find: "open-sse", replacement: resolve(__dirname, "../open-sse") },
       { find: /^@\//, replacement: resolve(__dirname, "../src") + "/" },
+      { find: /^@9router\//, replacement: resolve(__dirname, "../packages") + "/" },
     ],
   },
 });
