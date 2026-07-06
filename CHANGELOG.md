@@ -1,3 +1,25 @@
+# v0.5.18 (2026-07-03)
+
+## Features
+- **Usage**: track cached tokens + correct input/output/cache cost (#2209) — hodtien
+- **Codex**: show reset credit expiry details (#2290) — Rafli Ahmad Zulfikar
+- **NVIDIA**: add new models and capabilities — decolua
+- **ClinePass**: add provider support — sternelee
+
+## Fixes
+- **Usage**: dedupe streaming request-details log entries — Qin Li
+- **Claude**: drop foreign thinking signatures in passthrough — decolua
+- Prevent non-SSE stream pipe crash and cross-IdP account overwrites (#2244) — KunN-21
+- **Kiro**: route IdC auth to regional CodeWhisperer surface (#2297) — Volodymyr Saakian
+- **Kiro**: add Claude Sonnet 5 model support (#2264) — Edison42
+- **Xiaomi-tokenplan**: region selector, key validation, multi-connection (#2251) — MiQieR
+- **Translator**: strict Anthropic content block compliance (#2225) — Sahrul Ramadhan Hardiansyah
+- **Kimchi**: strip reasoning_content echo to bound multi-turn input tokens — KunN-21
+- **Kimchi**: bump User-Agent to kimchi/0.1.40 (#2256) — Ansh7473
+- **Codebuddy-cn**: strip empty tool_calls arrays to preserve reasoning — zmf
+- **Antigravity**: preserve Claude tool delta index (#2223) — Sutarto Jordan Chrisfivo
+- **MITM**: generate root CA on server startup (#2228) — Sutarto Jordan Chrisfivo
+
 # v0.5.15 (2026-06-29)
 
 ## Features

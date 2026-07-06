@@ -393,7 +393,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
         } else if (typeof responseBody === "object") {
           respText = JSON.stringify(responseBody);
         }
-      } catch {}
+      } catch { }
     }
     cmemCapture.captureObservation({
       model,
@@ -410,7 +410,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       const respClone = result.response.clone();
       const bodyText = await respClone.text();
       let parsed;
-      try { parsed = JSON.parse(bodyText); } catch {}
+      try { parsed = JSON.parse(bodyText); } catch { }
       if (parsed) {
         const cache = getResponseCache();
         cache.set(model, translatedBody, cacheKey.params, { content: parsed, usage: parsed.usage || {} });
@@ -437,12 +437,19 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Streaming response
+  // const { onStreamComplete, streamDetailId } = buildOnStreamComplete({ ...sharedCtx });
+  // return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete, streamDetailId });
+
+  // Streaming response with CMEM capture
   const prevOnComplete = buildOnStreamComplete({ ...sharedCtx });
+  const streamDetailId = prevOnComplete.streamDetailId;
   const onStreamComplete = (...args) => {
+    // Call the original onStreamComplete to save request detail and log usage
     if (prevOnComplete.onStreamComplete) prevOnComplete.onStreamComplete(...args);
+    // Capture the response to CMEM after the stream completes
     captureToCmem(args[0]);
   };
-  return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete });
+  return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, streamController, onStreamComplete, streamDetailId });
 }
 
 export function isTokenExpiringSoon(expiresAt, bufferMs = 5 * 60 * 1000) {
