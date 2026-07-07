@@ -1,5 +1,7 @@
 // Port of auto_detect_filter (rtk/src/cmds/system/pipe_cmd.rs:132-188) + JS extras
 // Order: git-diff -> git-show -> git-log -> git-status -> build-output (eslint/tsc) -> test (jest) -> install (npm/pip) -> docker -> generic -> find -> tree -> ls -> search-list -> read-numbered -> dedup-log -> smart-truncate -> null
+// Detection order: git-log → git-diff → git-status → build-output → grep → find → tree → ls → search-list
+//                  → read-numbered → dedup-log → smart-truncate → null
 import { DETECT_WINDOW, READ_NUMBERED_MIN_HIT_RATIO, SMART_TRUNCATE_MIN_LINES } from "./constants.js";
 import { gitDiff } from "./filters/gitDiff.js";
 import { gitStatus } from "./filters/gitStatus.js";
@@ -27,6 +29,7 @@ const RE_GIT_DIFF = /^diff --git /m;
 const RE_GIT_DIFF_HUNK = /^@@ /m;
 const RE_GIT_LOG = /^commit [a-f0-9]{7,40}/m;
 const RE_GIT_STATUS = /^On branch |^nothing to commit|^Changes (not |to be )|^Untracked files:/m;
+const RE_GIT_LOG = /^[*|/\\ ]*commit [0-9a-f]{7,40}$/m;
 const RE_PORCELAIN = /^[ MADRCU?!][ MADRCU?!] \S/m;
 const RE_BUILD_OUTPUT = /^(npm (warn|error|ERR!)|yarn (warn|error)|\s*Compiling\s+\S+|\s*Downloading\s+\S+|added \d+ package|\[ERROR\]|BUILD (SUCCESS|FAILED)|\s*Finished\s+|Successfully (installed|built)|ERROR:)/im;
 const RE_TREE_GLYPH = /[\u2514\u251C]\u2500\u2500|\u2502  /;
@@ -43,6 +46,7 @@ export function autoDetectFilter(text) {
   const head = text.length > DETECT_WINDOW ? text.slice(0, DETECT_WINDOW) : text;
 
   // Git diff / show (most specific git patterns)
+  if (RE_GIT_LOG.test(head)) return gitLog;
   if (RE_GIT_DIFF.test(head) || RE_GIT_DIFF_HUNK.test(head)) return gitDiff;
   
   // Git log
