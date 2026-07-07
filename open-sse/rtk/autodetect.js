@@ -27,7 +27,6 @@ import { jsonLog } from "./filters/jsonLog.js";
 
 const RE_GIT_DIFF = /^diff --git /m;
 const RE_GIT_DIFF_HUNK = /^@@ /m;
-const RE_GIT_LOG = /^commit [a-f0-9]{7,40}/m;
 const RE_GIT_STATUS = /^On branch |^nothing to commit|^Changes (not |to be )|^Untracked files:/m;
 const RE_GIT_LOG = /^[*|/\\ ]*commit [0-9a-f]{7,40}$/m;
 const RE_PORCELAIN = /^[ MADRCU?!][ MADRCU?!] \S/m;
@@ -48,10 +47,10 @@ export function autoDetectFilter(text) {
   // Git diff / show (most specific git patterns)
   if (RE_GIT_LOG.test(head)) return gitLog;
   if (RE_GIT_DIFF.test(head) || RE_GIT_DIFF_HUNK.test(head)) return gitDiff;
-  
+
   // Git log
   if (RE_GIT_LOG.test(head)) return gitLog;
-  
+
   // Git status
   if (RE_GIT_STATUS.test(head)) return gitStatus;
 
