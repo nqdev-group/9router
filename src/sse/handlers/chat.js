@@ -154,6 +154,7 @@ export async function handleChat(request, clientRawRequest = null) {
  */
 async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
   const modelInfo = await getModelInfo(modelStr);
+  console.log("🚀 QuyNH: handleSingleModelChat -> modelInfo", modelInfo)
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {

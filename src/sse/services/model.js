@@ -48,6 +48,7 @@ export async function resolveModelAlias(alias) {
  */
 export async function getModelInfo(modelStr) {
   const parsed = parseModel(modelStr);
+  console.log("🚀 QuyNH: getModelInfo -> parsed", parsed)
 
   if (!parsed.isAlias) {
     // Provider-node prefixes are user-defined. They must not override built-in

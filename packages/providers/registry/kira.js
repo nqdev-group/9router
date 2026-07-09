@@ -25,7 +25,6 @@ export default {
     // format: "openai",            // "openai" | "claude" | "gemini" | "openai-responses" | ...
     validateUrl: "https://kiraai.vn/api/v1/models",
     headers: {
-      "User-Agent": "KiraAI-Client/1.0",
       "Content-Type": "application/json",
       "Accept": "*/*",
     },

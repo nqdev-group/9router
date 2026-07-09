@@ -29,7 +29,6 @@ const CORE_ALIASES = {
   ocg: "opencode-go",
   qd: "qoder",
   qoder: "qoder",
-  kira: "kira",
 };
 
 const ALIAS_TO_PROVIDER_ID = { ...CORE_ALIASES, ...MEDIA_ONLY_ALIASES };
