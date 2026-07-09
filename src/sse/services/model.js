@@ -3,6 +3,13 @@ import { getModelAliases, getComboByName, getProviderNodes } from "@/lib/localDb
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
 
+// Extra model prefix inference from packages (graceful fail if package removed)
+let getProviderFromExtraPrefixes = () => null;
+try {
+  const m = await import("@9router/services/model.js");
+  getProviderFromExtraPrefixes = m.getProviderFromExtraPrefixes || (() => null);
+} catch { /* not available */ }
+
 // Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
 const LOCAL_PROVIDER_ALIASES = {
   xmtp: "xiaomi-tokenplan",
@@ -75,7 +82,19 @@ export async function getModelInfo(modelStr) {
     return { provider: null, model: parsed.model };
   }
 
-  return getModelInfoCore(modelStr, getModelAliases);
+  // Resolve via core + DB aliases
+  const result = await getModelInfoCore(modelStr, getModelAliases);
+
+  // Extra prefix override: when core falls back to "openai", try package prefixes
+  if (result.provider === "openai") {
+    const extraProvider = getProviderFromExtraPrefixes(modelStr);
+    if (extraProvider) {
+      console.log("[MODEL-INFO]", `Extra prefix matched: ${modelStr} → ${extraProvider}`);
+      return { provider: extraProvider, model: result.model };
+    }
+  }
+
+  return result;
 }
 
 /**
