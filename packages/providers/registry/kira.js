@@ -22,7 +22,7 @@ export default {
   // ── transport (HTTP runtime) → PROVIDERS[id] ─────────────────────────────
   transport: {
     baseUrl: "https://kiraai.vn/api/v1/chat/completions",
-    format: "openai",            // "openai" | "claude" | "gemini" | "openai-responses" | ...
+    // format: "openai",            // "openai" | "claude" | "gemini" | "openai-responses" | ...
     validateUrl: "https://kiraai.vn/api/v1/models",
     headers: {
       "User-Agent": "KiraAI-Client/1.0",
