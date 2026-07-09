@@ -6,9 +6,13 @@ import REGISTRY from "open-sse/providers/registry/index.js";
 // Extra model prefix inference from packages (graceful fail if package removed)
 let getProviderFromExtraPrefixes = () => null;
 try {
-  const m = await import("@9router/services/model.js");
+  // Static import for webpack bundled runtime
+  const m = require("@9router/services/model.js");
   getProviderFromExtraPrefixes = m.getProviderFromExtraPrefixes || (() => null);
-} catch { /* not available */ }
+} catch (e) {
+  console.error("[MODEL-INFO]", "Failed to import @9router/services/model.js:", e.message);
+  // Package not available, continue without extra prefixes
+}
 
 // Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
 const LOCAL_PROVIDER_ALIASES = {
