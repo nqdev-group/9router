@@ -46,6 +46,44 @@ Tái thiết kế trang quản lý Combos (`/dashboard/combos`) với bố cục
 └─────────────────────────────────────────────────────────┘
 ```
 
+## Manual Changes to Sidebar
+
+**User manually edited `src/shared/components/Sidebar.js`:**
+
+1. **Moved "Combos Pipeline" to Compression Context section** (line 60):
+   ```javascript
+   const compressionContextItems = [
+     { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
+     // ... other compression items
+   ];
+   ```
+
+2. **Enabled `isNew: true` badge rendering** (lines 208-212):
+   ```javascript
+   <span className="text-[13px] font-medium flex-1">{item.label}</span>
+   {item.isNew && (
+     <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold whitespace-nowrap">
+       New
+     </span>
+   )}
+   ```
+
+3. **Corrected label alignment** (line 207): Added `flex-1` to label for proper badge positioning.
+
+4. **Moved from main nav** (line 24): 
+   ```javascript
+   { href: "/dashboard/combos", label: "Combos (Legacy)", icon: "layers" },
+   { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
+   ```
+   - Added "(Legacy)" suffix to original Combos to distinguish as V1
+   - Organized Combos Pipeline under Compression Context (logical grouping with RTK/CMEM engines)
+
+## File cần tạo/sửa
+
+- **New:** `src/app/(dashboard)/dashboard/combos-v2/page.js`
+- **Edit:** `src/shared/components/Sidebar.js` — thêm sidebar link
+- **Manual edit:** `src/shared/components/Sidebar.js` — Compression Context section placement + `isNew` badge render
+
 ## Chiến lược màu sắc (color-coded)
 
 - **Fallback** — Emerald (#10b981): sequential, safety, reliable
@@ -113,13 +151,12 @@ Tận dụng hoàn toàn API có sẵn — không cần backend changes:
 
 ### 🚀 Cải tiến tiềm năng
 
-- [ ] **Search/filter trong danh sách combos**: ô search lọc combo theo name (cần cho nhiều combos)
-- [ ] **Model đã thêm vào combo được đánh dấu rõ hơn trong ModelSelectModal**: highlight model nào đã có trong combo
-- [ ] **Bulk add models**: paste list model IDs từ clipboard
-- [ ] **Drag-and-drop** thay vì ↑↓ buttons (cần @dnd-kit)
-- [ ] **Combo search preview**: highlight model trong combo có support vision/search/reasoning
-- [ ] **Export combos config**: copy JSON config của 1 hoặc nhiều combos
-- [ ] **Import combos config**: paste JSON để tạo combo hàng loạt
-- [ ] **Duplicate combo**: clone combo nhanh với tên tự động
-- [ ] **Statistics trên mỗi combo**: số request thành công/fail trong khoảng thời gian
-- [ ] **Responsive test cho mobile**: kiểm tra model chain trên mobile (step indicator + truncation)
+- [x] **Search/filter trong danh sách combos**: ô search lọc combo theo name hoặc model name
+- [x] **Bulk add models**: paste list model IDs từ clipboard (modal textarea)
+- [x] **Combo capability summary badge**: hiển thị union caps (vision/search/reasoning) ở header mỗi combo
+- [x] **Export combos config**: copy JSON config của 1 combo xuống clipboard
+- [x] **Import combos config**: paste JSON (modal) để tạo combo hàng loạt
+- [x] **Duplicate combo**: clone combo nhanh với tên auto-increment (`name-copy`, `name-copy-2`, ...)
+
+---
+claude --resume cee5718d-4eb0-47f8-bef0-60c756ebf683
