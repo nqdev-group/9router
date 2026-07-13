@@ -57,6 +57,7 @@ const systemItems = [
  * By placing it above the System section, we can also encourage users to explore and utilize these powerful features of 9Router.
  */
 const compressionContextItems = [
+  { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
@@ -203,7 +204,12 @@ export default function Sidebar({ onClose }) {
               >
                 {item.icon}
               </span>
-              <span className="text-[13px] font-medium">{item.label}</span>
+              <span className="text-[13px] font-medium flex-1">{item.label}</span>
+              {item.isNew && (
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold whitespace-nowrap">
+                  New
+                </span>
+              )}
             </Link>
           ))}
 
