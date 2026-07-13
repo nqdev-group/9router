@@ -1,9 +1,6 @@
-name: [Testing] 9Router Build and Push Docker Image
+name: Testing - 9Router Build Docker Image
 
 on:
-  #push:
-  #  tags:
-  #    - "v*"
   workflow_dispatch:
 
 env:
