@@ -284,17 +284,6 @@ export default function CombosV2Page() {
     setBulkAddText("");
   };
 
-  /* ── loading state ── */
-
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <CardSkeleton />
-        <CardSkeleton />
-      </div>
-    );
-  }
-
   /* ── filter combos by search ── */
   const filteredCombos = useMemo(() => {
     if (!searchQuery.trim()) return combos;
@@ -305,6 +294,17 @@ export default function CombosV2Page() {
         c.models.some((m) => m.toLowerCase().includes(q))
     );
   }, [combos, searchQuery]);
+
+  /* ── loading state ── */
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    );
+  }
 
   /* ── render ── */
 
