@@ -155,8 +155,13 @@ Tận dụng hoàn toàn API có sẵn — không cần backend changes:
 - [x] **Bulk add models**: paste list model IDs từ clipboard (modal textarea)
 - [x] **Combo capability summary badge**: hiển thị union caps (vision/search/reasoning) ở header mỗi combo
 - [x] **Export combos config**: copy JSON config của 1 combo xuống clipboard
-- [x] **Import combos config**: paste JSON (modal) để tạo combo hàng loạt
+- [x] **Import combos config**: paste JSON (JSON paste modal) để tạo combo hàng loạt
 - [x] **Duplicate combo**: clone combo nhanh với tên auto-increment (`name-copy`, `name-copy-2`, ...)
+
+### 🐛 Bugfixes
+
+- [x] **React Hooks violation — `useMemo` sau early return**: di chuyển `filteredCombos` (`useMemo`) lên trước `if (loading) return` để tuân thủ Rules of Hooks. Nguyên nhân: search feature thêm `useMemo` sau loading guard.
+- [x] **Popup Add Model V2**: tạo ModelSelectModalV2 mới (để không sửa ModelSelectModal gốc) với vertical list layout — radio indicator, prefix/model name rõ ràng, modal rộng (`lg`), mỗi dòng full-width dễ click.
 
 ---
 claude --resume cee5718d-4eb0-47f8-bef0-60c756ebf683

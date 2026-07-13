@@ -5,7 +5,7 @@ import {
   Card,
   Button,
   CardSkeleton,
-  ModelSelectModal,
+  ModelSelectModalV2,
   ConfirmModal,
   CapacityBadges,
   ComboFormModal,
@@ -480,7 +480,7 @@ export default function CombosV2Page() {
           const combo = combos.find((c) => c.id === modelSelectorTarget);
           if (!combo) return null;
           return (
-            <ModelSelectModal
+            <ModelSelectModalV2
               key={modelSelectorTarget}
               isOpen
               onClose={() => setModelSelectorTarget(null)}
@@ -508,7 +508,7 @@ export default function CombosV2Page() {
           const combo = combos.find((c) => c.id === judgeSelectorTarget);
           if (!combo) return null;
           return (
-            <ModelSelectModal
+            <ModelSelectModalV2
               key={`judge-${judgeSelectorTarget}`}
               isOpen
               onClose={() => setJudgeSelectorTarget(null)}
