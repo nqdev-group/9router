@@ -78,6 +78,7 @@ gitbook/README.md
 open-sse.old/
 .graphifyignore
 graphify-out/*
+.next-analyze/*
 
 # ===== Ignore claude ai files =====
 .claude/*.local.json

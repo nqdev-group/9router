@@ -1,53 +1,89 @@
-# Kế hoạch tích hợp Provider Kira AI
+# Kế hoạch tích hợp Provider Kira AI — Cập nhật 2026-07-09
 
 ## 1. Mục tiêu
-Tích hợp Provider Kira AI (https://kiraai.vn) vào hệ thống 9Router dưới dạng một package độc lập trong thư mục `packages`, hạn chế tối đa việc sửa đổi source code chính.
+Tích hợp Kira AI (https://kiraai.vn) vào 9Router: Chat Completions, Image Generation, Text-to-Speech.
 
-## 2. Thông số kỹ thuật Kira AI
+## 2. Thông số kỹ thuật
 - **Base URL:** `https://kiraai.vn/api/v1`
-- **Format:** OpenAI Compatible
-- **Models:** 
-  - `kira-3.5-flash` (Mặc định, tốc độ nhanh)
-  - `kira-2.5-pro` (Logic chuyên sâu, code)
-  - `kira-3-pro-image-preview` (Tạo ảnh)
-  - `kira-3.1-flash-image-preview` (Tạo ảnh)
-  - `kira-3.1-generate-001` (Video)
+- **Format:** OpenAI Compatible (100%)
+- **Models:** kira-mini-1.0 (free), kira-3.5-flash, kira-2.5-pro, kira-2.5-flash, kira-3-pro-image-preview, kira-3.1-flash-image-preview, kira-3.1-generate-001
 
-## 3. Kiến trúc tích hợp (Packages Pattern)
+## 3. Hiện trạng (đã hoàn thành)
 
-### 3.1. Cấu trúc thư mục mới
-Tạo thư mục `packages/kira-ai/` chứa logic của provider:
-- `packages/kira-ai/index.js`: Điểm xuất phát, chứa thông tin đăng ký.
-- `packages/kira-ai/config.js`: Định nghĩa config provider và models.
-- `packages/kira-ai/translator.js`: (Tùy chọn) Nếu cần xử lý format đặc biệt (hiện tại tương thích OpenAI nên có thể dùng mặc định).
+| Thành phần | File | Trạng thái |
+|-----------|------|-----------|
+| Provider registry | `packages/providers/registry/kira.js` | ✅ Khai báo đầy đủ (transport, models, auth, ttsConfig, imageConfig) |
+| Chat completions | DefaultExecutor (qua `transport.format: "openai"`) | ✅ Tự động xử lý |
+| Image adapter | `open-sse/handlers/imageProviders/kira.js` | ✅ Đã tạo + đăng ký |
+| TTS adapter | `open-sse/handlers/ttsProviders/kira.js` | ✅ Đã tạo + đăng ký |
+| Model alias (explicit `kira/`) | `open-sse/services/model.js` (`kira: "kira"`) | ✅ |
+| Model prefix inference (bare `kira-mini-1.0`) | `open-sse/services/model.js` — `inferProviderFromModelName()` nhúng `@9router/services/model.js` | ✅ |
+| Provider logo | `public/providers/kira.png` | ✅ |
+| Service kinds | Registry: `["llm", "image", "video", "tts"]` | ✅ |
 
-### 3.2. Đăng ký Provider
-Do hệ thống hiện tại chưa có cơ chế auto-scan plugins, cần thực hiện "nhúng" (bridge) tại các điểm:
-1. **Config Bridge:** Export config từ `packages/kira-ai` và import vào `open-sse/config/providers.js` & `providerModels.js`.
-2. **Executor Bridge:** Kira AI tương thích OpenAI nên sẽ tự động sử dụng `DefaultExecutor`.
-3. **UI Bridge:** Thêm metadata vào `src/shared/constants/providers.js` để hiển thị trên Dashboard.
+### 3.1. Registry (`packages/providers/registry/kira.js`)
+Dùng cấu trúc LiteLLM-style registry mới (không phải config cũ ở `open-sse/config/`):
+- `transport.baseUrl`: chat completions endpoint
+- `transport.format: "openai"` → tự động dùng DefaultExecutor
+- `models[]`: định nghĩa models với `type:` field (llm/image/video)
+- `serviceKinds`: `["llm", "image", "video", "tts"]`
+- `ttsConfig`: baseUrl, authType, voices list
+- `imageConfig`: baseUrl
 
-## 4. Các bước thực hiện
+### 3.2. Image Generation
+- Adapter: `open-sse/handlers/imageProviders/kira.js`
+- Endpoint: `POST /v1/images/generations` → `https://kiraai.vn/api/v1/images/generations`
+- Map OpenAI `size` → Kira `aspect_ratio` (1:1, 16:9, 9:16, 4:3, 3:4)
+- Response: OpenAI-compatible, passthrough normalize
 
-### Bước 1: Tạo Package Kira AI
-- Tạo file `packages/kira-ai/config.js` chứa:
-  - `KIRA_PROVIDER_CONFIG`
-  - `KIRA_MODELS`
-- Tạo file `packages/kira-ai/index.js` để export các hằng số này.
+### 3.3. Text-to-Speech
+- Adapter: `open-sse/handlers/ttsProviders/kira.js`
+- Endpoint: `POST /v1/audio/speech` → `https://kiraai.vn/api/v1/audio/speech`
+- 5 voices: Kore, Fenrir, Puck, Charon, Aoede
+- Mapping OpenAI voices → Kira voices (alloy→Kore, echo→Fenrir, etc.)
+- Model format: `kira/kira-2.5-flash/VoiceName`
 
-### Bước 2: Tích hợp vào Core Config
-- Sửa `open-sse/config/providers.js`: Import và spread `KIRA_PROVIDER_CONFIG` vào `PROVIDERS`.
-- Sửa `open-sse/config/providerModels.js`: Import và thêm `kira` vào `PROVIDER_MODELS`.
+### 3.4. Model Resolution Chain
 
-### Bước 3: Tích hợp vào Dashboard UI
-- Sửa `src/shared/constants/providers.js`: Thêm `kira` vào danh sách `APIKEY_PROVIDERS` với logo và mô tả.
-- Thêm logo Kira AI vào `public/providers/kira.png` (sẽ dùng logo tạm hoặc fetch nếu có thể).
+Khi user gửi model string, thứ tự resolve:
 
-### Bước 4: Kiểm tra và Hoàn thiện
-- Chạy `npm run lint` để đảm bảo code style.
-- Kiểm tra danh sách model trong Dashboard.
-- Thử nghiệm gọi API với model `kira/kira-3.5-flash`.
+1. **Explicit `kira/xxx`** → `parseModel` tách prefix → `resolveProviderAlias("kira")` → `"kira"`
+2. **DB alias** → check model alias trong DB → nếu có map `"kira-mini": "kira/kira-mini-1.0"` → route đúng
+3. **Core prefix inference** → `open-sse/services/model.js` — check `claude-`, `gemini-`, `gpt-`, `deepseek-`, `o[134]-`
+4. **Extra prefix inference** → `open-sse/services/model.js` — gọi `require("@9router/services/model.js").getProviderFromExtraPrefixes()` → check `kira-` → `"kira"`
 
-## 5. Duy trì và Mở rộng
-- Dễ dàng cập nhật model mới chỉ bằng cách sửa file trong `packages/kira-ai/`.
-- Có thể thêm translator riêng nếu Kira AI cập nhật format khác OpenAI trong tương lai.
+Với `kira-mini-1.0` không có alias DB:
+- Step 3 không match → chuyển step 4
+- Step 4 match `kira-` prefix → `kira/kira-mini-1.0` ✅
+
+## 4. Kiến trúc (so với plan cũ)
+
+Plan cũ đề xuất `packages/kira-ai/` standalone package + sửa `open-sse/config/`. Thực tế triển khai khác:
+
+| Plan cũ | Thực tế |
+|---------|---------|
+| `packages/kira-ai/config.js` | ❌ Không tồn tại — dùng registry entry |
+| `packages/kira-ai/index.js` | ❌ Không tồn tại — registry tự export |
+| Sửa `open-sse/config/providers.js` | ❌ Không cần — registry-driven |
+| Sửa `open-sse/config/providerModels.js` | ❌ Không cần — models trong registry |
+| Tạo image adapter riêng | ✅ `open-sse/handlers/imageProviders/kira.js` |
+| Tạo TTS adapter riêng | ✅ `open-sse/handlers/ttsProviders/kira.js` |
+| Sửa `src/shared/constants/providers.js` | ❌ Không cần — registry field `serviceKinds` thay thế |
+
+## 5. Bảo trì
+
+- **Thêm model mới**: Sửa `models[]` trong `packages/providers/registry/kira.js`
+- **Sửa voice list**: Sửa `ttsConfig.voices` trong registry
+- **Thêm image aspect ratio**: Sửa `sizeMap` trong `open-sse/handlers/imageProviders/kira.js`
+- Video generation (`kira-3.1-generate-001`): Chưa có video pipeline trong codebase — bỏ qua
+
+## 6. Files tham chiếu
+
+- `packages/providers/registry/kira.js` — Định nghĩa provider chính
+- `packages/providers/registry/index.js` — Auto-generated import list
+- `open-sse/handlers/imageProviders/kira.js` — Image generation adapter
+- `open-sse/handlers/ttsProviders/kira.js` — TTS adapter
+- `open-sse/services/model.js` — Alias `kira: "kira"`, nhúng extra prefix inference từ package
+- `packages/services/model.js` — Extra model prefix inference (`kira-` prefix), được `open-sse/services/model.js` require
+- `public/providers/kira.png` — Logo
+- `plans/kira-ai-media-integration.md` — Plan chi tiết cho image + TTS

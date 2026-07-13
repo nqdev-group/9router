@@ -1,6 +1,14 @@
 # AGENTS.md
 
-Compact guidance for agents working in this repo. See also `open-sse/AGENTS.md` (SSE core), `tests/translator/AGENTS.md` (translator tests), `CLAUDE.md` (complementary).
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+
+## What this is
+
+**9Router** (`9router-app`) — a local AI routing gateway + Next.js dashboard. Exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh, quota/usage tracking, and optional cloud sync.
+
+Two published artifacts in this repo:
+- **Dashboard + gateway** (root `package.json`, `9router-app`) — the Next.js server doing the actual routing.
+- **CLI launcher** (`cli/`, published to npm as `9router`) — separate package that installs/starts the server and manages tray icon. Own `package.json`, version, and build.
 
 ## Dev commands
 
@@ -42,6 +50,14 @@ cd tests && npx vitest run --reporter=verbose --config ./vitest.config.js
 Test aliases (from `tests/vitest.config.js`): `open-sse/` → `../open-sse/`, `@/` → `../src/`, `@9router/` → `../packages/`.
 
 Real provider tests gated by `RUN_REAL=1`. Read credentials from `~/.9router/db/data.sqlite`.
+
+**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. Expected red:
+- 26 items in `tests/__baseline__/known-fails.txt` (rtk, oauth-cursor-auto-import, translator-request-normalization, etc.).
+- `unit/embeddings.cloud.test.js` imports `cloud/src/handlers/embeddings.js` — `cloud/` worker dir **not in this repo**, always fails here.
+- `unit/xai-oauth-service.test.js` times out (5s) when xAI endpoint-discovery fetch unreachable/unmocked.
+- `real/*.real.test.js` — live provider calls, skip without credentials.
+
+Regression baselines: `tests/__baseline__/verify-*.mjs` compare committed snapshots (providers, aliases, OAuth URLs). Run after touching provider registry / alias logic.
 
 **Translator test gotcha**: `open-sse/translator/index.js` uses `require(...)` (bundler-only) to lazy-load translators. Under vitest/ESM, `require` silently no-ops → empty registry → false passes. Every test calling `translateRequest`/`translateResponse` MUST `import "./registerAll.js"` at the top. See `tests/translator/AGENTS.md`.
 
@@ -162,7 +178,7 @@ Docker: `Dockerfile`, `docker-compose.yml`, `DOCKER.md`, `BUILD-DOCKER.md`. Imag
 
 ## Environment
 
-Key vars (see `.env.example` for full list): `JWT_SECRET`, `INITIAL_PASSWORD`, `DATA_DIR`, `PORT`, `BASE_URL` (server-side, preferred), `CLOUD_URL`, `API_KEY_SECRET`, `REQUIRE_API_KEY`, `AUTH_COOKIE_SECURE`, `ENABLE_REQUEST_LOGS`, `OBSERVABILITY_ENABLED`.
+Key vars (see `.env.example` for full list): `JWT_SECRET` (session cookie), `INITIAL_PASSWORD` (default `123456` — **must override in production**), `API_KEY_SECRET`, `MACHINE_ID_SALT`, `DATA_DIR`, `PORT`, `BASE_URL` (server-side, preferred), `CLOUD_URL`, `REQUIRE_API_KEY`, `AUTH_COOKIE_SECURE`, `ENABLE_REQUEST_LOGS`, `OBSERVABILITY_ENABLED`.
 
 `BASE_URL` vs `NEXT_PUBLIC_BASE_URL`: server runtime prefers `BASE_URL` for internal sync callbacks. `NEXT_PUBLIC_*` vars kept for backward compat.
 
@@ -177,3 +193,5 @@ Proxy: `HTTP_PROXY`/`HTTPS_PROXY` (and lowercase variants) for upstream calls.
 - `tests/` is a separate npm package — install deps there before running tests
 - `packages/index.js` is required for `@9router/*` path alias resolution — don't delete
 - `.opencode/opencode.jsonc` is a bare schema reference; no custom instructions configured there
+- Versioning: root and `cli/` versioned independently. Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
+- `eslint.config.mjs` uses the modern flat config (`eslint/config`). Lint: `npx eslint .`. No separate typecheck script.

@@ -1,1 +1,0 @@
-export { KIRA_PROVIDER_ID, KIRA_PROVIDER_CONFIG, KIRA_MODELS } from "./config.js";
