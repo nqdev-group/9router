@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository }}
-  DOCKERHUB_IMAGE: ${{ secrets.DOCKER_USERNAME }}/9router
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}-testing
+  DOCKERHUB_IMAGE: ${{ secrets.DOCKER_USERNAME }}/9router-testing
 
 jobs:
   build-and-push:
@@ -42,7 +42,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ github.event_name == 'push' }}
-            type=raw,value=26.5.${{ github.run_number }}-manual,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=26.5.${{ github.run_number }}-testing,enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -51,8 +51,8 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcachetesting
+          cache-to: type=registry,ref=${{ env.GHCR_IMAGE }}:buildcachetesting,mode=max
           platforms: linux/amd64
           provenance: false
           sbom: false
