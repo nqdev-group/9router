@@ -105,11 +105,11 @@ Tận dụng hoàn toàn API có sẵn — không cần backend changes:
 
 ### 🔄 Cần hoàn thiện
 
-- [ ] **Optimistic update khi add model**: hiện tại `saveModels` gọi PUT api rồi mới cập nhật state — có thể cập nhật state ngay, fetch sau (optimistic)
-- [ ] **Loading state trên nút Add/Remove model**: indicator để user biết action đang được xử lý
-- [ ] **Xác nhận trước khi xóa model cuối cùng**: nếu model cuối bị xóa, cảnh báo rõ ràng hơn
-- [ ] **Inline model edit persist**: hiện tại click model name mở input nhưng không save — cần nối với PUT API
-- [ ] **Tooltip "New" badge trên sidebar**: `isNew: true` đã thêm nhưng cần render badge visual trong component (hiện chỉ là flag trong data)
+- [x] **Optimistic update khi add model**: `saveModels` cập nhật state ngay, revert nếu API fail
+- [x] **Loading state trên nút Add/Remove model**: spinner ở header, disabled buttons khi `pendingModels[combo.id]` đang true
+- [x] **Xác nhận trước khi xóa model cuối cùng**: `ConfirmModal` với cảnh báo trước khi xóa model cuối
+- [x] **Inline model edit persist**: click model name → input → Enter/Blur → gọi `onEdit` → `saveModels` PUT API
+- [x] **Tooltip "New" badge trên sidebar**: render badge `isNew` trong Sidebar component
 
 ### 🚀 Cải tiến tiềm năng
 
