@@ -100,6 +100,7 @@ import p96 from "./xiaomi-mimo.js";
 import p97 from "./xiaomi-tokenplan.js";
 import p98 from "./youcom.js";
 import p99 from "./alims-intl.js";
+import p100 from "./vilao.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -204,4 +205,5 @@ export default [
   p97,
   p98,
   p99,
+  p100,
 ];

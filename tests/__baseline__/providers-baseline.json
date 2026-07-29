@@ -798,6 +798,11 @@
     "baseUrl": "https://aiplatform.googleapis.com",
     "format": "vertex"
   },
+  "vilao": {
+    "baseUrl": "https://api.vilao.ai/v1/chat/completions",
+    "validateUrl": "https://api.vilao.ai/v1/models",
+    "format": "openai"
+  },
   "volcengine-ark": {
     "baseUrl": "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions",
     "headers": {},
