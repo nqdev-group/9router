@@ -10,17 +10,17 @@ Tái thiết kế trang quản lý Combos (`/dashboard/combos`) với bố cục
 
 ## Thay đổi chính so với V1
 
-| V1 | V2 |
-|---|---|
-| Models bị truncate, chỉ hiện tối đa 3 cái + `+N more` | Tất cả models hiển thị đầy đủ trong vertical stepper |
-| D&D sắp xếp cần mở modal riêng | Nút ↑↓ hiển thị inline khi hover, không cần modal |
-| Strategy chỉ là `<select>` dropdown | 3 toggle button color-coded (emerald/sky/amber) |
-| Card nhỏ, models bị giấu | Panel mở rộng, có numbered step indicator |
-| Model caps badges dễ bỏ sót | Badges hiển thị ngay cạnh model name |
-| Fusion judge picker ở card chính | Inline picker + reset button, chỉ hiện khi fusion active |
-| Không phân biệt prefix/name | Visual split: prefix (uppercase tag) + /model-name |
-| Copy button trong card | Tooltip wrapper với feedback "Copied!" |
-| Delete confirm dùng alert | ConfirmModal component |
+| V1                                                    | V2                                                       |
+| ----------------------------------------------------- | -------------------------------------------------------- |
+| Models bị truncate, chỉ hiện tối đa 3 cái + `+N more` | Tất cả models hiển thị đầy đủ trong vertical stepper     |
+| D&D sắp xếp cần mở modal riêng                        | Nút ↑↓ hiển thị inline khi hover, không cần modal        |
+| Strategy chỉ là `<select>` dropdown                   | 3 toggle button color-coded (emerald/sky/amber)          |
+| Card nhỏ, models bị giấu                              | Panel mở rộng, có numbered step indicator                |
+| Model caps badges dễ bỏ sót                           | Badges hiển thị ngay cạnh model name                     |
+| Fusion judge picker ở card chính                      | Inline picker + reset button, chỉ hiện khi fusion active |
+| Không phân biệt prefix/name                           | Visual split: prefix (uppercase tag) + /model-name       |
+| Copy button trong card                                | Tooltip wrapper với feedback "Copied!"                   |
+| Delete confirm dùng alert                             | ConfirmModal component                                   |
 
 ## Bố cục mỗi Combo Card
 
@@ -51,30 +51,40 @@ Tái thiết kế trang quản lý Combos (`/dashboard/combos`) với bố cục
 **User manually edited `src/shared/components/Sidebar.js`:**
 
 1. **Moved "Combos Pipeline" to Compression Context section** (line 60):
+
    ```javascript
    const compressionContextItems = [
-     { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
+     {
+       href: "/dashboard/combos-v2",
+       label: "Combos Pipeline",
+       icon: "account_tree",
+       isNew: true,
+     },
      // ... other compression items
    ];
    ```
 
 2. **Enabled `isNew: true` badge rendering** (lines 208-212):
+
    ```javascript
-   <span className="text-[13px] font-medium flex-1">{item.label}</span>
-   {item.isNew && (
-     <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold whitespace-nowrap">
-       New
-     </span>
-   )}
+   <span className="text-[13px] font-medium flex-1">{item.label}</span>;
+   {
+     item.isNew && (
+       <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold whitespace-nowrap">
+         New
+       </span>
+     );
+   }
    ```
 
 3. **Corrected label alignment** (line 207): Added `flex-1` to label for proper badge positioning.
 
-4. **Moved from main nav** (line 24): 
+4. **Moved from main nav** (line 24):
    ```javascript
    { href: "/dashboard/combos", label: "Combos (Legacy)", icon: "layers" },
    { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
    ```
+
    - Added "(Legacy)" suffix to original Combos to distinguish as V1
    - Organized Combos Pipeline under Compression Context (logical grouping with RTK/CMEM engines)
 
@@ -95,6 +105,7 @@ Mỗi strategy gồm: dot indicator, left-border card accent, badge, toggle butt
 ## Dữ liệu & API
 
 Tận dụng hoàn toàn API có sẵn — không cần backend changes:
+
 - `GET /api/combos` → list combos
 - `PUT /api/combos/:id` → cập nhật models
 - `PATCH /api/settings` → cập nhật comboStrategies
@@ -164,4 +175,3 @@ Tận dụng hoàn toàn API có sẵn — không cần backend changes:
 - [x] **Popup Add Model V2**: tạo ModelSelectModalV2 mới (để không sửa ModelSelectModal gốc) với vertical list layout — radio indicator, prefix/model name rõ ràng, modal rộng (`lg`), mỗi dòng full-width dễ click.
 
 ---
-claude --resume cee5718d-4eb0-47f8-bef0-60c756ebf683

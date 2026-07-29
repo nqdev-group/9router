@@ -73,7 +73,7 @@ CLI → /v1/* (next rewrites) → src/app/api/v1/* (thin route)
 → Dashboard → src/app/(dashboard)/dashboard/* → src/app/api/* (CRUD)
 ```
 
-Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/responses` → `/api/v1/responses`, `/codex/:path*` → `/api/v1/responses`.
+Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/v1beta/:path*` → `/api/v1beta/:path*`, `/responses` → `/api/v1/responses`, `/codex/:path*` → `/api/v1/responses`.
 
 ## Path aliases (jsconfig.json)
 
@@ -83,21 +83,29 @@ Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/respo
 
 `packages/index.js` is a stub file that makes `@9router/*` resolve; never delete it.
 
-## New features: always in packages/
+## New features: always in packages/ (hard rule)
 
-**All new features/engines must live in `packages/` and be imported via `@9router/*`.**
+**RÀNG BUỘC BẮT BUỘC: Toàn bộ code phát triển mới (feature/engine/logic) phải được viết trong `packages/`, sau đó import/require vào app (`src/`, `open-sse/`) để dùng. Tuyệt đối KHÔNG viết logic trực tiếp vào app.**
+
+- All new features/engines must live in `packages/` and be imported via `@9router/*` — never written directly inside `src/` or `open-sse/`.
+- `src/` and `open-sse/` may only **consume** `packages/*` via import; they must not contain the feature's own business logic.
+- Exceptions are narrow and fixed: `src/app/api/` may grow (thin routes only — call into `packages/`), `src/lib/` may grow (infra glue: DB driver, adapters), `open-sse/` may grow for its own engine internals (providers/executors/translators — see `open-sse/AGENTS.md`). Everything else is off-limits for new logic.
+- If a suitable `packages/*` subdir doesn't exist yet, create a new one there — do not fall back to writing inline in `src/` or `open-sse/` "just this once".
 
 ```
 packages/
-  cmem/          → @9router/cmem        (context memory engine)
-  components/    → @9router/components/ (UI: caveman, cmem, cost, rtk, token-saver-report)
-  validation/    → @9router/validation/ (schemas)
-  kira-ai/       → @9router/kira-ai/    (Kira AI integration)
-  providers/     → @9router/providers/  (extra provider registry)
-  mcpServer/     → @9router/mcpServer/  (MCP server)
-  utils/         → @9router/utils/      (shared utilities)
-  revidapi/      → @9router/revidapi/   (Revid API)
+  cmem/           → @9router/cmem           (context memory engine)
+  components/     → @9router/components/    (UI: caveman, cmem, cost, rtk, token-saver-report)
+  validation/     → @9router/validation/    (schemas)
+  providers/      → @9router/providers/     (extra provider registry)
+  provider-alert/ → @9router/provider-alert/ (Discord alerts on account down/recovery; used by src/sse/services/auth.js and dashboard settings/provider-alert page)
+  services/       → @9router/services/      (extra model-prefix inference, extends open-sse/services/model.js)
+  mcpServer/      → @9router/mcpServer/     (MCP server)
+  utils/          → @9router/utils/         (shared utilities)
+  revidapi/       → @9router/revidapi/      (Revid API)
 ```
+
+Note: `packages/kira-ai/` was removed — do not reference it.
 
 Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`. Pipeline hooks in `open-sse/handlers/chatCore.js` import logic from `packages/cmem/`, `packages/validation/`, etc. Never create new dirs under `src/` for feature logic. Only `src/app/api/` (routes) and `src/lib/` (infra) may grow.
 
@@ -107,7 +115,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 |-----|-------------|
 | `open-sse/` | Standalone SSE engine — providers, executors, translators, RTK, config, PrivacyEngine. Has own AGENTS.md. |
 | `src/sse/` | Request entry (`chat.js`), auth services, logger — bridges Next.js routes to open-sse. |
-| `src/app/api/` | Next.js API routes — V1 compat, dashboard CRUD, OAuth, CLI tools. 26 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, etc.). |
+| `src/app/api/` | Next.js API routes — V1/V1beta compat, dashboard CRUD, OAuth, CLI tools. 27 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, v1beta, etc.). |
 | `src/app/(dashboard)/` | React dashboard pages. |
 | `packages/` | All new feature engines, UI packages, validation, utils — imported via `@9router/*`. |
 | `tests/` | Separate vitest package. |
