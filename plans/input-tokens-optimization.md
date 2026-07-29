@@ -7,7 +7,7 @@
 
 ## 0. Trạng thái triển khai (cập nhật 2026-07-29)
 
-Doc gốc không có tracking — đây là lần đầu đối chiếu với code thật. Đã làm **nhiều hơn** những gì doc này track (một phần do các plan khác — CMEM, token-saver-report — mở rộng scope), nhưng **Phase 4 và Phase 5 hoàn toàn chưa làm**.
+Doc gốc không có tracking — đây là lần đầu đối chiếu với code thật (2026-07-29), sau đó Phase 5 được implement trong cùng ngày. Đã làm **nhiều hơn** những gì doc này track ban đầu (một phần do các plan khác — CMEM, token-saver-report — mở rộng scope). Phase 4 bị reject, Phase 5 đã implement.
 
 | Mục | Trạng thái | Bằng chứng |
 |---|---|---|
