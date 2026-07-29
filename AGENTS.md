@@ -10,6 +10,14 @@ Two published artifacts in this repo:
 - **Dashboard + gateway** (root `package.json`, `9router-app`) — the Next.js server doing the actual routing.
 - **CLI launcher** (`cli/`, published to npm as `9router`) — separate package that installs/starts the server and manages tray icon. Own `package.json`, version, and build.
 
+## Fork & upstream sync
+
+**This repo is a fork.** The original upstream project is still actively developed independently, and new upstream versions are regularly merged into this fork's `master-forked` branch as they're released (see merge commits like "Merge branch 'master-forked' into conflict/…", "Merge pull request … from nqdev-group/master").
+
+- Upstream can touch any file under `src/` and `open-sse/` at any time via a future merge. Anything hand-written directly in those trees is a **future merge-conflict liability**.
+- This is the concrete reason for the [New features: always in packages/](#new-features-always-in-packages-hard-rule) hard rule: code isolated in `packages/` and only *imported* from `src/`/`open-sse/` rarely conflicts with upstream merges, because upstream doesn't know `packages/` exists.
+- When resolving merge conflicts from an upstream sync, prefer keeping upstream's version of files under `src/`/`open-sse/` and re-applying any local customization as a `packages/*` import instead of inline edits, where feasible.
+
 ## Dev commands
 
 ```bash
