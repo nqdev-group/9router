@@ -1,4 +1,5 @@
-// Auto-generated: static imports of all registry entries
+// Hand-maintained (NOT auto-generated) — see AGENTS.md "Provider system".
+// Add a new provider here, never in open-sse/providers/registry/index.js.
 import pc01 from "./kira.js";
 import pc02 from "./llm7.js";
 import pc03 from "./sambanova.js";

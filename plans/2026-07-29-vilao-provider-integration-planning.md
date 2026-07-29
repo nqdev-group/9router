@@ -10,7 +10,8 @@ estimated_hours: ~2-4
 # Kế hoạch: Tích hợp Vilao AI làm provider mới trong 9router
 
 > **Ngày lập kế hoạch:** 2026-07-29
-> **Scope dự kiến:** `open-sse/providers/registry/vilao.js` (mới), `open-sse/providers/registry/index.js` (auto-generated import list)
+> **Scope dự kiến (ban đầu):** `open-sse/providers/registry/vilao.js` (mới), `open-sse/providers/registry/index.js` (auto-generated import list)
+> **Scope thật (sau follow-up commit `fbcd4f54`):** file bị **move** sang `packages/providers/registry/vilao.js`, đăng ký qua `packages/providers/registry/index.js` (`pc05`) — để khớp ràng buộc packages/ mới trong AGENTS.md (provider tự thêm không được hand-edit `open-sse/providers/registry/index.js`, xem [AGENTS.md § Provider system](../AGENTS.md#provider-system)). Xem mục 7 bên dưới, đã cập nhật path thật.
 > **Priority:** medium
 
 ---
@@ -104,13 +105,17 @@ Theo `AGENTS.md` mục "Provider system" và hard rule "New features: always in 
 
 ## 7. Files đã thay đổi
 
+**Trạng thái path (cập nhật sau follow-up commit `fbcd4f54`, cùng ngày):** Bản đầu tiên (commit `1af9b7f5`) tạo file tại `open-sse/providers/registry/vilao.js` + thêm `p100` vào `open-sse/providers/registry/index.js`, đúng theo hiểu biết tại thời điểm đó. Ngay sau đó, để khớp ràng buộc packages/ mới ghi trong AGENTS.md (provider tự thêm — không phải từ upstream merge — phải cô lập khỏi `open-sse/providers/registry/index.js` để tránh conflict khi sync upstream), file đã được **move** sang vị trí dưới đây. Bảng liệt kê path **thật, hiện tại**:
+
 | File | Thay đổi |
 |---|---|
-| [open-sse/providers/registry/vilao.js](../open-sse/providers/registry/vilao.js) (**Mới**) | Registry entry cho Vilao AI — apikey, OpenAI-compatible, baseUrl `api.vilao.ai/v1`, `validateUrl`, `modelsFetcher`, `embeddingConfig`, 9 model tiêu biểu (`passthroughModels: true` cho phần còn lại của catalog 300+ model). |
-| [open-sse/providers/registry/index.js](../open-sse/providers/registry/index.js) | Thêm `import p100 from "./vilao.js"` + `p100` vào mảng export (append-only, không renumber). |
-| [tests/unit/vilao-provider.test.js](../tests/unit/vilao-provider.test.js) (**Mới**) | 6 test case xác nhận registry entry build đúng vào `PROVIDERS`/`PROVIDER_MODELS`/`PROVIDER_MEDIA`, id không trùng. |
+| [packages/providers/registry/vilao.js](../packages/providers/registry/vilao.js) (**Mới**, đã move từ `open-sse/providers/registry/vilao.js`) | Registry entry cho Vilao AI — apikey, OpenAI-compatible, baseUrl `api.vilao.ai/v1`, `validateUrl`, `modelsFetcher`, `embeddingConfig`, 9 model tiêu biểu (`passthroughModels: true` cho phần còn lại của catalog 300+ model). |
+| [packages/providers/registry/index.js](../packages/providers/registry/index.js) | Thêm `import pc05 from "./vilao.js"` + `pc05` vào mảng export. Hand-maintained, không phải auto-generated (dù comment cũ ghi vậy — đã sửa lại comment trong file). |
+| `open-sse/providers/registry/index.js` | Entry `p100`/`vilao` đã được **gỡ bỏ** khỏi đây (không còn hand-edit file này cho provider tự thêm) — file này spread `extraProviders` (từ `packages/providers/registry/index.js`) vào đầu mảng export, `PROVIDERS`/`PROVIDER_MODELS`/`PROVIDER_MEDIA` merge cả 2 nguồn tại runtime. |
+| [tests/unit/vilao-provider.test.js](../tests/unit/vilao-provider.test.js) (**Mới**) | 6 test case xác nhận registry entry build đúng vào `PROVIDERS`/`PROVIDER_MODELS`/`PROVIDER_MEDIA`, id không trùng. Vẫn pass sau khi move (test import `REGISTRY` từ `open-sse/providers/registry/index.js`, tự động thấy `vilao` qua `extraProviders` spread). |
 | [tests/__baseline__/providers-baseline.json](../tests/__baseline__/providers-baseline.json) | Vá thêm đúng 1 entry `"vilao"` (giữa `vertex` và `volcengine-ark`) khớp byte-for-byte với `PROVIDERS.vilao` thực tế. |
 | [tests/__baseline__/alias-baseline.json](../tests/__baseline__/alias-baseline.json) | Thêm `"vilao": "vilao"` vào `idToAlias` và `"vilao"` vào `modelKeys` (đúng vị trí alphabet). |
+| [AGENTS.md](../AGENTS.md) (commit `f4bfe673`, follow-up) | Viết lại mục "Provider system" để chính thức hoá quy trình `packages/providers/registry/` cho provider tự thêm — không phải thay đổi riêng của Vilao, nhưng được kích hoạt bởi việc tích hợp Vilao. |
 
 ## 8. Bài học rút ra
 
