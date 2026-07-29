@@ -136,12 +136,17 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 
 Providers defined in `open-sse/providers/registry/{id}.js` → built into `open-sse/providers/index.js` (PROVIDERS + PROVIDER_MODELS). `open-sse/config/providers.js` re-exports from `providers/index.js`. Models in `open-sse/config/providerModels.js` re-exports PROVIDER_MODELS from `providers/index.js` + adds CORE_PROVIDER_MODELS.
 
-**To add a provider:**
-1. Copy `open-sse/providers/REGISTRY_TEMPLATE.js` → `open-sse/providers/registry/{id}.js`
-2. Add models to `open-sse/config/providerModels.js`
-3. Regenerate `open-sse/providers/registry/index.js` (auto-generated import list — don't hand-edit)
-4. Optionally add executor in `open-sse/executors/` + register in `open-sse/executors/index.js`
-5. Optionally add translators in `open-sse/translator/request/` + `response/`, import in `open-sse/translator/index.js`
+`open-sse/providers/index.js` builds `REGISTRY` by spreading `extraProviders` (imported from `@9router/providers/registry/index.js`, i.e. `packages/providers/registry/index.js`) **first**, then the static `open-sse/providers/registry/{id}.js` entries — both sources merge into the same `PROVIDERS`/`PROVIDER_MODELS`/`PROVIDER_MEDIA` maps at runtime.
+
+**RÀNG BUỘC BẮT BUỘC — khai báo provider AI mới (không thuộc upstream) PHẢI đi qua `packages/providers/registry/`, KHÔNG hand-edit `open-sse/providers/registry/index.js`:**
+1. Tạo `packages/providers/registry/{id}.js` (copy shape từ `open-sse/providers/REGISTRY_TEMPLATE.js`).
+2. Đăng ký trong `packages/providers/registry/index.js` — file này nhỏ, **hand-maintained** (không phải auto-generated), thêm 1 dòng import `pcNN` + 1 dòng trong mảng export.
+3. Optionally add executor in `open-sse/executors/` + register in `open-sse/executors/index.js` (executor internals vẫn thuộc `open-sse/` vì đây là engine logic dùng chung, không phải khai báo provider).
+4. Optionally add translators in `open-sse/translator/request/` + `response/`, import in `open-sse/translator/index.js`.
+
+Lý do: `open-sse/providers/registry/index.js` là auto-generated import list và là file upstream sync thường xuyên chạm vào — hand-edit trực tiếp vào đó là **future merge-conflict liability** (xem [Fork & upstream sync](#fork--upstream-sync)). `packages/providers/registry/` cô lập mọi provider do team này tự thêm, upstream không biết tới thư mục này nên gần như không bao giờ conflict. Các provider hiện có theo pattern này: `kira`, `llm7`, `sambanova`, `revidapi`, `vilao`.
+
+`open-sse/providers/registry/{id}.js` + regenerate `open-sse/providers/registry/index.js` chỉ dành cho provider đến từ **chính upstream** (qua merge) — không tự tay thêm provider mới vào đường này.
 
 ## Translation pipeline
 
@@ -204,7 +209,7 @@ Proxy: `HTTP_PROXY`/`HTTPS_PROXY` (and lowercase variants) for upstream calls.
 ## Pitfalls
 
 - `open-sse/config/providers.js` re-exports from `providers/index.js` — don't declare PROVIDERS there directly
-- `open-sse/providers/registry/index.js` is auto-generated — regenerate after adding registry files, don't hand-edit
+- `open-sse/providers/registry/index.js` is auto-generated (upstream-owned) — don't hand-edit; new provider integrations go in `packages/providers/registry/` instead (see [Provider system](#provider-system))
 - Binary formats (kiro EventStream, cursor protobuf, commandcode NDJSON) don't round-trip through OpenAI translator
 - RTK/caveman/ponytail/headroom inject hooks run in `chatCore.js` before translation — all fail-open, never throw
 - `tests/` is a separate npm package — install deps there before running tests
