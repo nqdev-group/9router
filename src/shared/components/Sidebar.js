@@ -13,19 +13,19 @@ import { ConfirmModal } from "./Modal";
 import NineRemotePromoModal from "./NineRemotePromoModal";
 
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
-const VISIBLE_MEDIA_KINDS = ["embedding", "image", "tts", "stt"];
+const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
 // Combined entry: webSearch + webFetch share one page at /dashboard/media-providers/web
 const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
 
 const navItems = [
-  { href: "/dashboard/endpoint", label: "Endpoint", icon: "api" },
+  { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "api" },
   { href: "/dashboard/providers", label: "Providers", icon: "dns" },
   // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
   { href: "/dashboard/combos", label: "Combos", icon: "layers" },
   { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
-  { href: "/dashboard/mitm", label: "MITM", icon: "security" },
+  // { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
@@ -57,10 +57,12 @@ const systemItems = [
  * By placing it above the System section, we can also encourage users to explore and utilize these powerful features of 9Router.
  */
 const compressionContextItems = [
+  { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
   { href: "/dashboard/settings/response-cache", label: "Response Cache", icon: "cached" },
+  { href: "/dashboard/token-saver-report", label: "Token Saver Report", icon: "savings" },
 ];
 
 export default function Sidebar({ onClose }) {
@@ -202,7 +204,12 @@ export default function Sidebar({ onClose }) {
               >
                 {item.icon}
               </span>
-              <span className="text-[13px] font-medium">{item.label}</span>
+              <span className="text-[13px] font-medium flex-1">{item.label}</span>
+              {item.isNew && (
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold whitespace-nowrap">
+                  New
+                </span>
+              )}
             </Link>
           ))}
 

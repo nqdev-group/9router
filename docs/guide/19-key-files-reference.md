@@ -1,96 +1,119 @@
 # Key Files Reference
 
-## API Routes
+## Entry Points & Core
 
-| File | Mô tả |
-|------|-------|
-| `src/app/api/v1/chat/completions/route.js` | Entry point chat completions |
-| `src/app/api/v1/messages/route.js` | Claude-format messages |
-| `src/app/api/v1/responses/route.js` | OpenAI Responses API |
-| `src/app/api/v1/models/route.js` | Model listing engine (402 lines) |
-| `src/app/api/v1/embeddings/route.js` | Embeddings |
-| `src/app/api/v1/images/generations/route.js` | Image generation |
-| `src/app/api/v1/audio/speech/route.js` | TTS |
-| `src/app/api/v1/audio/transcriptions/route.js` | STT |
-| `src/app/api/v1beta/models/[...path]/route.js` | Gemini API translation (328 lines) |
-| `src/app/api/oauth/[provider]/[action]/route.js` | Dynamic OAuth route (233 lines) |
-| `src/app/api/auth/login/route.js` | Password login |
-| `src/app/api/providers/route.js` | Provider connections CRUD |
-| `src/app/api/combos/route.js` | Combos CRUD |
-| `src/app/api/keys/route.js` | API keys CRUD |
-| `src/app/api/pricing/route.js` | Pricing CRUD (134 lines) |
+| File | Purpose |
+|------|---------|
+| `next.config.mjs` | Next.js config, rewrites `/v1/*` → `/api/v1/*`, standalone output |
+| `src/sse/handlers/chat.js` | Main chat handler: combo resolution, account fallback, dispatch to chatCore |
+| `open-sse/handlers/chatCore.js` | Core orchestration: translation, RTK, caveman, privacy, CMEM, executor dispatch, streaming |
+| `open-sse/handlers/responsesHandler.js` | Responses API wrapper: converts Responses → Chat Completions format |
+| `src/lib/db/driver.js` | DB adapter chain: bun:sqlite → better-sqlite3 → node:sqlite → sql.js |
+| `src/lib/db/schema.js` | Declarative schema (11 tables), auto-sync |
 
-## Core Engine (open-sse/)
+## Provider System
 
-| File | Mô tả |
-|------|-------|
-| `open-sse/index.js` | Public API barrel (72 lines) |
-| `open-sse/config/providers.js` | Provider definitions (435 lines) |
-| `open-sse/config/providerModels.js` | Model catalog |
-| `open-sse/translator/index.js` | Translator registry + orchestration (222 lines) |
-| `open-sse/translator/formats.js` | Format constants |
-| `open-sse/handlers/chatCore.js` | Core chat orchestration (257 lines) |
-| `open-sse/services/provider.js` | Format detection, URL/header building (320 lines) |
-| `open-sse/services/combo.js` | Combo handler (174 lines) |
-| `open-sse/services/accountFallback.js` | Account fallback logic (194 lines) |
-| `open-sse/services/responseCache.js` | LRU response cache (78 lines) |
-| `open-sse/executors/index.js` | Executor registry (19 executors, 70 lines) |
-| `open-sse/executors/default.js` | Default OpenAI-compatible executor |
-| `open-sse/rtk/index.js` | RTK token compression entry (218 lines) |
-| `open-sse/rtk/configResolver.js` | RTK config + intensity presets (131 lines) |
-| `open-sse/rtk/autodetect.js` | Auto-detect filter from content (127 lines) |
-| `open-sse/rtk/batchCompress.js` | Batch compression for small segments |
-| `open-sse/rtk/caveman.js` | Caveman mode injector (dispatch by format) |
-| `open-sse/rtk/cavemanPrompts.js` | 6-level caveman prompt templates |
-| `open-sse/rtk/preprocessors/contentCleaner.js` | Whitespace normalization preprocessor |
-| `open-sse/rtk/preprocessors/contextPruner.js` | Duplicate code block pruner |
+| File | Purpose |
+|------|---------|
+| `open-sse/providers/index.js` | Builds PROVIDERS + PROVIDER_MODELS from registry |
+| `open-sse/providers/registry/index.js` | Auto-generated barrel importing all 97 registry files |
+| `open-sse/providers/registry/{id}.js` | Per-provider: transport config, OAuth config, model list, media capabilities |
+| `open-sse/config/providers.js` | Re-exports PROVIDERS, defines shared headers, region resolvers |
+| `open-sse/config/providerModels.js` | Model alias ↔ upstream mapping, targetFormat, strip lists |
 
-## SSE Layer (src/sse/)
+## Translation
 
-| File | Mô tả |
-|------|-------|
-| `src/sse/handlers/chat.js` | Main chat entry (249 lines) |
-| `src/sse/services/auth.js` | Credential management (334 lines) |
-| `src/sse/services/model.js` | Model parsing (83 lines) |
-| `src/sse/services/tokenRefresh.js` | Token refresh lifecycle (292 lines) |
-| `src/sse/utils/logger.js` | Logging utility (75 lines) |
+| File | Purpose |
+|------|---------|
+| `open-sse/translator/index.js` | Registry: `register()`, `translateRequest()`, `translateResponse()` |
+| `open-sse/translator/formats.js` | FORMATS enum, `detectFormatByEndpoint()` |
+| `open-sse/translator/request/*.js` | 12 request translators (source → target) |
+| `open-sse/translator/response/*.js` | 10 response translators (target → source) |
+| `open-sse/translator/concerns/` | Shared logic: toolCall, thinking, reasoning, image, finishReason, usage, chunk |
+| `open-sse/translator/schema/` | Enums: roles, blocks, finishReasons, defaults |
 
-## Database (src/lib/db/)
+## Executors
 
-| File | Mô tả |
-|------|-------|
-| `src/lib/db/index.js` | Public API barrel + export/import (178 lines) |
-| `src/lib/db/driver.js` | Adapter chain loader |
-| `src/lib/db/schema.js` | Schema definitions |
+| File | Purpose |
+|------|---------|
+| `open-sse/executors/index.js` | Executor registry (21+ special executors) |
+| `open-sse/executors/base.js` | BaseExecutor class |
+| `open-sse/executors/default.js` | Default HTTP executor for OpenAI-compatible APIs |
+| `open-sse/executors/{kiro,codex,cursor,github,...}.js` | Specialized per-provider executors |
+
+## RTK (Token Saver)
+
+| File | Purpose |
+|------|---------|
+| `open-sse/rtk/index.js` | `compressMessages()` — tool_result compression entry |
+| `open-sse/rtk/filters/` | 21 content-aware filters (git-diff, grep, ls, tree, log, ...) |
+| `open-sse/rtk/autodetect.js` | Auto-detect filter from first 1KB of content |
+| `open-sse/rtk/headroom.js` | External Headroom proxy integration |
+| `open-sse/rtk/caveman.js` | Caveman mode: terse-style system prompt injection |
+| `open-sse/rtk/ponytail.js` | Ponytail: lazy senior dev prompt injection |
+| `open-sse/rtk/constants.js` | Filter constants, presets, intensity levels |
+| `open-sse/rtk/configResolver.js` | Backend config resolver for RTK settings |
+
+## Database Layer
+
+| File | Purpose |
+|------|---------|
+| `src/lib/db/schema.js` | 11 tables: settings, providerConnections, providerNodes, proxyPools, apiKeys, combos, kv, usageHistory, usageDaily, requestDetails |
+| `src/lib/db/driver.js` | Adapter chain with fallback logic |
 | `src/lib/db/migrate.js` | Migration runner |
-| `src/lib/db/repos/usageRepo.js` | Largest repo (873 lines) |
+| `src/lib/db/repos/usageRepo.js` | Usage persistence (820 lines, largest repo) |
+| `src/lib/db/repos/cmemRepo.js` | CMEM migration + context tables |
+| `src/lib/db/repos/connectionsRepo.js` | Provider connection CRUD |
+| `src/lib/db/repos/settingsRepo.js` | Settings with defaults |
 
-## Auth & Middleware
+## Dashboard & API Routes
 
-| File | Mô tả |
-|------|-------|
-| `src/dashboardGuard.js` | Route guard middleware (201 lines) |
-| `src/proxy.js` | Next.js middleware entry |
-| `src/lib/oauth/providers.js` | OAuth implementations (1323 lines) |
-| `src/lib/oauth/constants/oauth.js` | OAuth constants (276 lines) |
-| `src/shared/utils/apiKey.js` | API key generation/verification |
+| File | Purpose |
+|------|---------|
+| `src/app/(dashboard)/dashboard/page.js` | Dashboard root → EndpointPageClient |
+| `src/app/(dashboard)/dashboard/endpoint/` | Endpoint config page (portal page) |
+| `src/app/(dashboard)/dashboard/providers/` | Provider management |
+| `src/app/(dashboard)/dashboard/combos/` | Combo system |
+| `src/app/(dashboard)/dashboard/settings/` | Global settings |
+| `src/app/(dashboard)/dashboard/usage/` | Usage analytics & costs |
+| `src/app/(dashboard)/dashboard/token-saver/` | RTK configuration UI |
+| `src/app/(dashboard)/dashboard/settings/cmem-engine/` | CMEM context memory UI |
+| `src/app/api/providers*` | Provider CRUD APIs |
+| `src/app/api/oauth/*` | OAuth flow APIs |
+| `src/app/api/combos*` | Combo CRUD APIs |
+| `src/app/api/usage/*` | Usage data APIs |
+| `src/app/api/settings/*` | Settings APIs |
+| `src/app/api/keys*` | API key lifecycle |
 
-## UI Components
+## Packages (`@9router/*`)
 
-| File | Mô tả |
-|------|-------|
-| `src/app/layout.js` | Root layout (50 lines) |
-| `src/app/login/page.js` | Login page (174 lines) |
-| `src/app/callback/page.js` | OAuth callback page (148 lines) |
-| `src/shared/constants/providers.js` | UI provider definitions (1664+ lines) |
-| `src/shared/constants/cliTools.js` | CLI tool definitions |
-| `src/shared/constants/pricing.js` | Pricing model definitions |
+| Package | Purpose |
+|---------|---------|
+| `packages/cmem/` | Context Memory engine (FTS5, opt-in) |
+| `packages/components/` | Shared UI components (caveman, cmem, cost, rtk, token-saver-report) |
+| `packages/validation/` | Schema validation (cmemSchemas) |
+| `packages/kira-ai/` | Kira AI integration |
+| `packages/mcpServer/` | MCP server |
+| `packages/providers/` | Provider helpers |
+| `packages/utils/` | Shared utilities |
+| `packages/revidapi/` | Revid API integration |
 
-## Configuration
+## Tests
 
-| File | Mô tả |
-|------|-------|
-| `next.config.mjs` | Next.js config (66 lines) |
-| `jsconfig.json` | Path aliases |
-| `.env.example` | Environment variables |
-| `package.json` | Dependencies & scripts |
+| File | Purpose |
+|------|---------|
+| `tests/package.json` | Separate vitest package |
+| `tests/vitest.config.js` | Vitest config with path aliases |
+| `tests/translator/` | Translation layer tests |
+| `tests/translator/registerAll.js` | Required import for translator tests |
+| `tests/translator/matrix.js` | Provider-model test matrix builder |
+
+## Infrastructure
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Environment variable contract (25+ vars) |
+| `DOCKER.md` | Docker build/deploy guide |
+| `cli/` | CLI package (npm-published 9router CLI) |
+| `scripts/` | Build/publish scripts |
+| `custom-server.js` | Production server wrapper (Next.js standalone) |

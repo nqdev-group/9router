@@ -349,14 +349,6 @@ export const CORE_PROVIDER_MODELS = {
     { id: "qwen3-max", name: "Qwen3 Max" },
     { id: "qwen3-vl-plus", name: "Qwen3 VL Plus" },
   ],
-  kira: [
-    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
-    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
-    { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
-    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
-  ],
   "minimax-cn": [
     { id: "MiniMax-M3", name: "MiniMax M3", targetFormat: "claude" },
     { id: "MiniMax-M2.7", name: "MiniMax M2.7" },
@@ -860,46 +852,69 @@ export function getDefaultModel(aliasOrId) {
   return models?.[0]?.id || null;
 }
 
+// Providers whose registry uses dots in version numbers (e.g. "claude-sonnet-4.5").
+// For these, we tolerate clients sending dashes ("claude-sonnet-4-5") by normalizing
+// digit-hyphen-digit to digit-dot-digit before lookup. Other providers are left untouched.
+const DOT_VERSION_PROVIDERS = new Set(["kr", "kiro"]);
+
+// Find a registry entry by id. For Kiro models, tolerates dash/dot version separators
+// ("claude-sonnet-4-5" ~= "claude-sonnet-4.5"). Other providers use exact match only.
+function findModel(models, modelId, aliasOrId) {
+  if (!models) return undefined;
+  const found = models.find(m => m.id === modelId);
+  if (found) return found;
+  if (!DOT_VERSION_PROVIDERS.has(aliasOrId)) return undefined;
+  const normalized = normalizeModelId(modelId);
+  if (normalized === modelId) return undefined;
+  return models.find(m => m.id === normalized);
+}
+
 export function isValidModel(aliasOrId, modelId, passthroughProviders = new Set()) {
   if (passthroughProviders.has(aliasOrId)) return true;
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return false;
-  return models.some(m => m.id === modelId);
+  return !!findModel(models, modelId, aliasOrId);
 }
 
 export function findModelName(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return modelId;
-  const found = models.find(m => m.id === modelId);
+  const found = findModel(models, modelId, aliasOrId);
   return found?.name || modelId;
 }
 
 export function getModelTargetFormat(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return null;
-  return modelTargetFormat(models.find(m => m.id === modelId));
+  return modelTargetFormat(findModel(models, modelId, aliasOrId));
 }
 
 export function getModelType(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
   if (!models) return null;
-  const found = models.find(m => m.id === modelId);
+  const found = findModel(models, modelId, aliasOrId);
   return found?.kind || found?.type || null;
 }
 
 export function getModelUpstreamId(aliasOrId, modelId) {
+  // Split off thinking suffix "(level)" so lookup hits the base id; re-append it to
+  // the result so downstream applyThinking still sees the suffix (body.model is stripped separately).
+  const sufMatch = typeof modelId === "string" ? modelId.match(/\([^()]+\)\s*$/) : null;
+  const suffix = sufMatch ? sufMatch[0] : "";
+  const baseId = suffix ? modelId.slice(0, sufMatch.index).trim() : modelId;
   const models = PROVIDER_MODELS[aliasOrId];
-  const found = models?.find(m => m.id === modelId);
-  if (found?.upstreamModelId) return found.upstreamModelId;
-  if (aliasOrId === "cx" && typeof modelId === "string" && modelId.endsWith(CODEX_REVIEW_SUFFIX)) {
-    return modelId.slice(0, -CODEX_REVIEW_SUFFIX.length);
+  const found = findModel(models, baseId, aliasOrId);
+  if (found?.upstreamModelId) return found.upstreamModelId + suffix;
+  if (found?.id) return found.id + suffix;
+  if (aliasOrId === "cx" && typeof baseId === "string" && baseId.endsWith(CODEX_REVIEW_SUFFIX)) {
+    return baseId.slice(0, -CODEX_REVIEW_SUFFIX.length) + suffix;
   }
-  return modelId;
+  return baseId + suffix;
 }
 
 export function getModelQuotaFamily(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
-  return modelQuotaFamily(models?.find(m => m.id === modelId));
+  return modelQuotaFamily(findModel(models, modelId, aliasOrId));
 }
 
 // OAuth short aliases — derived from registry `alias` (single source). everything else: alias = id.
@@ -921,5 +936,5 @@ export function getModelsByProviderId(providerId) {
 // Get strip list for a model entry (explicit opt-in only)
 // Returns array of content types to strip, e.g. ["image", "audio"]
 export function getModelStrip(alias, modelId) {
-  return modelStrip(PROVIDER_MODELS[alias]?.find(m => m.id === modelId));
+  return modelStrip(findModel(PROVIDER_MODELS[alias], modelId, alias));
 }

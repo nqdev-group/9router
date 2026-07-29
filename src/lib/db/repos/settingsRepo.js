@@ -2,6 +2,7 @@ import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 
 const DEFAULT_MITM_ROUTER_BASE = "http://localhost:20128";
+const DEFAULT_HEADROOM_URL = process.env.HEADROOM_URL || "http://localhost:8787";
 
 const DEFAULT_SETTINGS = {
   cloudEnabled: false,
@@ -12,6 +13,7 @@ const DEFAULT_SETTINGS = {
   tailscaleUrl: "",
   stickyRoundRobinLimit: 3,
   providerStrategies: {},
+  quotaVisibility: {},
   comboStrategy: "fallback",
   comboStickyRoundRobinLimit: 1,
   comboStrategies: {},
@@ -37,6 +39,9 @@ const DEFAULT_SETTINGS = {
   modelsDevPreferPrices: false,
   modelsDevAutoSyncHours: 24,
   rtkEnabled: true,
+  headroomEnabled: false,
+  headroomUrl: DEFAULT_HEADROOM_URL,
+  headroomCompressUserMessages: false,
   rtkConfig: {
     // Intensity
     intensity: "aggressive",                   // "minimal" | "moderate" | "aggressive" | "maximal"
@@ -73,6 +78,12 @@ const DEFAULT_SETTINGS = {
   },
   cavemanEnabled: false,
   cavemanLevel: "full",
+  ponytailEnabled: false,
+  ponytailLevel: "full",
+  pxpipeEnabled: false,
+  pxpipeAutoInstall: true,
+  pxpipeMinChars: 25000,
+  pxpipeTimeoutMs: 15000,
   privacyEnabled: true,
   privacyCustomKeywords: [],
   responseCacheEnabled: false,

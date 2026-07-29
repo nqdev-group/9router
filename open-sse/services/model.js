@@ -29,7 +29,6 @@ const CORE_ALIASES = {
   ocg: "opencode-go",
   qd: "qoder",
   qoder: "qoder",
-  kira: "kira",
 };
 
 const ALIAS_TO_PROVIDER_ID = { ...CORE_ALIASES, ...MEDIA_ONLY_ALIASES };
@@ -38,6 +37,10 @@ for (const entry of REGISTRY) {
   if (entry.alias) ALIAS_TO_PROVIDER_ID[entry.alias] = entry.id;
   for (const a of entry.aliases || []) ALIAS_TO_PROVIDER_ID[a] = entry.id;
 }
+
+const BUILTIN_MODEL_ALIASES = {
+  "grok-build": "gcli/grok-build",
+};
 
 /**
  * Resolve provider alias to provider ID
@@ -126,7 +129,9 @@ export async function getModelInfoCore(modelStr, aliasesOrGetter) {
       : aliasesOrGetter;
 
   // Resolve alias
-  const resolved = resolveModelAliasFromMap(parsed.model, aliases);
+  const resolved =
+    resolveModelAliasFromMap(parsed.model, aliases) ||
+    resolveModelAliasFromMap(parsed.model, BUILTIN_MODEL_ALIASES);
   if (resolved) {
     return resolved;
   }
@@ -154,5 +159,22 @@ const MODEL_PREFIX_PROVIDERS = [
 function inferProviderFromModelName(modelName) {
   if (!modelName) return "openai";
   const m = modelName.toLowerCase();
-  return MODEL_PREFIX_PROVIDERS.find(([re]) => re.test(m))?.[1] || "openai";
+
+  // Check core prefixes first
+  const coreProvider = MODEL_PREFIX_PROVIDERS.find(([re]) => re.test(m))?.[1];
+  if (coreProvider) return coreProvider;
+
+  // Check extra prefixes (from packages/services/model.js)
+  // Graceful fail if package not installed
+  let extraProvider = null;
+  try {
+    // Use require for synchronous import in Node.js server code
+    const pkgModel = require("@9router/services/model.js");
+    extraProvider = pkgModel.getProviderFromExtraPrefixes?.(modelName);
+  } catch {
+    // Package not available or function missing, fall back to openai
+  }
+  if (extraProvider) return extraProvider;
+
+  return "openai";
 }

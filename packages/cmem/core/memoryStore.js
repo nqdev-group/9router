@@ -1,3 +1,6 @@
+const CLEANUP_INTERVAL_MS = 86400000; // 24h
+let _cleanupTimer = null;
+
 export class MemoryStore {
   constructor(db, { retentionDays = 90 } = {}) {
     this.db = db;
@@ -61,7 +64,18 @@ export class MemoryStore {
       )
     `);
 
+    // Run cleanup on init + start periodic cleanup (process-wide singleton timer)
     await this.cleanup();
+    if (!_cleanupTimer) {
+      _cleanupTimer = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
+    }
+  }
+
+  static stopCleanupTimer() {
+    if (_cleanupTimer) {
+      clearInterval(_cleanupTimer);
+      _cleanupTimer = null;
+    }
   }
 
   async cleanup() {

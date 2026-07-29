@@ -6,6 +6,7 @@ import elevenlabs, { fetchElevenLabsVoices } from "./elevenlabs.js";
 import openai from "./openai.js";
 import kira from "./kira.js";
 import openrouter from "./openrouter.js";
+import revidapi from "./revidapi.js";
 import gemini, { fetchGeminiVoices } from "./gemini.js";
 import { FORMAT_HANDLERS } from "./genericFormats.js";
 import { parseModelVoice } from "./_base.js";
@@ -20,6 +21,7 @@ const SPECIAL_ADAPTERS = {
   openrouter,
   gemini,
   kira,
+  revidapi,
 };
 
 export function getTtsAdapter(provider) {

@@ -1,16 +1,19 @@
 /**
  * Get page information based on the pathname.
  * @param {*} pathname - The current pathname of the page.
- * @returns { title: string, description: string, icon: string, breadcrumbs: array } The page information including title, description, icon, and breadcrumbs.
+ * @returns { title: string, description: string, icon: string, breadcrumbs: [{ label: string, href: string }] } The page information including title, description, icon, and breadcrumbs.
  */
 export const getPageInfoUtil = (pathname) => {
-  // /token-saver
-  if (pathname.includes("/token-saver"))
+  // /token-saver-report
+  if (pathname.includes("/token-saver-report"))
     return {
       title: "Token Saver Report",
       description: "Analyze token usage and optimize costs with actionable insights and recommendations to reduce token consumption and save money.",
-      icon: "save",
-      breadcrumbs: [],
+      icon: "savings",
+      breadcrumbs: [{
+        label: "Token Saver Report",
+        href: "/dashboard/token-saver-report",
+      }],
     };
   // /rtk-engine
   if (pathname.includes("/rtk-engine"))
@@ -44,5 +47,5 @@ export const getPageInfoUtil = (pathname) => {
       icon: "memory",
       breadcrumbs: [],
     };
-  return { title: "", description: "", breadcrumbs: [] };
+  return { title: "", description: "", icon: "", breadcrumbs: [] };
 };

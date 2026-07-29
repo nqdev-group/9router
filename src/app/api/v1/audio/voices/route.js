@@ -7,6 +7,7 @@ const PROVIDER_API = {
   inworld: (origin) => `${origin}/api/media-providers/tts/inworld/voices`,
   "edge-tts": (origin) => `${origin}/api/media-providers/tts/voices?provider=edge-tts`,
   "local-device": (origin) => `${origin}/api/media-providers/tts/voices?provider=local-device`,
+  revidapi: (origin) => `${origin}/api/media-providers/tts/revidapi/voices`,
 };
 
 export async function OPTIONS() {

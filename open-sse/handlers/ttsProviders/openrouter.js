@@ -63,7 +63,7 @@ export default {
           const json = JSON.parse(line.slice(6));
           const audioData = json.choices?.[0]?.delta?.audio?.data;
           if (audioData) chunks.push(audioData);
-        } catch {}
+        } catch { }
       }
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import PropTypes from "prop-types";
 import ProviderIcon from "@/shared/components/ProviderIcon";
@@ -12,6 +12,7 @@ import DonateModal from "@/shared/components/DonateModal";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS } from "@/shared/constants/config";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS } from "@/shared/constants/providers";
+import { getProviderIconSrc } from "@/shared/utils/providerIcon";
 import { translate } from "@/i18n/runtime";
 import { getPageInfoUtil } from "@9router/utils/header.util";
 
@@ -31,7 +32,7 @@ const getPageInfo = (pathname) => {
       breadcrumbs: [
         { label: "Media Providers", href: `/dashboard/media-providers/${kindId}` },
         { label: kindConfig?.label || kindId, href: `/dashboard/media-providers/${kindId}` },
-        { label: provider?.name || providerId, image: `/providers/${providerId}.png` },
+        { label: provider?.name || providerId, image: getProviderIconSrc(providerId) },
       ],
     };
   }
@@ -63,7 +64,7 @@ const getPageInfo = (pathname) => {
           { label: "Providers", href: "/dashboard/providers" },
           {
             label: providerInfo.name,
-            image: `/providers/${providerInfo.id}.png`,
+            image: getProviderIconSrc(providerInfo.id),
           },
         ],
       };
@@ -111,6 +112,13 @@ const getPageInfo = (pathname) => {
       title: "MITM Proxy",
       description: "Intercept CLI tool traffic and route through 9Router",
       icon: "security",
+      breadcrumbs: [],
+    };
+  if (pathname.includes("/token-saver"))
+    return {
+      title: "Token Saver",
+      description: "Compress prompts and outputs to save tokens",
+      icon: "savings",
       breadcrumbs: [],
     };
   if (pathname.includes("/cli-tools"))
@@ -176,7 +184,6 @@ const getPageInfo = (pathname) => {
 
 export default function Header({ onMenuClick, showMenuButton = true }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [loginMethod, setLoginMethod] = useState("");
   const [donateOpen, setDonateOpen] = useState(false);
@@ -215,8 +222,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
-        router.push("/login");
-        router.refresh();
+        window.location.assign("/login");
       }
     } catch (err) {
       console.error("Failed to logout:", err);
