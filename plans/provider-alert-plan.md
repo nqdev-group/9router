@@ -3,7 +3,7 @@
 **Mục tiêu:** Cảnh báo Discord khi tất cả accounts vĩnh viễn (non-transient) trong 1 provider đều down. Recovery notification khi provider hồi phục.
 
 **Ngày tạo:** 2026-06-15
-**Trạng thái:** PLANNED
+**Trạng thái:** ✅ Phase 1 DONE (verified 2026-07-29) — Phase 2 (API routes, section 4.3) vẫn optional/chưa làm
 
 ---
 
@@ -216,10 +216,12 @@ if (settings.providerAlertEnabled && settings.providerAlertWebhookUrl) {
 
 **Lưu ý:** Fire-and-forget pattern — không await, không block request. Import dynamic để tránh circular dependency.
 
-### 4.3. *(Optional phase 2)* `src/app/api/settings/alert/route.js` — API routes
+### 4.3. *(Optional phase 2 — chưa làm)* `src/app/api/settings/alert/route.js` — API routes
 
 - `GET /api/settings/alert` — return current alert settings
 - `PUT /api/settings/alert` — update settings (webhook URL, enabled, cooldown, ignored providers)
+
+**Trạng thái:** File này chưa tồn tại. Nếu dashboard cần UI để cấu hình webhook/cooldown mà không đi qua `/api/settings` chung, cần tạo route này.
 
 ---
 
@@ -250,16 +252,17 @@ if (settings.providerAlertEnabled && settings.providerAlertWebhookUrl) {
 
 ## 7. Files cần tạo/sửa
 
-| File | Action | Mô tả |
+| File | Action | Trạng thái |
 |------|--------|-------|
-| `packages/provider-alert/index.js` | **Tạo** | Re-export |
-| `packages/provider-alert/engine.js` | **Tạo** | Logic check all-down, debounce, recovery |
-| `packages/provider-alert/discord.js` | **Tạo** | Webhook sender |
-| `src/lib/db/repos/settingsRepo.js` | **Sửa** | Thêm 4 settings keys |
-| `src/sse/services/auth.js` | **Sửa** | Hook trong `markAccountUnavailable` + `clearAccountError` |
-| `src/app/api/settings/alert/route.js` | **Tạo** *(optional phase 2)* | API routes |
+| `packages/provider-alert/index.js` | Tạo | ✅ Done |
+| `packages/provider-alert/engine.js` | Tạo | ✅ Done |
+| `packages/provider-alert/discord.js` | Tạo | ✅ Done |
+| `src/lib/db/repos/settingsRepo.js` | Sửa (4 settings keys) | ✅ Done |
+| `src/sse/services/auth.js` | Sửa (hook `markAccountUnavailable` + `clearAccountError`) | ✅ Done |
+| `src/app/(dashboard)/dashboard/settings/provider-alert/page.js` | Tạo (dashboard UI — không có trong plan gốc) | ✅ Done, ngoài scope ban đầu |
+| `src/app/api/settings/alert/route.js` | Tạo *(optional phase 2)* | ❌ Chưa làm |
 
-**Tổng cộng:** 3 files mới (package) + 2 files sửa (app code) + 0 DB migration
+**Tổng cộng:** Phase 1 (core package + hook) hoàn thành đầy đủ. Dashboard UI cũng đã được thêm dù không nằm trong plan gốc. Chỉ còn API route riêng (optional) chưa làm — có thể dashboard đang đọc/ghi qua `/api/settings` chung thay vì route riêng này.
 
 ---
 

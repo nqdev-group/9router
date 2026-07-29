@@ -24,6 +24,39 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { maybeAutoSyncModelsDev } from "open-sse/services/modelsDevService.js";
+import { getPricingForModel } from "open-sse/providers/pricing.js";
+import { getTodaySpendUsd } from "@/lib/db/repos/usageRepo.js";
+
+// Cost/tier-aware reorder config (Phase 5 of input-tokens-optimization.md). Fail-open:
+// any error while checking today's spend just disables the budget-exceeded branch,
+// it never blocks routing.
+async function buildTierRoutingConfig(settings) {
+  if (!settings.tierRoutingEnabled) return null;
+
+  const dailyCap = settings.tierRoutingDailyBudgetCapUsd;
+  let overBudget = false;
+  if (dailyCap && dailyCap > 0) {
+    try {
+      const spentToday = await getTodaySpendUsd();
+      overBudget = spentToday >= dailyCap;
+    } catch (e) {
+      log.warn("COMBO", `tier-routing budget check failed, ignoring cap`, { error: e.message || String(e) });
+    }
+  }
+
+  return {
+    enabled: true,
+    mode: settings.tierRoutingMode || "cheapest-first",
+    freeTierThreshold: settings.tierRoutingFreeTierThresholdUsd,
+    overBudget,
+    getPricing: (modelStr) => {
+      const slash = modelStr.indexOf("/");
+      const provider = slash > 0 ? modelStr.slice(0, slash) : "";
+      const model = slash > 0 ? modelStr.slice(slash + 1) : modelStr;
+      return getPricingForModel(provider, model);
+    },
+  };
+}
 
 let modelsDevInitiated = false;
 
@@ -137,7 +170,8 @@ export async function handleChat(request, clientRawRequest = null) {
       log,
       comboName: modelStr,
       comboStrategy,
-      comboStickyLimit
+      comboStickyLimit,
+      tierRouting: await buildTierRoutingConfig(settings),
     });
   }
 
@@ -191,7 +225,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         log,
         comboName: modelStr,
         comboStrategy,
-        comboStickyLimit
+        comboStickyLimit,
+        tierRouting: await buildTierRoutingConfig(chatSettings),
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });
