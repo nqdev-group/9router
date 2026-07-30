@@ -2,6 +2,8 @@
 export default {
   id: "vilao",
   alias: "vilao",
+  category: "apikey",
+  authType: "apikey",
   display: {
     name: "Vilao AI",
     icon: "storefront",
@@ -13,11 +15,14 @@ export default {
       apiKeyUrl: "https://vilao.ai/console/llm/keys",
     },
   },
-  category: "apikey",
-  authType: "apikey",
+  // ── transport (HTTP runtime) → PROVIDERS[id]
   transport: {
     baseUrl: "https://api.vilao.ai/v1/chat/completions",
     validateUrl: "https://api.vilao.ai/v1/models",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "*/*",
+    },
   },
   models: [
     { id: "gpt-4o", name: "GPT-4o" },
