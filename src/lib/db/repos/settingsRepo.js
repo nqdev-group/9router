@@ -108,6 +108,10 @@ const DEFAULT_SETTINGS = {
   providerAlertCooldown: 15,
   providerAlertIgnoreProviders: "[]",
   providerAlertState: {}, // { providerId: lastAlertAt }
+  tierRoutingEnabled: false,
+  tierRoutingMode: "cheapest-first", // "cheapest-first" | "task-aware"
+  tierRoutingDailyBudgetCapUsd: null, // null = no cap
+  tierRoutingFreeTierThresholdUsd: 0.01, // blended $/1M tokens considered "free tier"
 };
 
 async function readRaw() {

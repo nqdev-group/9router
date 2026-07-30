@@ -177,7 +177,7 @@ Body: `{ "privacyEnabled": true, "privacyCustomKeywords": ["clientid"] }`
 ## 11. Future work
 
 ### Phase 5: Security Hardening
-- [ ] Fix leak in `open-sse/utils/requestLogger.js` (uncomment `maskSensitiveHeaders`)
+- [x] Fix leak in `open-sse/utils/requestLogger.js` — verified 2026-07-29: `maskSensitiveHeaders()` is defined (line 73) and actively called at 3 call sites (lines 134, 143, 161). No longer commented out.
 - [ ] Rate limiting on API routes
 - [ ] Audit log for privacy config changes
 

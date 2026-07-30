@@ -6,6 +6,7 @@ import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
 import { unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
+import { classifyTask, reorderByCost, reorderFreeTierFirst } from "@9router/tier-routing";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -224,11 +225,40 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {string} [options.comboName] - Name of the combo (for round-robin tracking)
  * @param {string} [options.comboStrategy] - Strategy: "fallback" or "round-robin"
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
+ * @param {Object} [options.tierRouting] - Cost/tier-aware reorder (Phase 5 of input-tokens-optimization.md)
+ * @param {boolean} [options.tierRouting.enabled]
+ * @param {"cheapest-first"|"task-aware"} [options.tierRouting.mode]
+ * @param {(modelStr: string) => {input:number,output:number}|null} [options.tierRouting.getPricing]
+ * @param {boolean} [options.tierRouting.overBudget] - Daily budget cap already exceeded — force free-tier-first
+ * @param {number} [options.tierRouting.freeTierThreshold] - Blended $/1M tokens considered "free tier"
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
+
+  // Cost/tier-aware reorder — runs BEFORE the capability auto-switch below so hard
+  // capability requirements (vision/pdf/audio) always win; cost only breaks ties
+  // within whatever capability tier the models land in.
+  if (tierRouting?.enabled && typeof tierRouting.getPricing === "function") {
+    const task = classifyTask(body);
+    let costOrdered;
+    if (tierRouting.overBudget) {
+      costOrdered = reorderFreeTierFirst(rotatedModels, tierRouting.getPricing, tierRouting.freeTierThreshold);
+    } else if (tierRouting.mode === "task-aware") {
+      // Agentic/code requests keep their original (quality-first) order; only
+      // non-critical requests get pushed toward free/cheap models.
+      costOrdered = task.critical
+        ? rotatedModels
+        : reorderFreeTierFirst(rotatedModels, tierRouting.getPricing, tierRouting.freeTierThreshold);
+    } else {
+      costOrdered = reorderByCost(rotatedModels, tierRouting.getPricing);
+    }
+    if (costOrdered[0] !== rotatedModels[0]) {
+      log.info("COMBO", `tier-routing (${tierRouting.mode}${tierRouting.overBudget ? ", budget-exceeded" : ""}, task=${task.critical ? "critical" : "non-critical"}) → ${costOrdered[0]}`);
+    }
+    rotatedModels = costOrdered;
+  }
 
   // Auto-switch: float models that satisfy the request's required capabilities to the front.
   if (autoSwitch) {

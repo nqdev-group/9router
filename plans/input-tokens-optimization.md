@@ -5,6 +5,50 @@
 
 ---
 
+## 0. Trạng thái triển khai (cập nhật 2026-07-29)
+
+Doc gốc không có tracking — đây là lần đầu đối chiếu với code thật (2026-07-29), sau đó Phase 5 được implement trong cùng ngày. Đã làm **nhiều hơn** những gì doc này track ban đầu (một phần do các plan khác — CMEM, token-saver-report — mở rộng scope). Phase 4 bị reject, Phase 5 đã implement.
+
+| Mục | Trạng thái | Bằng chứng |
+|---|---|---|
+| **1.1** RTK mở rộng compress sang system/user messages | ✅ Done | `open-sse/rtk/index.js:75` (`role === "system"` branch), `:90` (`role === "user"` branch) |
+| **1.2** `minCompressSize` 500→200, `DETECT_WINDOW` 1KB→4KB | ✅ Done | `settingsRepo.js:53` (`minCompressSize: 200`), `open-sse/rtk/constants.js:4` (`DETECT_WINDOW = 4096`) |
+| **1.3** Intelligent batching (`batchCompress.js`) | ✅ Done | `open-sse/rtk/batchCompress.js` tồn tại |
+| **1.4** Caveman inject trước RTK compress | ✅ Done | `chatCore.js`: `injectCaveman()` (dòng 209) chạy trước `compressMessages()` (dòng 214) |
+| **2.1** LRU response cache | ✅ Done | `open-sse/services/responseCache.js` tồn tại |
+| **2.2** Semantic cache (embedding-based) | ❌ Chưa làm | Không tìm thấy file `semanticCache.js` |
+| **2.3** Prompt caching header optimization (Anthropic/OpenAI) | ✅ Done | `cached_tokens` tracked ở `requestDetail.js:42,52,83` + `pricing.js:292`; `rtk/systemInject.js:64` đặt injection tránh phá cached prefix (`cache_control`-aware) |
+| **3.1** Content cleaning filters | ✅ Done | `open-sse/rtk/preprocessors/contentCleaner.js` tồn tại |
+| **3.2** Smart context pruning | ✅ Done | `open-sse/rtk/preprocessors/contextPruner.js` tồn tại |
+| **3.3** Auto-summarize long tool results | ❌ Chưa làm | Không tìm thấy `summarizer.js` trong `open-sse/rtk/` |
+| **4.x** Chunking strategy (toàn bộ Phase 4) | 🚫 **REJECTED** (2026-07-29) | Quyết định không làm — xem ghi chú ở mục Phase 4 bên dưới |
+| **5.1** Token-cost priority sorting | ✅ Done (2026-07-29) | `packages/tier-routing/costSort.js` (`reorderByCost`), wired vào `open-sse/services/combo.js` `handleComboChat()` |
+| **5.2** Free tier auto-routing | ✅ Done (2026-07-29) | `packages/tier-routing/costSort.js` (`reorderFreeTierFirst`) + `taskClassifier.js` (`classifyTask` → `critical`), wired vào `combo.js` khi `mode: "task-aware"` hoặc khi vượt daily budget cap |
+| **5.3** Model capability-aware routing (task-type) | ⚠️ Done một phần | `taskClassifier.js` chỉ phân loại `critical` (agentic/code) vs non-critical + `complexity` (low/medium/high) — **không** có phân loại chi tiết theo task type (code-gen vs code-review vs text-analysis) như plan gốc mô tả. Được coi là đủ cho mục tiêu "không tốn tiền cho request không cần model mạnh" |
+| **6.1/6.3** Token saver report mở rộng + cost avoidance | ✅ Done (một phần, ngoài scope doc này) | `packages/components/token-saver-report/ResponseCacheStats.js` — xem [token-saver-report.md](token-saver-report.md) |
+| **6.2** Real-time WebSocket dashboard | 🚫 **REJECTED** (2026-07-29) | Quyết định không làm — xem ghi chú ở mục Phase 6.2 bên dưới |
+
+**Kết luận:** Toàn bộ Phase 1-3 (RTK mở rộng, batching, response cache, prompt-caching tracking, content cleaning, context pruning) đã hoàn thành — chỉ còn 2.2 (semantic cache) và 3.3 (auto-summarize) trong 3 phase đầu là chưa làm. **Phase 4 (chunking) và Phase 6.2 (realtime dashboard) đã bị reject — không triển khai. Phase 5 (cost-optimized/tier routing) đã implement (2026-07-29)** — xem chi tiết ở mục "5. Kế Hoạch Cải Thiện → Phase 5" bên dưới, đã được cập nhật với trạng thái thật. Phase 6 (monitoring) mới làm được phần report mở rộng (6.1/6.3 một phần), 6.2 bị reject.
+
+### Phase 5 — chi tiết triển khai (2026-07-29)
+
+**Package mới:** `packages/tier-routing/` (`taskClassifier.js`, `costSort.js`, `budgetGuard.js`, `config/defaults.js`, `index.js`) — pure functions, không phụ thuộc `open-sse/`/`src/` (đúng theo [ràng buộc packages/](../AGENTS.md) trong AGENTS.md: pricing lookup được inject từ caller thay vì import trực tiếp `open-sse/providers/pricing.js`).
+
+**Wiring:**
+- `open-sse/services/combo.js` — `handleComboChat()` nhận thêm param `tierRouting`, reorder models theo cost **trước** bước capability auto-switch (để hard capability như vision/pdf luôn thắng, cost chỉ break tie trong cùng tier). Fusion strategy không áp dụng tier-routing (fan-out tới toàn bộ panel theo thiết kế).
+- `src/sse/handlers/chat.js` — đọc settings, tính `overBudget` từ `getTodaySpendUsd()` (mới, `usageRepo.js`, đọc O(1) từ `usageDaily` table), build `tierRouting` config, truyền vào cả 2 call site của `handleComboChat`. `fetch.js`/`search.js`/`imageGeneration.js`/`tts.js` **chưa wire** — chỉ path chat chính được nối trong đợt này.
+- Settings mới trong `settingsRepo.js`: `tierRoutingEnabled` (default `false`, opt-in), `tierRoutingMode` (`"cheapest-first"` | `"task-aware"`, default `"cheapest-first"`), `tierRoutingDailyBudgetCapUsd` (default `null` = no cap), `tierRoutingFreeTierThresholdUsd` (default `0.01`).
+- Validation: `packages/validation/tierRoutingSchemas.js`, export qua `packages/validation/index.js`.
+- API: `GET`/`PATCH /api/settings/tier-routing` — trả về config hiện tại + `spentTodayUsd`.
+- Test: `tests/unit/tier-routing.test.js` — 14 test cho 3 hàm pure (`classifyTask`, `reorderByCost`/`reorderFreeTierFirst`, `checkDailyBudget`), tất cả pass. Regression check: `combo-autoswitch`/`combo-fusion`/`combo-routing`/`privacy`/`cmem` test suites chạy lại — không phát sinh lỗi mới (2 fail trong `combo-autoswitch` là pre-existing, không liên quan, đã verify bằng cách so sánh trước/sau thay đổi).
+
+**Chưa làm trong đợt này:**
+- Dashboard UI để bật/tắt qua giao diện (chỉ có API — giống cách Provider Alert Phase 1 ship trước khi có UI)
+- Wiring vào `fetch.js`/`search.js`/`imageGeneration.js`/`tts.js` (chỉ `chat.js` — đường dẫn traffic chính — được nối)
+- Task classifier chi tiết theo loại task (5.3 chỉ phân loại critical/non-critical, không phân biệt code-gen vs code-review vs text-analysis)
+
+---
+
 ## 1. Phân Tích Hiện Trạng
 
 ### 1.1 RTK Engine — Đã Có, Cần Tinh Chỉnh
@@ -156,7 +200,9 @@ class ResponseCache {
 - **Nên là opt-in feature** với daily budget limit
 - **File mới:** `open-sse/rtk/summarizer.js`
 
-### Phase 4: Chunking Strategy (Tuần 7-8)
+### Phase 4: Chunking Strategy (Tuần 7-8) — 🚫 REJECTED (2026-07-29)
+
+**Sẽ không triển khai.** Giữ lại phần mô tả bên dưới làm tài liệu tham khảo, không phải TODO.
 
 #### 4.1 Automatic input chunking
 
@@ -179,27 +225,25 @@ class ResponseCache {
 - **summary:** Tóm tắt từng chunk response (cho large document tasks)
 - **File mới:** `open-sse/handlers/chatCore/chunkMerger.js`
 
-### Phase 5: Cost-Optimized Fallback (Tuần 9-10)
+### Phase 5: Cost-Optimized Fallback (Tuần 9-10) — ✅ implemented 2026-07-29 (xem mục "0. Trạng thái triển khai" đầu file để biết chi tiết + đường dẫn file thật)
 
-#### 5.1 Token-cost priority sorting
+#### 5.1 Token-cost priority sorting — ✅ Done
 
 - Khi tạo combo, tự động sắp xếp model theo cost/token (rẻ → đắt)
-- Cho phép user đặt budget cap per request / per day
-- **File ảnh hưởng:** `open-sse/services/combo.js`, thêm `getCheapestFirst()` strategy
+- Budget cap: **per day** (đã làm, `tierRoutingDailyBudgetCapUsd`) — **per request** (không làm; không có ý nghĩa pre-call vì cost thật chỉ biết sau khi model trả lời)
+- **File thật (khác plan gốc):** `packages/tier-routing/costSort.js` (`reorderByCost`) — package riêng thay vì thêm thẳng vào `combo.js`, theo ràng buộc packages/ trong AGENTS.md. `combo.js` chỉ import và gọi.
 
-#### 5.2 Free tier auto-routing
+#### 5.2 Free tier auto-routing — ✅ Done
 
 - Tự động detect và route non-critical requests sang free tiers
 - Critical requests (code execution, tool calls) → paid tiers
-- **File mới:** `open-sse/services/tierRouter.js`
+- **File thật (khác plan gốc):** `packages/tier-routing/costSort.js` (`reorderFreeTierFirst`) — không phải `open-sse/services/tierRouter.js` như plan gốc ghi
 
-#### 5.3 Model capability-aware routing
+#### 5.3 Model capability-aware routing — ⚠️ Done một phần
 
 - Chọn model phù hợp nhất dựa trên task type
-- Code generation → model mạnh (opus, gpt-5)
-- Code review → model rẻ (haiku, flash)
-- Text analysis → model budget (glm, minimax)
-- **File mới:** `open-sse/services/taskClassifier.js`
+- Thực tế chỉ phân loại critical (agentic/code) vs non-critical, **không** phân biệt code-gen / code-review / text-analysis như mô tả gốc
+- **File thật (khác plan gốc):** `packages/tier-routing/taskClassifier.js` (`classifyTask`) — không phải `open-sse/services/taskClassifier.js`
 
 ### Phase 6: Monitoring & Dashboard (Tuần 11-12)
 
@@ -210,11 +254,12 @@ class ResponseCache {
 - So sánh before/after token usage chart
 - **File ảnh hưởng:** `packages/components/token-saver/*`, `usageRepo.js`
 
-#### 6.2 Real-time token saving dashboard
+#### 6.2 Real-time token saving dashboard — 🚫 REJECTED (2026-07-29)
 
+**Sẽ không triển khai.** Mô tả gốc giữ lại làm tham khảo:
 - WebSocket push real-time savings
 - Per-request breakdown trong dashboard live log
-- **File mới:** `src/app/api/settings/token-saver/realtime/route.js`
+- **File mới (không tạo):** `src/app/api/settings/token-saver/realtime/route.js`
 
 #### 6.3 Cost avoidance calculator
 
@@ -235,9 +280,9 @@ class ResponseCache {
 | Content cleaning | 2-5% | Low (2 days) | Very Low |
 | Smart context pruning | 5-15% | Medium (5-7 days) | Medium |
 | Auto-summarize tool results | 15-25% | High (8-10 days) | High |
-| Input chunking | 10-20% (trên long context) | High (10-14 days) | Medium |
-| Cost-optimized fallback | 20-50% (cost) | Medium (5-7 days) | Low |
-| Free tier auto-routing | 30-70% (cost) | High (7-10 days) | Medium |
+| ~~Input chunking~~ 🚫 REJECTED | 10-20% (trên long context) | High (10-14 days) | Medium |
+| Cost-optimized fallback ✅ Done 2026-07-29 | 20-50% (cost) | Medium (5-7 days) | Low |
+| Free tier auto-routing ✅ Done 2026-07-29 | 30-70% (cost) | High (7-10 days) | Medium |
 
 ## 4. Khuyến Nghị Ngay Lập Tức (Quick Wins)
 
@@ -314,11 +359,11 @@ class ResponseCache {
 
 ## 6. Kết Luận
 
-9Router đã có nền tảng RTK rất mạnh với 21 filters, auto-detect, caveman mode. Các cải thiện chính cần tập trung:
+9Router đã có nền tảng RTK rất mạnh với 21 filters, auto-detect, caveman mode. Các cải thiện chính cần tập trung (nguyên bản, tại thời điểm viết plan):
 
 1. **Ngay lập tức:** Tinh chỉnh RTK threshold + config defaults (0 code, chỉ config)
 2. **Ngắn hạn (Phase 1+2):** Mở rộng RTK coverage + LRU response cache
-3. **Trung hạn (Phase 3+4):** Input preprocessing pipeline + chunking
-4. **Dài hạn (Phase 5+6):** Cost-optimized routing + monitoring dashboard
+3. ~~**Trung hạn (Phase 3+4):** Input preprocessing pipeline + chunking~~ — Phase 3 (preprocessing) đã làm, **Phase 4 (chunking) đã bị reject 2026-07-29**
+4. **Dài hạn (Phase 5+6):** Cost-optimized routing (**✅ đã làm 2026-07-29**, xem `packages/tier-routing/`) + monitoring dashboard (đã làm report mở rộng; **realtime WebSocket 6.2 đã bị reject 2026-07-29**)
 
-Tổng effort ước lượng: **8-12 weeks** cho full implementation, **4-6 tuần** cho core features (Phase 1+2+quick wins).
+Tổng effort ước lượng: **8-12 weeks** cho full implementation, **4-6 tuần** cho core features (Phase 1+2+quick wins). *(Ước lượng gốc, không còn áp dụng đầy đủ do Phase 4/6.2 bị reject — xem mục "0. Trạng thái triển khai" ở đầu file để biết trạng thái thật.)*
