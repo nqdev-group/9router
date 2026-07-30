@@ -35,10 +35,11 @@ export default {
         "https://kiraai.vn/developer/?usage=true"
       ]
     },
-    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
+    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "chat" },
   },
   models: [
     { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
+    { id: "kimi-k3-free", name: "Kimi K3 Free (Miễn phí)" },
     { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
     { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
     { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
