@@ -17,6 +17,7 @@ export default {
     website: "https://codelypixverse.com/dashboard/overview",
     notice: {
       apiKeyUrl: "https://codelypixverse.com/keys",
+      signupUrl: "https://codelypixverse.com/sign-up?aff=cDz2",
     },
   },
   // ── transport (HTTP runtime) → PROVIDERS[id] ─────────────────────────────
