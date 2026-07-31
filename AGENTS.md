@@ -6,9 +6,10 @@ Canonical knowledge for this repo. Read before doing significant work. See also 
 
 **9Router** (`9router-app`) — a local AI routing gateway + Next.js dashboard. Exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh, quota/usage tracking, and optional cloud sync.
 
-Two published artifacts in this repo:
+Three published artifacts in this repo:
 - **Dashboard + gateway** (root `package.json`, `9router-app`) — the Next.js server doing the actual routing.
 - **CLI launcher** (`cli/`, published to npm as `9router`) — separate package that installs/starts the server and manages tray icon. Own `package.json`, version, and build.
+- **Agent skills** (`skills/`) — drop-in `SKILL.md` files (9router entry skill + per-capability: chat, image, video, tts, stt, embeddings, web-fetch, web-search, kiraai-*) distributed via raw GitHub links (see `skills/README.md`) for external AI agents (Claude, Cursor, ChatGPT) to consume 9Router as a tool. Not Claude Code skills — a product feature.
 
 ## Fork & upstream sync
 
@@ -131,6 +132,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |
 | `src/shared/` | Shared React components, hooks, constants, services. |
 | `src/store/` | Zustand stores (providerStore, settingsStore, themeStore, userStore, notificationStore, headerSearchStore). |
+| `skills/` | Published agent-skill definitions (SKILL.md per capability) — product artifact, distributed externally, not project tooling. |
 
 ## Provider system
 
