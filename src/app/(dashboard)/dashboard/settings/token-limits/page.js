@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import Card from "@/shared/components/Card";
 import { getProviderByAlias } from "@/shared/constants/providers";
 
@@ -191,8 +192,21 @@ export default function TokenLimitsPage() {
             </Card>
           )}
 
-          {providers.map((provider) => (
-            <Card key={provider} title={getProviderByAlias(provider)?.name || provider.toUpperCase()} padding="none">
+          {providers.map((provider) => {
+            const providerInfo = getProviderByAlias(provider);
+            const providerName = providerInfo?.name || provider.toUpperCase();
+            const providerTitle = providerInfo?.id ? (
+              <Link
+                href={`/dashboard/providers/${providerInfo.id}`}
+                className="hover:text-primary hover:underline transition-colors"
+              >
+                {providerName}
+              </Link>
+            ) : (
+              providerName
+            );
+            return (
+            <Card key={provider} title={providerTitle} padding="none">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-bg text-text-muted uppercase text-xs">
@@ -240,7 +254,8 @@ export default function TokenLimitsPage() {
                 </table>
               </div>
             </Card>
-          ))}
+            );
+          })}
 
           <div className="flex items-center gap-3 pt-2">
             <button
