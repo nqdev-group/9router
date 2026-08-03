@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Card from "@/shared/components/Card";
+import { getProviderByAlias } from "@/shared/constants/providers";
 
 export default function TokenLimitsPage() {
   const [enabled, setEnabled] = useState(false);
@@ -191,7 +192,7 @@ export default function TokenLimitsPage() {
           )}
 
           {providers.map((provider) => (
-            <Card key={provider} title={provider.toUpperCase()} padding="none">
+            <Card key={provider} title={getProviderByAlias(provider)?.name || provider.toUpperCase()} padding="none">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-bg text-text-muted uppercase text-xs">

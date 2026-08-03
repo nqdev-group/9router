@@ -59,6 +59,26 @@ Lúc chạy full suite, vitest tự ghi thêm ~536 dòng snapshot mới (provide
 
 **Việc cố ý chưa làm (nằm ngoài scope đã chốt ở mục 0):** wiring vào `fetch.js`/`search.js`/`imageGeneration.js`/`tts.js` (Q4); trừ hao `maxOutput` khi tính default limit (Q1).
 
+## 0.2 Follow-up fix sau khi hoàn thành (2026-08-03): tên provider hiện alias viết tắt thay vì tên đầy đủ
+
+**Bối cảnh:** sau khi feature đã completed, user nhận xét trang [`token-limits/page.js`](<../src/app/(dashboard)/dashboard/settings/token-limits/page.js>) hiện tên provider dạng alias viết tắt in hoa (vd `"KIRA"`, `"XAI"`) thay vì tên đầy đủ đã khai báo trong registry (vd `"Kira AI"`).
+
+**Nguyên nhân:** biến `provider` trong `byProvider` được lấy từ prefix của `routedModel` (`"<providerAlias>/<modelId>"`) — đây là alias kỹ thuật (id ngắn dùng để route request, khớp `open-sse/providers/registry/*.js` field `alias`), không phải tên hiển thị cho người dùng (`display.name` trong cùng file registry, vd [`kira.js:13`](../packages/providers/registry/kira.js#L13) `name: "Kira AI"`). Card title đang dùng thẳng `provider.toUpperCase()` → mất tên đầy đủ.
+
+**Cách sửa:** không viết logic tra cứu mới — dùng lại helper có sẵn `getProviderByAlias(alias)` (export ở `src/shared/constants/providers.js:111`, đã được dùng đúng mục đích này ở [`ProviderTopology.js:26`](<../src/app/(dashboard)/dashboard/usage/components/ProviderTopology.js#L26>) để tra tên provider từ alias trong biểu đồ topology). Helper duyệt `AI_PROVIDERS` khớp theo `alias === alias || id === alias`, trả về object đã flatten `display` (nên có sẵn `.name`).
+
+Cụ thể 2 chỗ sửa trong `page.js`:
+1. Thêm `import { getProviderByAlias } from "@/shared/constants/providers";` cạnh import `Card`.
+2. Đổi `<Card key={provider} title={provider.toUpperCase()} padding="none">` → `<Card key={provider} title={getProviderByAlias(provider)?.name || provider.toUpperCase()} padding="none">` — giữ fallback về uppercase alias cho trường hợp hiếm registry thiếu entry (an toàn, không throw).
+
+**Files thay đổi:**
+
+| File | Thay đổi |
+|---|---|
+| [`src/app/(dashboard)/dashboard/settings/token-limits/page.js`](<../src/app/(dashboard)/dashboard/settings/token-limits/page.js>) | Import `getProviderByAlias`; Card title dùng tên đầy đủ provider thay vì alias uppercase |
+
+**Trạng thái:** đã sửa xong, chưa commit. Không đổi API/package/test nào khác — thuần UI display fix, không cần test mới (không có business logic).
+
 ---
 
 ## 1. Phân tích / Bối cảnh
