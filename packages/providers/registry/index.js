@@ -7,6 +7,7 @@ import pc01 from "./kira.js";
 import pc04 from "./revidapi.js";
 import pc05 from "./vilao.js";
 import pc06 from "./codely.js";
+import pc07 from "./zenmux.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -16,4 +17,5 @@ export default [
   pc04,
   pc05,
   pc06,
+  pc07,
 ];
