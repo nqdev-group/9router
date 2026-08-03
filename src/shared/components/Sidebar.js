@@ -62,6 +62,7 @@ const compressionContextItems = [
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
   { href: "/dashboard/settings/response-cache", label: "Response Cache", icon: "cached" },
+  { href: "/dashboard/settings/token-limits", label: "Token Limit Routing", icon: "rule" },
   { href: "/dashboard/token-saver-report", label: "Token Saver Report", icon: "savings" },
 ];
 
