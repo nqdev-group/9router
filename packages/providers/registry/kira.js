@@ -35,18 +35,34 @@ export default {
         "https://kiraai.vn/developer/?usage=true"
       ]
     },
-    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "chat" },
+    // "openai": endpoint returns the standard OpenAI-compatible { data: [...] } shape
+    // (verified live) — matches the type used by every other modelsFetcher in this repo;
+    // "chat" is not a recognized fetcher type (see src/app/api/providers/suggested-models/filters.js).
+    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
   },
   models: [
     { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
-    { id: "kimi-k3-free", name: "Kimi K3 Free (Miễn phí)" },
-    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
-    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
-    { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
+    { id: "deepseek-v4-pro-free", name: "DeepSeek V4 Pro Free (Miễn phí)" },
+    { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free (Miễn phí)" },
+    { id: "deepseek-v4-pro-1b-free", name: "DeepSeek V4 Pro 1B Free (Miễn phí)" },
+    { id: "deepseek-v4-flash-1b-free", name: "DeepSeek V4 Flash 1B Free (Miễn phí)" },
+    { id: "qwen-3.8-27b-free", name: "Qwen3.8 27B Free (Miễn phí)" },
+    { id: "qwen-3.8-max-free", name: "Qwen3.8 Max Free (Miễn phí)" },
+    // id corrected: live API (https://kiraai.vn/api/v1/models) has no "kira-2.0" —
+    // the actual id is "kira-mini-2.0".
+    { id: "kira-mini-2.0", name: "Kira Mini 2.0" },
+    { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
     { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
     { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
+    { id: "kira-3.0-video", name: "Kira 3.0 Video", type: "video", params: [] },
+    { id: "kira-3.0-video-flash", name: "Kira 3.0 Video Flash", type: "video", params: [] },
   ],
+  // Live catalog (https://kiraai.vn/api/v1/models) has ~40 more chat models beyond this
+  // seed (Claude, GPT-5.x, Gemini, Qwen, Kimi, GLM, Grok, MiMo tiers — see
+  // packages/providers/pricing.js's "kira" block for the full priced list). passthroughModels
+  // lets users pick any of them via modelsFetcher-driven suggestions without listing every
+  // id here.
+  passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
   serviceKinds: ["llm", "image", "video", "tts"],
   ttsConfig: {
