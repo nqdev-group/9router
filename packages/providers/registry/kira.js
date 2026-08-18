@@ -52,8 +52,12 @@ export default {
     // the actual id is "kira-mini-2.0".
     { id: "kira-mini-2.0", name: "Kira Mini 2.0" },
     { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "kira-2.0-image", name: "Kira 2.0 Image", type: "image", params: ["n", "size"] },
+    // ids corrected: live API has no "kira-3-pro-image-preview" / "kira-3.1-flash-image-preview" —
+    // these are Gemini-branded models served through Kira's gateway, no "kira-" prefix.
+    { id: "gemini-3-pro-image-preview", name: "Gemini 3 Pro Image", type: "image", params: ["n", "size"] },
+    { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "gemini-2.5-flash-image", name: "Gemini 2.5 Flash Image", type: "image", params: ["n", "size"] },
     { id: "kira-3.0-video", name: "Kira 3.0 Video", type: "video", params: [] },
     { id: "kira-3.0-video-flash", name: "Kira 3.0 Video Flash", type: "video", params: [] },
   ],
@@ -64,14 +68,24 @@ export default {
   // id here.
   passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
+  // No sttConfig: live catalog (https://kiraai.vn/api/v1/models) has no speech-to-text
+  // model/endpoint listed, and guessing common paths (/v1/audio/transcriptions, /v1/stt)
+  // both 404'd — Kira's marketing page mentions STT but the API contract for it isn't
+  // confirmed. Add it once a real endpoint + model id is verified.
   serviceKinds: ["llm", "image", "video", "tts"],
   ttsConfig: {
     baseUrl: "https://kiraai.vn/api/v1/audio/speech",
     authType: "apikey",
     authHeader: "bearer",
     format: "openai",
+    // ids corrected: "kira-2.5-flash" (previously declared here) is actually a CHAT model,
+    // not TTS — it doesn't appear under TTS in the live catalog. These 4 are the real
+    // TTS ids returned by https://kiraai.vn/api/v1/models.
     models: [
-      { id: "kira-2.5-flash", name: "Kira 2.5 Flash (TTS)" },
+      { id: "kira-3.0-flash-tts", name: "Kira 3.0 Flash TTS" },
+      { id: "kira-2.0-flash-tts", name: "Kira 2.0 Flash TTS" },
+      { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS Preview" },
+      { id: "gemini-2.5-flash-tts", name: "Gemini 2.5 Flash TTS" },
     ],
     voices: [
       { id: "Kore", name: "Kore" },
