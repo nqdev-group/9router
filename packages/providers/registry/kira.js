@@ -16,7 +16,14 @@ export default {
     textIcon: "KR",
     website: "https://kiraai.vn",
     notice: {
+      // Real tiers from https://kiraai.vn/bang-gia/: 50k tokens on signup, Cá nhân
+      // 5,000,000 tokens/month, Dev 12,000,000 tokens/month — beyond that, per-model
+      // metered pricing applies (see packages/providers/pricing.js's "kira" block).
+      text: "Đăng ký nhận 50.000 token miễn phí. Gói Cá nhân 5.000.000 token/tháng, gói Dev 12.000.000 token/tháng — vượt hạn mức tính theo giá từng model.",
       apiKeyUrl: "https://kiraai.vn/developer/?apiKey=true",
+      // Kira's registration is a modal on the homepage (no dedicated /sign-up path) —
+      // ?ref= affiliate query param.
+      signupUrl: "https://kiraai.vn/?ref=nguyenquyitpro",
     },
   },
   // ── transport (HTTP runtime) → PROVIDERS[id] ─────────────────────────────
@@ -29,11 +36,13 @@ export default {
       "Accept": "*/*",
     },
     retry: { 429: { attempts: 6 }, 503: { attempts: 3 } },
+    // "usage" isn't wired to a live JSON API (Kira has no entry in open-sse/services/usage.js's
+    // USAGE_HANDLERS) — these are reference links for humans, not fetched programmatically.
     usage: {
       url: "https://kiraai.vn/developer/?usage=true",
-      urls: [
-        "https://kiraai.vn/developer/?usage=true"
-      ]
+      // Per-model rates shown on this page are the source for packages/providers/pricing.js's
+      // "kira" block — kept here so the two stay traceable to the same origin.
+      pricingUrl: "https://kiraai.vn/bang-gia/",
     },
     // "openai": endpoint returns the standard OpenAI-compatible { data: [...] } shape
     // (verified live) — matches the type used by every other modelsFetcher in this repo;
