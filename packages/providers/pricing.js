@@ -14,11 +14,13 @@
 //   - Where a provider resells a well-known upstream model as-is (vilao, zenmux),
 //     the rate mirrors the canonical entry in open-sse/providers/pricing.js.
 //   - Where the provider has a published real per-token rate (SambaNova Cloud, Kira AI's
-//     live pricing API), that rate is used directly (see inline comments per provider).
+//     live pricing API, OpenCode Zen's own pricing page), that rate is used directly
+//     (see inline comments per provider).
 //   - Where the provider genuinely offers free access (llm7's public quota, kira's
-//     "(Free)"/"-free" models, zenmux's "-free" ids), price is $0.
-//   - Where no official per-model rate is published (codely's kiro-auto), the value is
-//     an explicit estimate mirroring the nearest comparable tier — flagged "estimated".
+//     "(Free)"/"-free" models, zenmux's/opencode-zen's "-free" ids), price is $0.
+//   - Where no official per-model rate is published (codely's kiro-auto, opencode-zen's
+//     claude-sonnet-4), the value is an explicit estimate mirroring the nearest comparable
+//     tier — flagged "estimated".
 
 export const PROVIDER_PRICING = {
   // === Kira AI (kiraai.vn) ===
@@ -191,5 +193,87 @@ export const PROVIDER_PRICING = {
     "x-ai/grok-4.5":                  { input: 2.00, output: 6.00,  cached: 0.50  },
     "z-ai/glm-4.6v-flash-free":       { input: 0,    output: 0     },
     "z-ai/glm-4.7-flash-free":        { input: 0,    output: 0     },
+  },
+
+  // === OpenCode Zen (opencode.ai/zen) — pay-as-you-go, zero markup ===
+  // Pulled from https://opencode.ai/docs/zen/#pricing. Rates there use dotted ids
+  // (e.g. "claude-opus-4.8") but the live modelsFetcher (https://opencode.ai/zen/v1/models,
+  // same ids as packages/providers/registry/opencode-zen.js) returns dashed ids
+  // ("claude-opus-4-8") — keys below use the live/runtime (dashed) form.
+  // Several models are tiered by prompt size or peak/off-peak hours (deepseek-v4-*,
+  // claude-sonnet-4-5, gemini-3.1-pro, grok-4.5/4.6, gpt-5.1/5.2/5.4/5.5/5.6 family) —
+  // the value here is the base/lowest tier, matching the zenmux convention above.
+  // "claude-sonnet-4" has no published rate on the pricing page — estimated here as the
+  // same tier as claude-sonnet-4-6/4-5 (nearest same-family sibling).
+  // gpt-5.5-pro / gpt-5.4-pro list a "cached" rate equal to their input rate (no discount)
+  // — kept as published, not a typo.
+  "opencode-zen": {
+    "claude-fable-5":                 { input: 10.00, output: 50.00,  cached: 1.00,  cache_creation: 12.50 },
+    "claude-opus-5":                  { input: 5.00,  output: 25.00,  cached: 0.50,  cache_creation: 6.25  },
+    "claude-opus-4-8":                { input: 5.00,  output: 25.00,  cached: 0.50,  cache_creation: 6.25  },
+    "claude-opus-4-7":                { input: 5.00,  output: 25.00,  cached: 0.50,  cache_creation: 6.25  },
+    "claude-opus-4-6":                { input: 5.00,  output: 25.00,  cached: 0.50,  cache_creation: 6.25  },
+    "claude-opus-4-5":                { input: 5.00,  output: 25.00,  cached: 0.50,  cache_creation: 6.25  },
+    "claude-sonnet-5":                { input: 2.00,  output: 10.00,  cached: 0.20,  cache_creation: 2.50  },
+    "claude-sonnet-4-6":              { input: 3.00,  output: 15.00,  cached: 0.30,  cache_creation: 3.75  },
+    "claude-sonnet-4-5":              { input: 3.00,  output: 15.00,  cached: 0.30,  cache_creation: 3.75  },
+    // estimated — see file header note
+    "claude-sonnet-4":                { input: 3.00,  output: 15.00,  cached: 0.30,  cache_creation: 3.75  },
+    "claude-haiku-4-5":               { input: 1.00,  output: 5.00,   cached: 0.10,  cache_creation: 1.25  },
+    "gemini-3.7-flash":               { input: 1.50,  output: 7.50,   cached: 0.15  },
+    "gemini-3.6-flash":               { input: 1.50,  output: 7.50,   cached: 0.15  },
+    "gemini-3.5-flash":               { input: 1.50,  output: 9.00,   cached: 0.15  },
+    "gemini-3.5-flash-lite":          { input: 0.30,  output: 2.50,   cached: 0.03  },
+    "gemini-3.1-pro":                 { input: 2.00,  output: 12.00,  cached: 0.20  },
+    "gemini-3-flash":                 { input: 0.50,  output: 3.00,   cached: 0.05  },
+    "gpt-5.6-sol":                    { input: 2.00,  output: 10.00,  cached: 0.20  },
+    "gpt-5.6-terra":                  { input: 2.00,  output: 12.00,  cached: 0.20  },
+    "gpt-5.6-luna":                   { input: 0.20,  output: 1.20,   cached: 0.02  },
+    "gpt-5.5":                        { input: 5.00,  output: 30.00,  cached: 0.50  },
+    "gpt-5.5-pro":                    { input: 30.00, output: 180.00, cached: 30.00 },
+    "gpt-5.4":                        { input: 2.50,  output: 15.00,  cached: 0.25  },
+    "gpt-5.4-pro":                    { input: 30.00, output: 180.00, cached: 30.00 },
+    "gpt-5.4-mini":                   { input: 0.75,  output: 4.50,   cached: 0.075 },
+    "gpt-5.4-nano":                   { input: 0.20,  output: 1.25,   cached: 0.02  },
+    "gpt-5.3-codex-spark":            { input: 1.75,  output: 14.00,  cached: 0.175 },
+    "gpt-5.3-codex":                  { input: 1.75,  output: 14.00,  cached: 0.175 },
+    "gpt-5.2":                        { input: 1.75,  output: 14.00,  cached: 0.175 },
+    "gpt-5.2-codex":                  { input: 1.75,  output: 14.00,  cached: 0.175 },
+    "gpt-5.1":                        { input: 1.07,  output: 8.50,   cached: 0.107 },
+    "gpt-5.1-codex-max":              { input: 1.25,  output: 10.00,  cached: 0.125 },
+    "gpt-5.1-codex":                  { input: 1.07,  output: 8.50,   cached: 0.107 },
+    "gpt-5.1-codex-mini":             { input: 0.25,  output: 2.00,   cached: 0.025 },
+    "gpt-5":                          { input: 1.07,  output: 8.50,   cached: 0.107 },
+    "gpt-5-codex":                    { input: 1.07,  output: 8.50,   cached: 0.107 },
+    "gpt-5-nano":                     { input: 0.05,  output: 0.40,   cached: 0.005 },
+    "grok-build-0.1":                 { input: 1.00,  output: 2.00,   cached: 0.20  },
+    "grok-4.6":                       { input: 2.00,  output: 6.00,   cached: 0.50  },
+    "grok-4.5":                       { input: 2.00,  output: 6.00,   cached: 0.30  },
+    "muse-spark-1.2":                 { input: 1.25,  output: 4.25,   cached: 0.15  },
+    // Off-peak base rate; doubles during peak hours per pricing page
+    "deepseek-v4-pro":                { input: 0.66,  output: 1.98,   cached: 0.022 },
+    "deepseek-v4-flash":              { input: 0.22,  output: 0.66,   cached: 0.007 },
+    "glm-5.2":                        { input: 1.40,  output: 4.40,   cached: 0.26  },
+    "glm-5.1":                        { input: 1.40,  output: 4.40,   cached: 0.26  },
+    "glm-5":                          { input: 1.00,  output: 3.20,   cached: 0.20  },
+    "minimax-m3":                     { input: 0.30,  output: 1.20,   cached: 0.06  },
+    "minimax-m2.7":                   { input: 0.30,  output: 1.20,   cached: 0.06  },
+    "minimax-m2.5":                   { input: 0.30,  output: 1.20,   cached: 0.06  },
+    "kimi-k3":                        { input: 3.00,  output: 15.00,  cached: 0.30  },
+    "kimi-k2.7-code":                 { input: 0.95,  output: 4.00,   cached: 0.19  },
+    "kimi-k2.6":                      { input: 0.95,  output: 4.00,   cached: 0.16  },
+    "kimi-k2.5":                      { input: 0.60,  output: 3.00,   cached: 0.10  },
+    "qwen3.6-plus":                   { input: 0.50,  output: 3.00,   cached: 0.05,  cache_creation: 0.625 },
+    "qwen3.5-plus":                   { input: 0.20,  output: 1.20,   cached: 0.02,  cache_creation: 0.25  },
+    // "-free" ids: limited-time free tier, $0 per opencode-zen.js registry notes
+    "big-pickle":                     { input: 0,     output: 0     },
+    "deepseek-v4-flash-free":         { input: 0,     output: 0     },
+    "x-preview-f-free":               { input: 0,     output: 0     },
+    "muse-spark-1.2-contributor-free":{ input: 0,     output: 0     },
+    "mimo-v2.5-free":                 { input: 0,     output: 0     },
+    "hy3-free":                       { input: 0,     output: 0     },
+    "nemotron-3-ultra-free":          { input: 0,     output: 0     },
+    "nemotron-3.5-lightning-free":    { input: 0,     output: 0     },
+    "laguna-s-2.1-free":              { input: 0,     output: 0     },
   },
 };
