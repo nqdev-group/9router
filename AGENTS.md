@@ -60,7 +60,7 @@ Test aliases (from `tests/vitest.config.js`): `open-sse/` → `../open-sse/`, `@
 
 Real provider tests gated by `RUN_REAL=1`. Read credentials from `~/.9router/db/data.sqlite`.
 
-**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. Expected red:
+**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. **Windows gotcha:** this script matches `known-fails.txt` lines by splitting each result's file path on `"/app/"` (the container path prefix `known-fails.txt` was captured under) — on Windows, `vitest run --reporter=json` produces native `D:\...` paths with no `/app/`, so every comparison key becomes `"undefined :: <test name>"` and the script reports every currently-failing test as a fresh regression, even ones already in `known-fails.txt`. Don't trust its verdict on Windows; instead diff the raw failing test names against `known-fails.txt` by eye, or run the script on Linux/CI. Expected red:
 - 26 items in `tests/__baseline__/known-fails.txt` (rtk, oauth-cursor-auto-import, translator-request-normalization, etc.).
 - `unit/embeddings.cloud.test.js` imports `cloud/src/handlers/embeddings.js` — `cloud/` worker dir **not in this repo**, always fails here.
 - `unit/xai-oauth-service.test.js` times out (5s) when xAI endpoint-discovery fetch unreachable/unmocked.

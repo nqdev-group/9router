@@ -65,7 +65,11 @@ describe("mcpServer Streamable HTTP transport", () => {
     await client.connect(transport);
 
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["chat_completion", "list_models"]);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "chat_completion", "check_provider_health", "create_embeddings", "generate_image",
+      "generate_video", "get_usage_stats", "list_models", "speech_to_text",
+      "text_to_speech", "web_fetch", "web_search",
+    ]);
 
     await client.close();
   });

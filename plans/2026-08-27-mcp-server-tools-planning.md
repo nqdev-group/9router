@@ -1,7 +1,7 @@
 ---
 type: feature
 complexity: high
-status: in_progress
+status: completed
 related_issues: []
 related_prs: []
 estimated_hours: ~24
@@ -130,54 +130,67 @@ tests/unit/mcpServer/
 - [x] Phase 2: Verify bằng client thật — vitest end-to-end (`tests/unit/mcpServer/http-transport.test.js`, dùng `@modelcontextprotocol/sdk/client`) + curl thủ công qua `next dev` thật (`initialize` trả đúng `protocolVersion`/`capabilities`/`serverInfo`), cả 2 đều pass
 - [x] Phase 3: `tools/listModels.js` — gọi `buildModelsList` trực tiếp (hàm thuần, không cần dựng Request)
 - [x] Phase 3: `tools/chatCompletion.js` — dựng `Request` giả lập qua `lib/tools/shared/proxyRequest.js`, gọi `handleChat`. **Quyết định streaming:** MVP luôn ép `stream:false` (không hỗ trợ SSE relay qua MCP ở giai đoạn này) — khớp với việc transport dùng `enableJsonResponse:true` (không có SSE ở tầng transport), xem Risk mục 4.
-- [ ] Phase 4: `tools/generateImage.js`, `generateVideo.js`, `textToSpeech.js`, `speechToText.js`, `createEmbeddings.js`
-- [ ] Phase 5: `tools/webSearch.js`, `webFetch.js`
-- [ ] Phase 6: `tools/getUsageStats.js` — wrap `getUsageStats`/`getUsageHistory`/`getChartData`, chốt tham số filter (range ngày, provider)
-- [ ] Phase 6: `tools/checkProviderHealth.js` — load `getProviderConnections()`, group theo provider, gọi `checkAllAccountsDown` per provider, trả summary tổng hợp
-- [ ] Phase 7: Unit test cho JSON-RPC framing (`tests/unit/mcpServer/protocol.test.js`)
-- [ ] Phase 7: Unit test cho từng tool (mock handler `src/sse/handlers/*`, assert tool gọi đúng handler + map input/output đúng)
-- [ ] Phase 8: `skills/9router-mcp/SKILL.md` — hướng dẫn agent MCP-native, cập nhật `skills/README.md` thêm dòng mới
-- [ ] Phase 8: Cập nhật `AGENTS.md` — dòng `mcpServer/` trong bảng `packages/` mô tả rõ đã implement, không còn là stub
+- [x] Phase 4: `tools/generateImage.js` — luôn ép `response_format:"b64_json"`, trả MCP image content block; fallback về text nếu provider chỉ trả URL
+- [x] Phase 4: `tools/generateVideo.js` — **chỉ tạo job** (`POST /v1/videos/generations`), không poll status (không có tool MCP tương ứng `GET /v1/videos/{id}` — xem Risk mục 4, ghi rõ trong description tool + SKILL.md)
+- [x] Phase 4: `tools/textToSpeech.js` — ép `response_format=json` (thay vì binary mặc định) để trả MCP audio content block
+- [x] Phase 4: `tools/speechToText.js` — input là `audio_base64` (không có file attachment thật qua MCP), dựng multipart FormData qua `buildProxyFormRequest` mới thêm vào `shared/proxyRequest.js`
+- [x] Phase 4: `tools/createEmbeddings.js`
+- [x] Phase 5: `tools/webSearch.js`, `webFetch.js`
+- [x] Phase 6: `tools/getUsageStats.js` — 3 view (`summary`/`history`/`chart`) map tới `getUsageStats`/`getUsageHistory`/`getChartData`
+- [x] Phase 6: `tools/checkProviderHealth.js` — group `getProviderConnections()` theo provider, gọi `classifyConnections` (không phải `checkAllAccountsDown` — đúng như mitigation đã ghi ở Risk mục 4). **Phải export thêm `classifyConnections`** từ `packages/provider-alert/engine.js` + `index.js` (trước đó là hàm private, không side-effect nên export an toàn)
+- [x] Phase 7: Unit test cho từng tool (`tests/unit/mcpServer/tools.test.js`, mock handler `src/sse/handlers/*` + `@/lib/usageDb.js` + `@/lib/localDb`, assert tool gọi đúng handler + map input/output đúng) — 10 test, cộng cập nhật assertion `tools/list` trong `http-transport.test.js` lên đủ 11 tool. **Bỏ** dòng "test JSON-RPC framing riêng" trong bản gốc — không còn ý nghĩa từ khi chuyển sang dùng SDK (đã test gián tiếp qua handshake thật)
+- [x] Phase 8: `skills/9router-mcp/SKILL.md` — hướng dẫn agent MCP-native, liệt kê đủ 11 tool + limitation (non-streaming, video không poll). Cập nhật `skills/README.md` + `skills/9router/SKILL.md` (entry skill) thêm dòng trỏ tới skill mới
+- [x] Phase 8: Cập nhật `AGENTS.md` + `packages/AGENTS.md` — dòng `mcpServer/` mô tả rõ đã implement, không còn là stub
 
-### 3.1 Trạng thái hiện tại (cập nhật 2026-08-27)
+### 3.1 Trạng thái hiện tại (cập nhật 2026-08-27 — Phase 0-8 xong hết)
 
-Phase 0-3 đã xong (2 tool đầu tiên hoạt động thật, không phải mock). Chưa commit — đang chờ review.
+Toàn bộ 11 tool hoạt động thật (không mock) qua `/v1/mcp`. Chưa commit — đang chờ review.
 
 | File | Thay đổi |
 |---|---|
-| [package.json](../package.json) | Thêm dependency `@modelcontextprotocol/sdk@^1.30.0`, `zod@^4.4.3` |
+| [package.json](../package.json) | Thêm dependency `@modelcontextprotocol/sdk@^1.30.0`, `zod@^4.4.3` (qua `yarn add` — xem lưu ý lockfile bên dưới) |
 | [packages/mcpServer/package.json](../packages/mcpServer/package.json) | `name` → `@9router/mcpServer`, thêm `private:true`, thêm export `./http` |
 | [packages/mcpServer/lib/server.js](../packages/mcpServer/lib/server.js) | Viết lại hoàn toàn — `createMcpServer()` dùng SDK thật thay vì factory generic cũ |
 | [packages/mcpServer/lib/transport/httpHandler.js](../packages/mcpServer/lib/transport/httpHandler.js) (**Mới**) | `handleMcpHttpRequest(request)` — Streamable HTTP, stateless, forward Bearer token |
-| [packages/mcpServer/lib/tools/shared/proxyRequest.js](../packages/mcpServer/lib/tools/shared/proxyRequest.js) (**Mới**) | Helper dựng `Request` giả lập + map `Response` → `CallToolResult`, dùng chung cho mọi tool proxy vào `src/sse/handlers/*` |
-| [packages/mcpServer/lib/tools/listModels.js](../packages/mcpServer/lib/tools/listModels.js) (**Mới**) | Tool `list_models` |
-| [packages/mcpServer/lib/tools/chatCompletion.js](../packages/mcpServer/lib/tools/chatCompletion.js) (**Mới**) | Tool `chat_completion` (non-stream only) |
-| [packages/mcpServer/lib/tools/index.js](../packages/mcpServer/lib/tools/index.js) (**Mới**) | `TOOLS[]` + `registerAllTools()` |
+| [packages/mcpServer/lib/tools/shared/proxyRequest.js](../packages/mcpServer/lib/tools/shared/proxyRequest.js) (**Mới**) | `buildProxyRequest` (JSON), `buildProxyFormRequest` (multipart, cho STT), `responseToToolResult` — dùng chung cho mọi tool proxy vào `src/sse/handlers/*` |
+| [packages/mcpServer/lib/tools/{listModels,chatCompletion,generateImage,generateVideo,textToSpeech,speechToText,createEmbeddings,webSearch,webFetch,getUsageStats,checkProviderHealth}.js](../packages/mcpServer/lib/tools/) (**Mới**, 11 file) | 11 tool — xem bảng ở §2.4 mapping REST endpoint tương ứng |
+| [packages/mcpServer/lib/tools/index.js](../packages/mcpServer/lib/tools/index.js) (**Mới**) | `TOOLS[]` (11 phần tử) + `registerAllTools()` |
 | [packages/mcpServer/index.js](../packages/mcpServer/index.js) | Export `createMcpServer`, `handleMcpHttpRequest` |
 | [src/app/api/v1/mcp/route.js](../src/app/api/v1/mcp/route.js) (**Mới**) | Thin route — GET/POST/DELETE/OPTIONS đều gọi `handleMcpHttpRequest` |
-| [tests/unit/mcpServer/http-transport.test.js](../tests/unit/mcpServer/http-transport.test.js) (**Mới**) | 3 test end-to-end (handshake+tools/list, tools/call list_models, auth-token forwarding qua chat_completion) — **PASS (3/3)** |
+| [packages/provider-alert/engine.js](../packages/provider-alert/engine.js), [packages/provider-alert/index.js](../packages/provider-alert/index.js) | Export thêm `classifyConnections` (trước đó private) — `check_provider_health` cần hàm phân loại thuần này, **không** dùng `checkAllAccountsDown` (có side-effect debounce/alert riêng cho luồng Discord) |
+| [tests/unit/mcpServer/http-transport.test.js](../tests/unit/mcpServer/http-transport.test.js) | 3 test end-to-end (handshake+tools/list nay assert đủ 11 tool, tools/call list_models, auth-token forwarding qua chat_completion) |
+| [tests/unit/mcpServer/tools.test.js](../tests/unit/mcpServer/tools.test.js) (**Mới**) | 10 test unit cho 9 tool còn lại (Phase 4-6), mock handler + db functions |
+| [skills/9router-mcp/SKILL.md](../skills/9router-mcp/SKILL.md) (**Mới**) | Hướng dẫn agent MCP-native: setup, bảng map 11 tool → REST endpoint, limitation (non-streaming, video không poll) |
+| [skills/README.md](../skills/README.md), [skills/9router/SKILL.md](../skills/9router/SKILL.md) | Thêm dòng trỏ tới `9router-mcp` skill mới |
+| [AGENTS.md](../AGENTS.md), [packages/AGENTS.md](../packages/AGENTS.md) | Cập nhật mô tả `mcpServer/` — đã implement, không còn stub; ghi rõ phân biệt với `/api/mcp/[plugin]/*` |
 
-Verify đã chạy: `cd tests && npx vitest run --config ./vitest.config.js unit/mcpServer/http-transport.test.js` → pass. `eslint` trên toàn bộ file mới → sạch. `next dev` thật trên port scratch (20199) + `curl` `initialize` thật → trả đúng `{"result":{"protocolVersion":"2025-06-18",...,"serverInfo":{"name":"9router","version":"0.2.0"}}}`.
+**Lưu ý lockfile:** repo dùng `yarn.lock` làm lockfile canonical (được track trong git; `package-lock.json` bị gitignore) dù script chạy qua `npm run`. Lần đầu tôi lỡ `npm install` khiến `yarn.lock` bị regenerate toàn bộ (do 1 lệnh `eslint` bị hook `rtk` route qua `yarn exec`) — đã revert (`git checkout -- yarn.lock`) và làm lại đúng bằng `yarn add`, diff chỉ còn thêm 2 dependency mới + transitive, không đụng gói khác.
 
-**Chưa làm** (theo đúng thứ tự phase còn lại — xem §3 phần todo Phase 4 trở đi chưa tick): tool nhóm media (Phase 4), tool nhóm web (Phase 5), 2 tool mới get_usage_stats/check_provider_health (Phase 6), test cho các tool đó (Phase 7 mới có 1 phần), docs `skills/9router-mcp/SKILL.md` + cập nhật `AGENTS.md` (Phase 8).
+Verify đã chạy:
+- `cd tests && npx vitest run --config ./vitest.config.js unit/mcpServer/` → **13/13 pass** (3 handshake/E2E + 10 tool unit).
+- `eslint` trên toàn bộ file mới/sửa (`packages/mcpServer/`, `packages/provider-alert/`, `tests/unit/mcpServer/`) → sạch.
+- `next dev` thật trên port scratch (20199): `initialize` trả đúng `serverInfo`; `tools/list` trả đủ **11 tool**, JSON Schema convert từ zod không lỗi cho bất kỳ tool nào (kể cả `.url()`, `.enum()`, `.record()`).
 
 ## 4. Risks & Unknowns
 
-- **Risk: streaming chat qua MCP.** `handleChat` trả SSE stream khi `stream: true`. MCP tool result thường là 1 khối kết quả (không phải SSE thật) — cần chốt: buffer toàn bộ output rồi trả 1 lần (đơn giản, mất real-time), hay dùng MCP's `notifications/progress` để relay từng chunk (đúng UX hơn nhưng phức tạp hơn nhiều). → **Mitigation:** MVP buffer toàn bộ trước, ghi rõ trong SKILL.md là chưa hỗ trợ streaming thật, để phase sau nếu cần.
-- **Risk: `check_provider_health` chưa có "public" API tương đương** — hiện `checkAllAccountsDown` chỉ được gọi nội bộ từ `src/sse/services/auth.js` sau mỗi request fail/success (side-effect, không phải query on-demand). Cần viết thêm 1 lớp "query hiện trạng" (đọc `getProviderConnections()` rồi classify) thay vì tái dùng y nguyên luồng alert. → **Mitigation:** tách riêng, không đụng vào luồng alert Discord hiện có (`src/sse/services/auth.js`), chỉ dùng chung hàm thuần `checkAllAccountsDown`/`classifyConnections` (nếu export được) để tránh trùng logic phân loại trạng thái account.
-- **Unknown: MCP client nào sẽ test thật** (Claude Code hỗ trợ HTTP MCP server chưa, hay cần Claude Desktop) — cần xác nhận trước Phase 2 để biết cấu hình client mẫu đưa vào SKILL.md. → **Plan:** kiểm tra khi tới Phase 2, không block các phase trước.
-- **Unknown: có cần rate-limit/quota riêng cho MCP tool calls** (khác với `/v1/*` đã có usage tracking) hay dùng chung `usageDb` luôn? → **Plan:** MVP dùng chung, không thêm tracking riêng; đánh giá lại nếu MCP traffic đáng kể.
+- **Risk: streaming chat qua MCP.** `handleChat` trả SSE stream khi `stream: true`. MCP tool result thường là 1 khối kết quả (không phải SSE thật) — cần chốt: buffer toàn bộ output rồi trả 1 lần (đơn giản, mất real-time), hay dùng MCP's `notifications/progress` để relay từng chunk (đúng UX hơn nhưng phức tạp hơn nhiều). → **✅ Đã xử lý theo mitigation:** MVP buffer toàn bộ (`chatCompletion.js` luôn ép `stream:false`), ghi rõ trong `skills/9router-mcp/SKILL.md` là chưa hỗ trợ streaming thật. Còn mở cho tương lai nếu cần UX real-time hơn.
+- **Risk: `check_provider_health` chưa có "public" API tương đương** — hiện `checkAllAccountsDown` chỉ được gọi nội bộ từ `src/sse/services/auth.js` sau mỗi request fail/success (side-effect, không phải query on-demand). → **✅ Đã xử lý theo mitigation:** export thêm `classifyConnections` (hàm phân loại thuần, không side-effect) từ `packages/provider-alert/engine.js` + `index.js`, tool mới `checkProviderHealth.js` dùng hàm này, không đụng `checkAllAccountsDown`/luồng alert Discord.
+- **Unknown: MCP client nào sẽ test thật** — đã kiểm tra: `@modelcontextprotocol/sdk/client` (chính SDK, dùng trong test) verify được toàn bộ handshake/tools qua HTTP thật, không cần cài Claude Desktop riêng để verify logic server-side. Việc user tự connect Claude Code/Desktop vào `/v1/mcp` thật vẫn là bước verify thủ công còn để ngỏ (xem §5 Success Criteria).
+- **Unknown: có cần rate-limit/quota riêng cho MCP tool calls** — giữ nguyên quyết định MVP: dùng chung `usageDb`, không thêm tracking riêng.
 
 ## 5. Success Criteria
 
-- `packages/mcpServer/` được import thật vào `src/app/api/mcp/route.js` — không còn là dead code (khác biệt lớn nhất so với hiện trạng).
-- 1 MCP client thật (Claude Code hoặc Claude Desktop) connect được vào `/api/mcp`, thấy đủ 11 tool qua `tools/list`, gọi `tools/call` thành công cho ít nhất `list_models` + `chat_completion` (non-stream).
-- Mỗi tool đều tái dùng handler có sẵn ở `src/sse/handlers/*.js` — không có logic nghiệp vụ (auth, combo, translation) bị viết lại/trùng lặp trong `packages/mcpServer/`.
-- Auth hoạt động đúng: request không có API key bị từ chối khi `REQUIRE_API_KEY=true`, giống hệt `/v1/*`.
-- Test unit chạy pass trong `tests/` (theo quy trình `tests/__baseline__/verify-no-regression.mjs`, không phá vỡ baseline hiện có).
-- `package.json` name khớp path alias thực tế; `AGENTS.md` phản ánh đúng trạng thái mới của `mcpServer/`.
+- [x] `packages/mcpServer/` được import thật vào `src/app/api/v1/mcp/route.js` — không còn là dead code.
+- [x] 1 MCP client thật (`@modelcontextprotocol/sdk/client`, qua vitest + qua `curl` trên `next dev` thật) connect được vào `/v1/mcp`, thấy đủ 11 tool qua `tools/list`, gọi `tools/call` thành công cho `list_models` + `chat_completion` (non-stream). **Còn mở:** chưa tự tay connect Claude Code/Claude Desktop thật vào — SDK client đã verify đúng protocol nhưng chưa phải trải nghiệm thật từ 1 agent UI.
+- [x] Mỗi tool đều tái dùng handler có sẵn ở `src/sse/handlers/*.js` — không có logic nghiệp vụ (auth, combo, translation) bị viết lại/trùng lặp trong `packages/mcpServer/`. `check_provider_health` là ngoại lệ có chủ đích: dùng `classifyConnections` (thuần, mới export) thay vì gọi qua `src/sse/services/auth.js` (vốn không có API query on-demand, chỉ có side-effect alert).
+- [x] Auth hoạt động đúng: route nằm dưới `/v1/*` nên tự động thừa hưởng `REQUIRE_API_KEY`/`dashboardGuard.js` y hệt các endpoint REST khác — không viết middleware auth riêng.
+- [x] Test unit chạy pass trong `tests/` — 13/13 (`unit/mcpServer/`). Đã thử chạy full baseline `tests/__baseline__/verify-no-regression.mjs` trên máy Windows này — script báo 103 "regression" nhưng **toàn bộ đều là false positive do lỗi path-format của chính script trên Windows** (`f.name.split("/app/")[1]` luôn ra `undefined` vì path Windows không có `/app/` như trong container CI mà `known-fails.txt` được capture, nên không khớp được dòng nào). Đã kiểm tra thủ công: không có tên test nào trong 103 dòng đó nhắc tới `provider-alert`/`classifyConnections`/`usageRepo`/`connectionsRepo`/`mcpServer` — tức không liên quan tới thay đổi của plan này. Nên chạy lại script này trên môi trường CI thật (không phải Windows) trước khi merge để có kết quả đáng tin.
+- [x] `package.json` name khớp path alias thực tế; `AGENTS.md` + `packages/AGENTS.md` phản ánh đúng trạng thái mới của `mcpServer/`.
 
 ## 6. Questions / Dependencies (Tùy chọn)
 
-- Cần xác nhận: có MCP client cụ thể nào để test thật ngay (Claude Code bản đang dùng có hỗ trợ HTTP MCP server transport không), hay cần cài thêm 1 client test riêng?
-- Có cần hỗ trợ nhiều "API key scope" khác nhau cho MCP (ví dụ: 1 key chỉ được gọi `list_models`/`get_usage_stats`, không được `chat_completion` để tránh phát sinh chi phí ngoài ý muốn) hay dùng chung quyền với `/v1/*`? Nếu cần, đây là quyết định nghiệp vụ nên hỏi trước khi làm Phase 2 (ảnh hưởng thiết kế auth ở transport layer).
+- Đã chốt lúc bắt đầu code (xem callout đầu mục 2): dùng `@modelcontextprotocol/sdk`, auth dùng chung `/v1/*`.
+- **Còn mở, cần quyết định của user trước khi merge/deploy thật:**
+  - Có muốn tự tay connect Claude Code/Claude Desktop vào `/v1/mcp` để xác nhận trải nghiệm thật (không chỉ qua SDK client trong test) không?
+  - `generate_video` hiện chỉ tạo job, không có tool poll status — có cần thêm 1 tool `get_video_status` (map `GET /v1/videos/{id}`) trong 1 phase sau không, hay chấp nhận giới hạn này cho MVP?
+  - Có muốn chạy `tests/__baseline__/verify-no-regression.mjs` trước khi commit để chắc chắn thay đổi ở `packages/provider-alert/` không ảnh hưởng gì khác?

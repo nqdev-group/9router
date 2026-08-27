@@ -24,6 +24,31 @@ export function buildProxyRequest({ path, body, authInfo }) {
 }
 
 /**
+ * Same as buildProxyRequest but for handlers expecting multipart/form-data
+ * (only src/sse/handlers/stt.js today, which reads request.formData()).
+ * Caller builds the FormData itself (needed for the 3-arg `.set(key, blob, filename)`
+ * form when attaching a file).
+ *
+ * @param {Object} opts
+ * @param {string} opts.path
+ * @param {FormData} opts.formData
+ * @param {import("@modelcontextprotocol/sdk/server/auth/types.js").AuthInfo} [opts.authInfo]
+ * @returns {Request}
+ */
+export function buildProxyFormRequest({ path, formData, authInfo }) {
+  const headers = new Headers();
+  if (authInfo?.token) {
+    headers.set("Authorization", `Bearer ${authInfo.token}`);
+  }
+
+  return new Request(`http://internal.9router/${path.replace(/^\//, "")}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+}
+
+/**
  * Converts a handler's Web Standard Response into an MCP CallToolResult.
  * Non-2xx responses are surfaced as tool errors (isError: true) rather than thrown,
  * so the calling agent sees the upstream error message instead of a generic MCP failure.

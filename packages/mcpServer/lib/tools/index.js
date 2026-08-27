@@ -1,10 +1,28 @@
 import { chatCompletionTool } from "./chatCompletion.js";
 import { listModelsTool } from "./listModels.js";
+import { generateImageTool } from "./generateImage.js";
+import { generateVideoTool } from "./generateVideo.js";
+import { textToSpeechTool } from "./textToSpeech.js";
+import { speechToTextTool } from "./speechToText.js";
+import { createEmbeddingsTool } from "./createEmbeddings.js";
+import { webSearchTool } from "./webSearch.js";
+import { webFetchTool } from "./webFetch.js";
+import { getUsageStatsTool } from "./getUsageStats.js";
+import { checkProviderHealthTool } from "./checkProviderHealth.js";
 
-// Phase 3 (chat_completion, list_models) only — generateImage/generateVideo/
-// textToSpeech/speechToText/createEmbeddings/webSearch/webFetch/getUsageStats/
-// checkProviderHealth land in later phases, see plans/2026-08-27-mcp-server-tools-planning.md
-export const TOOLS = [listModelsTool, chatCompletionTool];
+export const TOOLS = [
+  listModelsTool,
+  chatCompletionTool,
+  generateImageTool,
+  generateVideoTool,
+  textToSpeechTool,
+  speechToTextTool,
+  createEmbeddingsTool,
+  webSearchTool,
+  webFetchTool,
+  getUsageStatsTool,
+  checkProviderHealthTool,
+];
 
 /**
  * @param {import("@modelcontextprotocol/sdk/server/mcp.js").McpServer} server
