@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
 
 ## What this is
 
@@ -218,5 +218,5 @@ Proxy: `HTTP_PROXY`/`HTTPS_PROXY` (and lowercase variants) for upstream calls.
 - `tests/` is a separate npm package — install deps there before running tests
 - `packages/index.js` is required for `@9router/*` path alias resolution — don't delete
 - `.opencode/opencode.jsonc` is a bare schema reference; no custom instructions configured there
-- Versioning: root and `cli/` versioned independently. Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
+- Versioning: root and `cli/` have separate `package.json` version fields, but `cli/scripts/build-cli.js` overwrites root's version to match `cli/`'s on every `npm run build` in `cli/` — not truly independent in practice (see `cli/AGENTS.md`). Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
 - `eslint.config.mjs` uses the modern flat config (`eslint/config`). Lint: `npx eslint .`. No separate typecheck script.

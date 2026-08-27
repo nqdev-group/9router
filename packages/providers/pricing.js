@@ -9,6 +9,8 @@
 // revidapi is excluded: its only models are TTS engines (edge/capcut/google), billed
 // per character/audio-second, not per token — outside the scope of this $/1M schema.
 // Likewise image/video models on kira and codely are excluded (no chat token pricing).
+// aimlapi's image model (gemini-3-pro-image-preview) and STT model (aai/slam-1, billed
+// per audio-second) are excluded for the same reason.
 //
 // Sourcing notes (so numbers can be re-verified/updated, not just trusted blindly):
 //   - Where a provider resells a well-known upstream model as-is (vilao, zenmux),
@@ -275,5 +277,17 @@ export const PROVIDER_PRICING = {
     "nemotron-3-ultra-free":          { input: 0,     output: 0     },
     "nemotron-3.5-lightning-free":    { input: 0,     output: 0     },
     "laguna-s-2.1-free":              { input: 0,     output: 0     },
+  },
+
+  // === AI/ML API (aimlapi.com) ===
+  // Pulled from each model's page on https://aimlapi.com/models/ — the 4 chat models
+  // seeded in packages/providers/registry/aimlapi.js are all listed at $0/1M tokens.
+  // "stealth/ox-alpha" is explicitly temporary ("served via the OpenRouter stealth slot")
+  // and may start billing once formally released — re-verify if it shows up priced later.
+  aimlapi: {
+    "google/gemma-3-27b-it":     { input: 0, output: 0 },
+    "inclusionai/ling-3.0-tiny": { input: 0, output: 0 },
+    "mistral/leanstral-1-5":     { input: 0, output: 0 },
+    "stealth/ox-alpha":          { input: 0, output: 0 },
   },
 };
