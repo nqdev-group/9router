@@ -1,7 +1,7 @@
 ---
 type: feature
 complexity: high
-status: planning
+status: in_progress
 related_issues: []
 related_prs: []
 estimated_hours: ~24
@@ -28,6 +28,13 @@ estimated_hours: ~24
 
 ## 2. Approach / Strategy
 
+> **Cập nhật sau khi user chốt (2026-08-27):** 2 quyết định dưới đây đã được hỏi lại trực tiếp và user chọn phương án khuyến nghị — ghi đè lên phần phân tích gốc bên dưới:
+> - **Dùng SDK chính thức `@modelcontextprotocol/sdk`** (thêm vào root `package.json`, cùng `zod` — peer dep bắt buộc của SDK) thay vì tự viết JSON-RPC framing như phác thảo ban đầu ở §2.4/§3. SDK cung cấp sẵn `McpServer` (registry + handshake + validation) và `WebStandardStreamableHTTPServerTransport` (transport HTTP dùng Request/Response chuẩn Web, khớp thẳng với route handler Next.js App Router) — nên `lib/protocol/*.js` và `lib/registry.js` phác thảo ở §2.4 **không cần viết tay**, cấu trúc file thực tế đơn giản hơn nhiều (xem §2.4 đã cập nhật).
+> - **Auth dùng chung quyền `/v1/*`** — không thêm scope riêng cho MCP ở giai đoạn này.
+>
+> **Phát hiện quan trọng khi bắt đầu code (chưa có trong bản gốc):** repo đã có sẵn `src/app/api/mcp/[plugin]/sse/route.js` + `.../message/route.js` (dùng `src/lib/mcp/stdioSseBridge.js`) — đây là 1 tính năng **hoàn toàn khác, không liên quan**: 9Router đóng vai **MCP client-side bridge**, tự spawn 1 MCP server stdio cục bộ (theo danh sách cấu hình sẵn `LOCAL_STDIO_PLUGINS`) rồi bridge qua SSE cho dashboard dùng (ví dụ: các "Tool Card" ở `/dashboard/cli-tools`) — ngược hướng hoàn toàn với việc "9Router tự expose chính nó làm MCP server" mà plan này đang làm. Quan trọng hơn: `src/dashboardGuard.js` đã liệt kê `"/api/mcp"` trong cả `PROTECTED_API_PATHS` (yêu cầu JWT cookie / `requireLogin`, **không** chấp nhận Bearer API key) lẫn `LOCAL_ONLY_PATHS` (chỉ localhost) — do route bridge kia spawn child process nên cần khoá chặt. Nếu route MCP-server mới của plan này đặt tại `/api/mcp/...` như phác thảo ban đầu, nó sẽ **vô tình bị khoá theo đúng cơ chế đó** (JWT-only + localhost-only) — trái ngược hoàn toàn với mục tiêu "auth dùng chung quyền `/v1/*` qua Bearer API key, hoạt động cả qua VPS/tunnel" đã chốt ở trên.
+> **→ Quyết định:** route MCP-server mới đặt tại **`/v1/mcp`** (file `src/app/api/v1/mcp/route.js`) thay vì `/api/mcp`. Vì `/v1` đã nằm trong `PUBLIC_PREFIXES` của `dashboardGuard.js`, route tự động thừa hưởng đúng cơ chế Bearer-API-key mà `/v1/chat/completions` đang dùng — **không cần sửa `dashboardGuard.js`**. Đây cũng là lý do 2 việc "SDK/auth" và "path" phải đi cùng nhau: chọn sai path sẽ làm quyết định auth ở trên vô nghĩa.
+
 ### 2.1 Quyết định transport: HTTP (Streamable HTTP) thay vì stdio
 
 **Chọn:** Mount MCP server dưới dạng 1 Next.js route (`src/app/api/mcp/route.js`, thin — chỉ gọi vào `@9router/mcpServer`), dùng transport **Streamable HTTP** (1 POST endpoint cho request/response, tuỳ chọn SSE cho streaming — đúng theo MCP spec bản 2025-03-26 trở lên).
@@ -44,9 +51,9 @@ estimated_hours: ~24
 
 ### 2.2 Vị trí code — tuân thủ nguyên tắc `packages/`
 
-- **Toàn bộ protocol logic + tool registry + tool handlers**: `packages/mcpServer/lib/` (mới các file, xem cấu trúc mục 2.4).
-- **Route Next.js**: `src/app/api/mcp/route.js` — thin, chỉ import `createMCPHttpHandler` (hoặc tên tương đương) từ `@9router/mcpServer` rồi gọi, đúng pattern các route `/v1/*` hiện có (`src/app/api/v1/chat/completions/route.js` chỉ gọi `handleChat(request)`).
-- **Auth**: route mới nằm dưới `src/app/api/`, tự động đi qua `dashboardGuard.js` hiện có (JWT cookie / API key / CORS tuỳ route) — không viết middleware auth riêng, tái dùng cơ chế `REQUIRE_API_KEY` đã có.
+- **Toàn bộ tool registry + tool handlers**: `packages/mcpServer/lib/` (xem cấu trúc thực tế đã build ở mục 2.4).
+- **Route Next.js**: `src/app/api/v1/mcp/route.js` (không phải `/api/mcp`, xem lý do ở đầu mục 2) — thin, chỉ import `handleMcpHttpRequest` từ `@9router/mcpServer` rồi gọi cho cả GET/POST/DELETE, đúng pattern các route `/v1/*` hiện có (`src/app/api/v1/chat/completions/route.js` chỉ gọi `handleChat(request)`).
+- **Auth**: route nằm dưới `src/app/api/v1/`, tự động khớp `PUBLIC_PREFIXES` trong `dashboardGuard.js` hiện có → dùng đúng cơ chế Bearer API key (`REQUIRE_API_KEY`) mà `/v1/*` đã có, không sửa `dashboardGuard.js`, không viết middleware auth riêng.
 
 ### 2.3 Nguyên tắc implement tool: gọi lại logic có sẵn, không viết lại
 
@@ -70,34 +77,36 @@ Khảo sát cho thấy mọi route `/v1/*` liên quan đều là wrapper mỏng 
 
 **Cách gọi:** vì các handler này nhận `Request` (Web Fetch API) và trả `Response`, tool handler trong `packages/mcpServer/` sẽ **tự dựng 1 `Request` object in-process** (JSON body từ input MCP tool, header giả lập tối thiểu) rồi gọi hàm trực tiếp trong cùng process — **không** loopback qua HTTP thật (tránh thêm 1 network hop, tránh phải tự inject lại API key nội bộ). Case `list_models` / `get_usage_stats` không cần bước này vì đã là hàm thuần nhận tham số thường.
 
-### 2.4 Cấu trúc file dự kiến trong `packages/mcpServer/`
+### 2.4 Cấu trúc file (thực tế đã build — đơn giản hơn phác thảo gốc nhờ dùng SDK)
 
 ```
 packages/mcpServer/
-  index.js                  # export public API
-  package.json               # sửa name → @9router/mcpServer, thêm private:true
+  index.js                        # export public API: createMcpServer, handleMcpHttpRequest
+  package.json                     # name: @9router/mcpServer, private:true, deps để {} (SDK+zod nằm ở root package.json, hoist chung 1 node_modules)
   lib/
-    server.js                 # giữ/refactor createMCPServer thành protocol core thật
-    protocol/
-      jsonrpc.js               # JSON-RPC 2.0 request/response/error framing
-      capabilities.js          # initialize/initialized handshake, capability negotiation
+    server.js                      # createMcpServer() — new McpServer(SERVER_INFO) + registerAllTools()
     transport/
-      httpHandler.js           # Streamable HTTP transport — export hàm nhận Next.js Request, trả Response
-    registry.js                # registerTool(name, {description, inputSchema, handler}), tools/list, tools/call dispatch
+      httpHandler.js                # handleMcpHttpRequest(request) — WebStandardStreamableHTTPServerTransport,
+                                     # stateless (sessionIdGenerator: undefined, enableJsonResponse: true),
+                                     # trích Bearer token từ header → authInfo forward xuống tool handler
     tools/
-      chatCompletion.js
-      listModels.js
-      generateImage.js
-      generateVideo.js
-      textToSpeech.js
-      speechToText.js
-      createEmbeddings.js
-      webSearch.js
-      webFetch.js
-      getUsageStats.js
-      checkProviderHealth.js
-      index.js                 # gom + registerAll(registry)
+      shared/
+        proxyRequest.js              # buildProxyRequest({path, body, authInfo}) dựng Request giả lập gọi src/sse/handlers/*;
+                                      # responseToToolResult(response) map Response → CallToolResult
+      listModels.js                  # ĐÃ XONG — gọi buildModelsList() trực tiếp (hàm thuần)
+      chatCompletion.js              # ĐÃ XONG — gọi handleChat() qua proxyRequest, luôn stream:false (xem Risk streaming)
+      index.js                       # TOOLS[] + registerAllTools(server)
+      # còn lại (Phase 4-6, chưa làm): generateImage.js, generateVideo.js, textToSpeech.js,
+      # speechToText.js, createEmbeddings.js, webSearch.js, webFetch.js, getUsageStats.js, checkProviderHealth.js
+
+src/app/api/v1/mcp/route.js       # thin route — GET/POST/DELETE đều gọi handleMcpHttpRequest(request)
+tests/unit/mcpServer/
+  http-transport.test.js           # ĐÃ XONE — end-to-end thật: real MCP Client SDK + real Node http server
+                                     # + mock 2 handler biên (buildModelsList, handleChat) → verify handshake,
+                                     # tools/list, tools/call, và auth-token forwarding
 ```
+
+**Vì sao không còn `lib/protocol/`, `lib/registry.js`:** đây chính là phần `@modelcontextprotocol/sdk`'s `McpServer` đã làm sẵn (JSON-RPC framing, `initialize` handshake, `tools/list`/`tools/call` dispatch, validate `inputSchema` bằng zod) — viết tay lại là trùng lặp không cần thiết, đã loại bỏ theo quyết định dùng SDK ở đầu mục 2.
 
 ### 2.5 Thứ tự triển khai (ưu tiên theo mức rủi ro/giá trị)
 
@@ -113,16 +122,14 @@ packages/mcpServer/
 
 ## 3. Công việc cần thực hiện (Todo)
 
-- [ ] Phase 0: Sửa `packages/mcpServer/package.json` — `name` → `@9router/mcpServer`, thêm `"private": true`
-- [ ] Phase 1: Viết `lib/protocol/jsonrpc.js` (parse/serialize JSON-RPC 2.0, error codes chuẩn MCP)
-- [ ] Phase 1: Viết `lib/protocol/capabilities.js` (handshake `initialize`/`initialized`)
-- [ ] Phase 1: Viết `lib/registry.js` (`registerTool`, `tools/list`, `tools/call` dispatch, validate `inputSchema`)
-- [ ] Phase 1: Refactor `lib/server.js` để dùng registry + protocol core thay vì factory generic hiện tại
-- [ ] Phase 2: Viết `lib/transport/httpHandler.js` (Streamable HTTP: POST cho request/response, SSE tuỳ chọn)
-- [ ] Phase 2: Tạo `src/app/api/mcp/route.js` (thin route, xác nhận đi qua `dashboardGuard.js`/`REQUIRE_API_KEY` đúng như `/v1/*`)
-- [ ] Phase 2: Test thủ công bằng 1 MCP client thật kết nối vào `/api/mcp`
-- [ ] Phase 3: `tools/listModels.js` — gọi `buildModelsList` trực tiếp
-- [ ] Phase 3: `tools/chatCompletion.js` — dựng `Request` giả lập gọi `handleChat`, xử lý cả case stream (quyết định: buffer toàn bộ SSE thành 1 kết quả text, hay dùng MCP progress notification để relay từng chunk — cần chốt ở lúc implement, ghi rõ lý do chọn)
+- [x] Phase 0: Sửa `packages/mcpServer/package.json` — `name` → `@9router/mcpServer`, thêm `"private": true`
+- [x] Phase 1: Thêm dependency `@modelcontextprotocol/sdk` + `zod` (peer dep bắt buộc) vào root `package.json` (thay cho viết tay `lib/protocol/*.js`/`lib/registry.js` — xem quyết định SDK ở đầu mục 2)
+- [x] Phase 1: `lib/server.js` — `createMcpServer()` dùng `McpServer` của SDK + `registerAllTools()`
+- [x] Phase 2: `lib/transport/httpHandler.js` — `WebStandardStreamableHTTPServerTransport`, stateless mode (`enableJsonResponse: true`), trích Bearer token → `authInfo`
+- [x] Phase 2: Tạo `src/app/api/v1/mcp/route.js` (**không phải** `/api/mcp` — xem phát hiện va chạm với `/api/mcp/[plugin]/*` ở đầu mục 2), GET/POST/DELETE đều gọi `handleMcpHttpRequest`
+- [x] Phase 2: Verify bằng client thật — vitest end-to-end (`tests/unit/mcpServer/http-transport.test.js`, dùng `@modelcontextprotocol/sdk/client`) + curl thủ công qua `next dev` thật (`initialize` trả đúng `protocolVersion`/`capabilities`/`serverInfo`), cả 2 đều pass
+- [x] Phase 3: `tools/listModels.js` — gọi `buildModelsList` trực tiếp (hàm thuần, không cần dựng Request)
+- [x] Phase 3: `tools/chatCompletion.js` — dựng `Request` giả lập qua `lib/tools/shared/proxyRequest.js`, gọi `handleChat`. **Quyết định streaming:** MVP luôn ép `stream:false` (không hỗ trợ SSE relay qua MCP ở giai đoạn này) — khớp với việc transport dùng `enableJsonResponse:true` (không có SSE ở tầng transport), xem Risk mục 4.
 - [ ] Phase 4: `tools/generateImage.js`, `generateVideo.js`, `textToSpeech.js`, `speechToText.js`, `createEmbeddings.js`
 - [ ] Phase 5: `tools/webSearch.js`, `webFetch.js`
 - [ ] Phase 6: `tools/getUsageStats.js` — wrap `getUsageStats`/`getUsageHistory`/`getChartData`, chốt tham số filter (range ngày, provider)
@@ -131,6 +138,28 @@ packages/mcpServer/
 - [ ] Phase 7: Unit test cho từng tool (mock handler `src/sse/handlers/*`, assert tool gọi đúng handler + map input/output đúng)
 - [ ] Phase 8: `skills/9router-mcp/SKILL.md` — hướng dẫn agent MCP-native, cập nhật `skills/README.md` thêm dòng mới
 - [ ] Phase 8: Cập nhật `AGENTS.md` — dòng `mcpServer/` trong bảng `packages/` mô tả rõ đã implement, không còn là stub
+
+### 3.1 Trạng thái hiện tại (cập nhật 2026-08-27)
+
+Phase 0-3 đã xong (2 tool đầu tiên hoạt động thật, không phải mock). Chưa commit — đang chờ review.
+
+| File | Thay đổi |
+|---|---|
+| [package.json](../package.json) | Thêm dependency `@modelcontextprotocol/sdk@^1.30.0`, `zod@^4.4.3` |
+| [packages/mcpServer/package.json](../packages/mcpServer/package.json) | `name` → `@9router/mcpServer`, thêm `private:true`, thêm export `./http` |
+| [packages/mcpServer/lib/server.js](../packages/mcpServer/lib/server.js) | Viết lại hoàn toàn — `createMcpServer()` dùng SDK thật thay vì factory generic cũ |
+| [packages/mcpServer/lib/transport/httpHandler.js](../packages/mcpServer/lib/transport/httpHandler.js) (**Mới**) | `handleMcpHttpRequest(request)` — Streamable HTTP, stateless, forward Bearer token |
+| [packages/mcpServer/lib/tools/shared/proxyRequest.js](../packages/mcpServer/lib/tools/shared/proxyRequest.js) (**Mới**) | Helper dựng `Request` giả lập + map `Response` → `CallToolResult`, dùng chung cho mọi tool proxy vào `src/sse/handlers/*` |
+| [packages/mcpServer/lib/tools/listModels.js](../packages/mcpServer/lib/tools/listModels.js) (**Mới**) | Tool `list_models` |
+| [packages/mcpServer/lib/tools/chatCompletion.js](../packages/mcpServer/lib/tools/chatCompletion.js) (**Mới**) | Tool `chat_completion` (non-stream only) |
+| [packages/mcpServer/lib/tools/index.js](../packages/mcpServer/lib/tools/index.js) (**Mới**) | `TOOLS[]` + `registerAllTools()` |
+| [packages/mcpServer/index.js](../packages/mcpServer/index.js) | Export `createMcpServer`, `handleMcpHttpRequest` |
+| [src/app/api/v1/mcp/route.js](../src/app/api/v1/mcp/route.js) (**Mới**) | Thin route — GET/POST/DELETE/OPTIONS đều gọi `handleMcpHttpRequest` |
+| [tests/unit/mcpServer/http-transport.test.js](../tests/unit/mcpServer/http-transport.test.js) (**Mới**) | 3 test end-to-end (handshake+tools/list, tools/call list_models, auth-token forwarding qua chat_completion) — **PASS (3/3)** |
+
+Verify đã chạy: `cd tests && npx vitest run --config ./vitest.config.js unit/mcpServer/http-transport.test.js` → pass. `eslint` trên toàn bộ file mới → sạch. `next dev` thật trên port scratch (20199) + `curl` `initialize` thật → trả đúng `{"result":{"protocolVersion":"2025-06-18",...,"serverInfo":{"name":"9router","version":"0.2.0"}}}`.
+
+**Chưa làm** (theo đúng thứ tự phase còn lại — xem §3 phần todo Phase 4 trở đi chưa tick): tool nhóm media (Phase 4), tool nhóm web (Phase 5), 2 tool mới get_usage_stats/check_provider_health (Phase 6), test cho các tool đó (Phase 7 mới có 1 phần), docs `skills/9router-mcp/SKILL.md` + cập nhật `AGENTS.md` (Phase 8).
 
 ## 4. Risks & Unknowns
 

@@ -111,7 +111,7 @@ packages/
   services/       → @9router/services/      (extra model-prefix inference, extends open-sse/services/model.js)
   tier-routing/   → @9router/tier-routing/  (cost/tier-aware combo model reordering; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js)
   token-limit-routing/ → @9router/token-limit-routing/ (bypasses combo models whose configured max-input-token limit can't fit the prompt; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js + src/lib/db/repos/modelTokenLimitsRepo.js)
-  mcpServer/      → @9router/mcpServer/     (MCP server)
+  mcpServer/      → @9router/mcpServer/     (9Router-as-MCP-server: exposes 9Router capabilities as MCP tools over Streamable HTTP at /v1/mcp, via @modelcontextprotocol/sdk; unrelated to src/app/api/mcp/[plugin]/* which is 9Router-as-MCP-client, see packages/AGENTS.md)
   utils/          → @9router/utils/         (shared utilities)
   revidapi/       → @9router/revidapi/      (Revid API)
 ```
