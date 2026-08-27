@@ -67,6 +67,13 @@ export const SKILLS = [
     endpoint: "/v1/web/fetch",
     icon: "language",
   },
+  {
+    id: "9router-mcp",
+    name: "MCP Server",
+    description: "Connect as a native MCP server (Streamable HTTP) instead of hand-rolling curl — for agents that call MCP tools directly.",
+    endpoint: "/v1/mcp",
+    icon: "hub",
+  },
 ];
 
 export function getSkillRawUrl(id) {

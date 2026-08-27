@@ -194,3 +194,19 @@ Verify đã chạy:
   - Có muốn tự tay connect Claude Code/Claude Desktop vào `/v1/mcp` để xác nhận trải nghiệm thật (không chỉ qua SDK client trong test) không?
   - `generate_video` hiện chỉ tạo job, không có tool poll status — có cần thêm 1 tool `get_video_status` (map `GET /v1/videos/{id}`) trong 1 phase sau không, hay chấp nhận giới hạn này cho MVP?
   - Có muốn chạy `tests/__baseline__/verify-no-regression.mjs` trước khi commit để chắc chắn thay đổi ở `packages/provider-alert/` không ảnh hưởng gì khác?
+
+## 7. Addendum: dashboard menu entry (2026-08-27, ngoài phạm vi todo gốc)
+
+User yêu cầu thêm mục "MCP Server" vào sidebar dashboard, group **System** — plan gốc chỉ cover backend (tool + transport), chưa có UI. Đã hỏi lại và chốt: **trang info/docs đơn giản** (không phải trang settings có bật/tắt riêng, vì MCP server hiện không có config riêng — luôn sẵn sàng ở `/v1/mcp`, dùng chung auth `/v1/*`).
+
+**Files:**
+| File | Thay đổi |
+|---|---|
+| [src/shared/components/Sidebar.js](../src/shared/components/Sidebar.js) | Thêm `{ href: "/dashboard/mcp-server", label: "MCP Server", icon: "hub" }` vào `systemItems` |
+| [src/app/(dashboard)/dashboard/mcp-server/page.js](../src/app/(dashboard)/dashboard/mcp-server/page.js) (**Mới**) | Trang info: endpoint URL (copy được), example client config JSON (copy được), bảng 11 tool, link SKILL.md trên GitHub — theo đúng pattern `/dashboard/skills` (Card/Badge/CopyButton) và `/dashboard/endpoint` (lấy `window.location.origin` trong `useEffect` cho hydration-safe) |
+| [src/shared/constants/mcpTools.js](../src/shared/constants/mcpTools.js) (**Mới**) | Metadata 11 tool cho trang dashboard — bản sao hiển thị-only của `packages/mcpServer/lib/tools/index.js` (không import thẳng vì file gốc có zod schema, không nên bundle vào client) |
+| [src/shared/constants/skills.js](../src/shared/constants/skills.js) | Thêm entry `9router-mcp` vào mảng `SKILLS` — sửa sót từ Phase 8 (đã tạo `skills/9router-mcp/SKILL.md` nhưng quên thêm vào trang `/dashboard/skills`) |
+
+**Chưa verify bằng browser thật:** dev server scratch (port 20199) dùng chung DB dev hiện có, password không phải default `123456` — dừng lại sau khi thấy "4 attempt(s) left before lockout" thay vì đoán tiếp (tránh khoá tài khoản). Đã verify qua: `eslint` (1 warning giống hệt pattern có sẵn ở `EndpointPageClient.js:704`, không phải lỗi mới), route path/component import đều khớp barrel export thật (`@/shared/components`). **Cần user tự mở `/dashboard/mcp-server` để xác nhận UI** trước khi coi bước này là xong hẳn.
+
+Chưa commit.

@@ -98,3 +98,5 @@ dist/*
 # ===== Ignore archived files =====
 archived/
 !archived/.gitignore
+
+.playwright-mcp
