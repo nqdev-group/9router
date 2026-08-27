@@ -16,11 +16,13 @@ export default {
     textIcon: "AI",
     website: "https://aimlapi.com",
     notice: {
-      // gemma-3-27b-it, ling-3.0-tiny, leanstral-1-5, stealth/ox-alpha are all $0/1M
-      // token as of writing (see packages/providers/pricing.js's "aimlapi" block) —
-      // stealth/ox-alpha is explicitly a temporary free "stealth slot" and may start
-      // billing once formally released.
-      text: "1000+ model qua 1 API key (OpenAI-compatible). Có sẵn model miễn phí: Gemma 3 27B, Ling 3.0 Tiny, Leanstral 1.5, Stealth Ox Alpha.",
+      // AIML API itself is a paid/prepaid API-key service (account cần nạp phí, không
+      // phải free-tier provider như llm7/kira) — nhưng 4 model dưới đây (gemma-3-27b-it,
+      // ling-3.0-tiny, leanstral-1-5, stealth/ox-alpha) hiện đang niêm yết $0/1M token
+      // (see packages/providers/pricing.js's "aimlapi" block). stealth/ox-alpha là slot
+      // tạm thời ("OpenRouter stealth slot") và có thể bắt đầu tính phí khi model chính
+      // thức ra mắt.
+      text: "1000+ model qua 1 API key (OpenAI-compatible, tài khoản cần nạp phí). Riêng 4 model đang miễn phí: Gemma 3 27B, Ling 3.0 Tiny, Leanstral 1.5, Stealth Ox Alpha.",
       apiKeyUrl: "https://aimlapi.com/app/keys",
       signupUrl: "https://aimlapi.com/app/keys",
     },
