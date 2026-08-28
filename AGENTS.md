@@ -1,14 +1,15 @@
 # AGENTS.md
 
-Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
 
 ## What this is
 
 **9Router** (`9router-app`) — a local AI routing gateway + Next.js dashboard. Exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh, quota/usage tracking, and optional cloud sync.
 
-Two published artifacts in this repo:
+Three published artifacts in this repo:
 - **Dashboard + gateway** (root `package.json`, `9router-app`) — the Next.js server doing the actual routing.
 - **CLI launcher** (`cli/`, published to npm as `9router`) — separate package that installs/starts the server and manages tray icon. Own `package.json`, version, and build.
+- **Agent skills** (`skills/`) — drop-in `SKILL.md` files (9router entry skill + per-capability: chat, image, video, tts, stt, embeddings, web-fetch, web-search, kiraai-*) distributed via raw GitHub links (see `skills/README.md`) for external AI agents (Claude, Cursor, ChatGPT) to consume 9Router as a tool. Not Claude Code skills — a product feature.
 
 ## Fork & upstream sync
 
@@ -59,7 +60,7 @@ Test aliases (from `tests/vitest.config.js`): `open-sse/` → `../open-sse/`, `@
 
 Real provider tests gated by `RUN_REAL=1`. Read credentials from `~/.9router/db/data.sqlite`.
 
-**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. Expected red:
+**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. **Windows gotcha:** this script matches `known-fails.txt` lines by splitting each result's file path on `"/app/"` (the container path prefix `known-fails.txt` was captured under) — on Windows, `vitest run --reporter=json` produces native `D:\...` paths with no `/app/`, so every comparison key becomes `"undefined :: <test name>"` and the script reports every currently-failing test as a fresh regression, even ones already in `known-fails.txt`. Don't trust its verdict on Windows; instead diff the raw failing test names against `known-fails.txt` by eye, or run the script on Linux/CI. Expected red:
 - 26 items in `tests/__baseline__/known-fails.txt` (rtk, oauth-cursor-auto-import, translator-request-normalization, etc.).
 - `unit/embeddings.cloud.test.js` imports `cloud/src/handlers/embeddings.js` — `cloud/` worker dir **not in this repo**, always fails here.
 - `unit/xai-oauth-service.test.js` times out (5s) when xAI endpoint-discovery fetch unreachable/unmocked.
@@ -109,7 +110,8 @@ packages/
   provider-alert/ → @9router/provider-alert/ (Discord alerts on account down/recovery; used by src/sse/services/auth.js and dashboard settings/provider-alert page)
   services/       → @9router/services/      (extra model-prefix inference, extends open-sse/services/model.js)
   tier-routing/   → @9router/tier-routing/  (cost/tier-aware combo model reordering; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js)
-  mcpServer/      → @9router/mcpServer/     (MCP server)
+  token-limit-routing/ → @9router/token-limit-routing/ (bypasses combo models whose configured max-input-token limit can't fit the prompt; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js + src/lib/db/repos/modelTokenLimitsRepo.js)
+  mcpServer/      → @9router/mcpServer/     (9Router-as-MCP-server: exposes 9Router capabilities as MCP tools over Streamable HTTP at /v1/mcp, via @modelcontextprotocol/sdk; unrelated to src/app/api/mcp/[plugin]/* which is 9Router-as-MCP-client, see packages/AGENTS.md)
   utils/          → @9router/utils/         (shared utilities)
   revidapi/       → @9router/revidapi/      (Revid API)
 ```
@@ -131,6 +133,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |
 | `src/shared/` | Shared React components, hooks, constants, services. |
 | `src/store/` | Zustand stores (providerStore, settingsStore, themeStore, userStore, notificationStore, headerSearchStore). |
+| `skills/` | Published agent-skill definitions (SKILL.md per capability) — product artifact, distributed externally, not project tooling. |
 
 ## Provider system
 
@@ -215,5 +218,5 @@ Proxy: `HTTP_PROXY`/`HTTPS_PROXY` (and lowercase variants) for upstream calls.
 - `tests/` is a separate npm package — install deps there before running tests
 - `packages/index.js` is required for `@9router/*` path alias resolution — don't delete
 - `.opencode/opencode.jsonc` is a bare schema reference; no custom instructions configured there
-- Versioning: root and `cli/` versioned independently. Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
+- Versioning: root and `cli/` have separate `package.json` version fields, but `cli/scripts/build-cli.js` overwrites root's version to match `cli/`'s on every `npm run build` in `cli/` — not truly independent in practice (see `cli/AGENTS.md`). Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
 - `eslint.config.mjs` uses the modern flat config (`eslint/config`). Lint: `npx eslint .`. No separate typecheck script.

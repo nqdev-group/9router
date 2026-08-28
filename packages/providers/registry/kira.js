@@ -16,7 +16,14 @@ export default {
     textIcon: "KR",
     website: "https://kiraai.vn",
     notice: {
+      // Real tiers from https://kiraai.vn/bang-gia/: 50k tokens on signup, Cá nhân
+      // 5,000,000 tokens/month, Dev 12,000,000 tokens/month — beyond that, per-model
+      // metered pricing applies (see packages/providers/pricing.js's "kira" block).
+      text: "Đăng ký nhận 50.000 token miễn phí. Gói Cá nhân 5.000.000 token/tháng, gói Dev 12.000.000 token/tháng — vượt hạn mức tính theo giá từng model.",
       apiKeyUrl: "https://kiraai.vn/developer/?apiKey=true",
+      // Kira's registration is a modal on the homepage (no dedicated /sign-up path) —
+      // ?ref= affiliate query param.
+      signupUrl: "https://kiraai.vn/?ref=nguyenquyitpro",
     },
   },
   // ── transport (HTTP runtime) → PROVIDERS[id] ─────────────────────────────
@@ -29,33 +36,70 @@ export default {
       "Accept": "*/*",
     },
     retry: { 429: { attempts: 6 }, 503: { attempts: 3 } },
+    // "usage" isn't wired to a live JSON API (Kira has no entry in open-sse/services/usage.js's
+    // USAGE_HANDLERS) — these are reference links for humans, not fetched programmatically.
     usage: {
       url: "https://kiraai.vn/developer/?usage=true",
-      urls: [
-        "https://kiraai.vn/developer/?usage=true"
-      ]
+      // Per-model rates shown on this page are the source for packages/providers/pricing.js's
+      // "kira" block — kept here so the two stay traceable to the same origin.
+      pricingUrl: "https://kiraai.vn/bang-gia/",
     },
-    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "chat" },
+    // "openai": endpoint returns the standard OpenAI-compatible { data: [...] } shape
+    // (verified live) — matches the type used by every other modelsFetcher in this repo;
+    // "chat" is not a recognized fetcher type (see src/app/api/providers/suggested-models/filters.js).
+    modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
   },
   models: [
-    { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
-    { id: "kimi-k3-free", name: "Kimi K3 Free (Miễn phí)" },
-    { id: "kira-3.5-flash", name: "Kira 3.5 Flash" },
-    { id: "kira-2.5-pro", name: "Kira 2.5 Pro" },
-    { id: "kira-2.5-flash", name: "Kira 2.5 Flash" },
-    { id: "kira-3-pro-image-preview", name: "Kira 3 Pro Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-flash-image-preview", name: "Kira 3.1 Flash Image", type: "image", params: ["n", "size"] },
-    { id: "kira-3.1-generate-001", name: "Kira 3.1 Generate", type: "video", params: [] },
+    { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)", type: "chat" },
+    { id: "deepseek-v4-pro-free", name: "DeepSeek V4 Pro Free (Miễn phí)", type: "chat" },
+    { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free (Miễn phí)", type: "chat" },
+    // { id: "deepseek-v4-pro-1b-free", name: "DeepSeek V4 Pro 1B Free (Miễn phí)" },
+    { id: "deepseek-v4-flash-1b-free", name: "DeepSeek V4 Flash 1B Free (Miễn phí)", type: "chat" },
+    { id: "qwen-3.8-27b-free", name: "Qwen3.8 27B Free (Miễn phí)", type: "chat" },
+    { id: "qwen-3.8-max-free", name: "Qwen3.8 Max Free (Miễn phí)", type: "chat" },
+    { id: "hy3", name: "Tencent: Hy3 Free (Miễn phí)", type: "chat" },
+    { id: "qwen3.8-flash", name: "Qwen3.8 Flash", type: "chat" },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash", type: "chat" },
+    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", type: "chat" },
+    { id: "mimo-v2.5", name: "MiMo V2.5", type: "chat" },
+    // id corrected: live API (https://kiraai.vn/api/v1/models) has no "kira-2.0" —
+    // the actual id is "kira-mini-2.0".
+    { id: "kira-mini-2.0", name: "Kira Mini 2.0", type: "chat" },
+    { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
+    { id: "kira-2.0-image", name: "Kira 2.0 Image", type: "image", params: ["n", "size"] },
+    // ids corrected: live API has no "kira-3-pro-image-preview" / "kira-3.1-flash-image-preview" —
+    // these are Gemini-branded models served through Kira's gateway, no "kira-" prefix.
+    { id: "gemini-3-pro-image-preview", name: "Gemini 3 Pro Image", type: "image", params: ["n", "size"] },
+    { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "gemini-2.5-flash-image", name: "Gemini 2.5 Flash Image", type: "image", params: ["n", "size"] },
+    { id: "kira-3.0-video", name: "Kira 3.0 Video", type: "video", params: [] },
+    { id: "kira-3.0-video-flash", name: "Kira 3.0 Video Flash", type: "video", params: [] },
   ],
+  // Live catalog (https://kiraai.vn/api/v1/models) has ~40 more chat models beyond this
+  // seed (Claude, GPT-5.x, Gemini, Qwen, Kimi, GLM, Grok, MiMo tiers — see
+  // packages/providers/pricing.js's "kira" block for the full priced list). passthroughModels
+  // lets users pick any of them via modelsFetcher-driven suggestions without listing every
+  // id here.
+  passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
+  // No sttConfig: live catalog (https://kiraai.vn/api/v1/models) has no speech-to-text
+  // model/endpoint listed, and guessing common paths (/v1/audio/transcriptions, /v1/stt)
+  // both 404'd — Kira's marketing page mentions STT but the API contract for it isn't
+  // confirmed. Add it once a real endpoint + model id is verified.
   serviceKinds: ["llm", "image", "video", "tts"],
   ttsConfig: {
     baseUrl: "https://kiraai.vn/api/v1/audio/speech",
     authType: "apikey",
     authHeader: "bearer",
     format: "openai",
+    // ids corrected: "kira-2.5-flash" (previously declared here) is actually a CHAT model,
+    // not TTS — it doesn't appear under TTS in the live catalog. These 4 are the real
+    // TTS ids returned by https://kiraai.vn/api/v1/models.
     models: [
-      { id: "kira-2.5-flash", name: "Kira 2.5 Flash (TTS)" },
+      { id: "kira-3.0-flash-tts", name: "Kira 3.0 Flash TTS" },
+      { id: "kira-2.0-flash-tts", name: "Kira 2.0 Flash TTS" },
+      { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS Preview" },
+      { id: "gemini-2.5-flash-tts", name: "Gemini 2.5 Flash TTS" },
     ],
     voices: [
       { id: "Kore", name: "Kore" },

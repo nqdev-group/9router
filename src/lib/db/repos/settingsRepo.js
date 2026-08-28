@@ -126,6 +126,7 @@ const DEFAULT_SETTINGS = {
   tierRoutingMode: "cheapest-first", // "cheapest-first" | "task-aware"
   tierRoutingDailyBudgetCapUsd: null, // null = no cap
   tierRoutingFreeTierThresholdUsd: 0.01, // blended $/1M tokens considered "free tier"
+  tokenLimitRoutingEnabled: false, // opt-in; bypass combo models whose max-input-token limit can't fit the prompt
 };
 
 async function readRaw() {

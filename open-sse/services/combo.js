@@ -7,6 +7,7 @@ import { unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 import { classifyTask, reorderByCost, reorderFreeTierFirst } from "@9router/tier-routing";
+import { filterModelsByTokenLimit } from "@9router/token-limit-routing";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -282,11 +283,29 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {(modelStr: string) => {input:number,output:number}|null} [options.tierRouting.getPricing]
  * @param {boolean} [options.tierRouting.overBudget] - Daily budget cap already exceeded — force free-tier-first
  * @param {number} [options.tierRouting.freeTierThreshold] - Blended $/1M tokens considered "free tier"
+ * @param {Object} [options.tokenLimitRouting] - Bypass models whose configured max-input-token limit can't fit the prompt
+ * @param {boolean} [options.tokenLimitRouting.enabled]
+ * @param {number} [options.tokenLimitRouting.promptTokens] - Estimated prompt token count (computed once by caller)
+ * @param {(modelStr: string) => number|null} [options.tokenLimitRouting.getMaxInputTokens]
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
+
+  // Token-limit bypass — runs FIRST, before tier-routing/capability reorder below.
+  // Unlike those two (which only ever reorder), this is a hard drop: a model that
+  // can't fit the prompt will near-certainly fail immediately, so narrowing the
+  // candidate pool here means the reorders that follow only work with viable
+  // models. Fail-open inside filterModelsByTokenLimit (never returns an empty list).
+  if (tokenLimitRouting?.enabled && typeof tokenLimitRouting.getMaxInputTokens === "function") {
+    const filtered = filterModelsByTokenLimit(rotatedModels, tokenLimitRouting.promptTokens, tokenLimitRouting.getMaxInputTokens);
+    if (filtered.length !== rotatedModels.length) {
+      const bypassed = rotatedModels.filter((m) => !filtered.includes(m));
+      log.info("COMBO", `token-limit: bypass [${bypassed.join(", ")}] (prompt=${tokenLimitRouting.promptTokens} tokens)`);
+    }
+    rotatedModels = filtered;
+  }
 
   // Cost/tier-aware reorder — runs BEFORE the capability auto-switch below so hard
   // capability requirements (vision/pdf/audio) always win; cost only breaks ties
