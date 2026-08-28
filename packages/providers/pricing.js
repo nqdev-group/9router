@@ -290,4 +290,15 @@ export const PROVIDER_PRICING = {
     "mistral/leanstral-1-5":     { input: 0, output: 0 },
     "stealth/ox-alpha":          { input: 0, output: 0 },
   },
+
+  // === GuRouter (gurouter.gulagi.com) — self-hosted "New API" gateway ===
+  // Pulled live from the public, unauthenticated https://gurouter.gulagi.com/api/pricing
+  // feed (checked 2026-08-28) — this is the entire catalog today, all 3 models at $0
+  // (model_ratio/model_price both 0 for every entry). Re-check that feed once the vendor
+  // list there (OpenAI/Anthropic/DeepSeek, currently unused) starts backing priced models.
+  gurouter: {
+    "poolside/laguna-s-2.1-free": { input: 0, output: 0 },
+    "minimax/minimax-m3-free":    { input: 0, output: 0 },
+    "minimax/minimax-m2.7-free":  { input: 0, output: 0 },
+  },
 };
