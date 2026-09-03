@@ -10,7 +10,11 @@
       "Bash(curl -s -o /dev/null -w \"POST /api/v1/images/generations -> %{http_code}\\\\n\" -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/images/generations\")",
       "Bash(curl -s -o /dev/null -w \"POST /api/v1/chat/completions -> %{http_code}\\\\n\" -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/chat/completions\")",
       "Bash(rm -f d:/tmp/kira_models.json)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"https://kiraai.vn/bang-gia/\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"https://kiraai.vn/bang-gia/\")",
+      "Bash(curl -s 'https://kiraai.vn/api/v1/models' -o d:/tmp/kira_models.json)",
+      "Read(//d/tmp/**)",
+      "Bash(node --check packages/providers/pricing.js)",
+      "Bash(node --check open-sse/handlers/ttsProviders/kira.js)"
     ],
     "additionalDirectories": [
       "d:\\tmp"
