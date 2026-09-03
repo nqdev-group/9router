@@ -321,4 +321,58 @@ export const PROVIDER_PRICING = {
     "minimax/minimax-m3-free":    { input: 0, output: 0 },
     "minimax/minimax-m2.7-free":  { input: 0, output: 0 },
   },
+
+  // === HHTechAPI (hhtechapi.com / hhtechapi.net) ===
+  // Pulled live from the public, unauthenticated https://hhtechapi.com/portal/api/public/models
+  // feed (verified live, 2026-09-03 — 200 with no Authorization header). Rates there are
+  // VND-denominated "credit" per 1M tokens (site states "1.000đ = 1.000 credit", i.e.
+  // 1 credit = 1 VND); several families expose a `detailedPrice` split
+  // (input/output/cacheRead/cacheWrite/blended), others only a blended `priceText`.
+  // USD conversion below uses a plain external market rate (~26,000 VND/$1) since — unlike
+  // Kira — HHTechAPI's feed has no matching "0% discount" reference model to back into an
+  // exact internal rate from; this is an approximation, re-verify against the live feed and
+  // current VND/USD rate periodically, not a rate HHTechAPI itself publishes.
+  // Sanity check: comparing these ids against open-sse/providers/pricing.js's own canonical
+  // rates for the same ids (gpt-5.6-luna $1.00/$6.00, -terra $2.50/$15.00, -sol $5.00/$30.00,
+  // claude-fable-5 $10.00/$50.00) shows HHTechAPI priced at roughly 3-30x below list — the
+  // families are tagged provider:"kiro"/"codex" in the feed, consistent with resold
+  // subscription/credential access rather than metered upstream billing, so the gap is
+  // expected, not a data error.
+  // `cacheRead`→`cached`, `cacheWrite`→`cache_creation` to match this schema's field names.
+  // Blended-only entries (no detailedPrice split published) use the single blended rate for
+  // both input and output, flagged inline.
+  // Excluded: image models (gpt-image-2, grok-imagine-image*, gemini-*-image) — billed per
+  // request, not per token, outside this $/1M schema. "deepseek-v4" ("Deepseek V4 Tặng") is
+  // excluded too — priceText says "Dùng lượt request tặng" (spent from a free/gifted request
+  // quota, not credit-metered).
+  hhtechapi: {
+    "claude-fable-5-1": { input: 0.1538, output: 0.1538 }, // blended-only (4.000 credit/1M)
+    "claude-fable-5":   { input: 0.3077, output: 1.5385, cached: 0.0615, cache_creation: 0.3846 },
+    "claude-opus-5":    { input: 0.1538, output: 0.7692, cached: 0.0308, cache_creation: 0.1923 },
+    "claude-opus-4-8":  { input: 0.1538, output: 0.7692, cached: 0.0308, cache_creation: 0.1923 },
+    "claude-opus-4-7":  { input: 0.1538, output: 0.7692, cached: 0.0308, cache_creation: 0.1923 },
+    "claude-opus-4-6":  { input: 0.1538, output: 0.7692, cached: 0.0308, cache_creation: 0.1923 },
+    "claude-sonnet-5":  { input: 0.0923, output: 0.4615, cached: 0.0185, cache_creation: 0.1154 },
+    "claude-sonnet-4.6":{ input: 0.0923, output: 0.4615, cached: 0.0185, cache_creation: 0.1154 },
+    "claude-sonnet-4.5":{ input: 0.0308, output: 0.1538, cached: 0.0062, cache_creation: 0.0385 },
+    "claude-haiku-4.5": { input: 0.0308, output: 0.1538, cached: 0.0062, cache_creation: 0.0385 },
+    "gpt-5.6-sol":      { input: 0.0615, output: 0.3077, cached: 0.0415 },
+    "gpt-5.6-terra":    { input: 0.0423, output: 0.2115, cached: 0.0327 },
+    "gpt-5.6-luna":     { input: 0.0346, output: 0.1731, cached: 0.0250 },
+    "gpt-5.5":          { input: 0.0346, output: 0.1731, cached: 0.0250 },
+    "gpt-5.4":          { input: 0.0346, output: 0.1731, cached: 0.0269 },
+    // blended-only families below (no detailedPrice split in the feed) — same rate for input/output
+    "gpt-5.3-codex-spark": { input: 0.0231, output: 0.0231 },
+    "grok-4.6":            { input: 0.0346, output: 0.0346 },
+    "grok-4.5":            { input: 0.0308, output: 0.0308 },
+    "deepseek-v4-pro":     { input: 0.0231, output: 0.0231 },
+    "deepseek-v4-flash":   { input: 0.0135, output: 0.0135 },
+    "glm-5.2":             { input: 0.0269, output: 0.0269 },
+    "kimi-k3":             { input: 0.0385, output: 0.0385 },
+    "glm-5.3-flash":       { input: 0.0327, output: 0.0327 },
+    "gemini-3.1-pro":      { input: 0.0308, output: 0.0308 },
+    "gemini-3.7-flash":    { input: 0.0250, output: 0.0250 },
+    "gemini-3.6-flash":    { input: 0.0192, output: 0.0192 },
+    "qwen3-coder-plus":    { input: 0.0154, output: 0.0154 },
+  },
 };
