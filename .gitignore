@@ -89,6 +89,7 @@ graphify-out/*
 .next-analyze/*
 
 # ===== Ignore claude ai files =====
+.claude/settings.json
 .claude/*.local.json
 
 # ===== Ignore dist files =====
