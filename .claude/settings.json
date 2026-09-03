@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(touch .rtk/scratch.tmp)",
+      "Bash(rm .rtk/scratch.tmp)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/v1/videos/abc123 -> %{http_code}\\\\n\" \"https://kiraai.vn/api/v1/videos/abc123\")",
+      "Bash(curl -s -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/videos/generations\")",
+      "Bash(curl -s -o /dev/null -w \"POST /api/v1/audio/speech -> %{http_code}\\\\n\" -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/audio/speech\")",
+      "Bash(curl -s -o /dev/null -w \"POST /api/v1/images/generations -> %{http_code}\\\\n\" -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/images/generations\")",
+      "Bash(curl -s -o /dev/null -w \"POST /api/v1/chat/completions -> %{http_code}\\\\n\" -X POST -H 'Content-Type: application/json' -d '{}' \"https://kiraai.vn/api/v1/chat/completions\")",
+      "Bash(rm -f d:/tmp/kira_models.json)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" \"https://kiraai.vn/bang-gia/\")"
+    ],
+    "additionalDirectories": [
+      "d:\\tmp"
+    ]
+  }
+}

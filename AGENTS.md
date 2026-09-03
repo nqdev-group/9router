@@ -171,6 +171,8 @@ All run in `chatCore.js` before translation, in order: PrivacyEngine → RTK →
 
 Preprocessors in `open-sse/rtk/preprocessors/` (contentCleaner, etc.) run before filters.
 
+Root-level `.rtk/` is unrelated: a git-ignored local scratch dir for runtime/temp data, name collision is intentional/accepted — see `.rtk/README.md`.
+
 ## DB driver chain
 
 Priority order (see `src/lib/db/driver.js`):
