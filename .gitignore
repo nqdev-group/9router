@@ -88,6 +88,9 @@ graphify-out/*
 .PR/
 .next-analyze/*
 
+# Kiro local workspace state
+.kiro/
+
 # ===== Ignore claude ai files =====
 .claude/settings.json
 .claude/*.local.json
