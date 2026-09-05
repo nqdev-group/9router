@@ -80,7 +80,7 @@ open-sse.old/
 graphify-out/*
 
 # Local-only working dirs (notes, vendored repos, scripts, skills)
-.claude/
+# .claude/
 .docs/
 .repo/
 .script/
@@ -92,6 +92,7 @@ graphify-out/*
 .kiro/
 
 # ===== Ignore claude ai files =====
+.claude/settings.json
 .claude/*.local.json
 
 # ===== Ignore dist files =====
@@ -101,3 +102,10 @@ dist/*
 # ===== Ignore archived files =====
 archived/
 !archived/.gitignore
+
+# ===== Local runtime/scratch data (see .rtk/README.md) =====
+.rtk/*
+!.rtk/.gitignore
+!.rtk/README.md
+
+.playwright-mcp

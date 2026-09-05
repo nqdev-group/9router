@@ -314,6 +314,21 @@ export async function saveRequestUsage(entry) {
   }
 }
 
+/**
+ * Today's total cost (local time), read from the pre-aggregated usageDaily row.
+ * O(1) single-row lookup — safe to call on the request path (used by tier-routing's
+ * daily budget cap).
+ * @returns {Promise<number>}
+ */
+export async function getTodaySpendUsd() {
+  const db = await getAdapter();
+  const dateKey = getLocalDateKey();
+  const row = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
+  if (!row) return 0;
+  const day = parseJson(row.data, {});
+  return Number(day.cost) || 0;
+}
+
 export async function getUsageHistory(filter = {}) {
   const db = await getAdapter();
   const conds = [];

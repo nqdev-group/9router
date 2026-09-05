@@ -1,14 +1,23 @@
 # AGENTS.md
 
-Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
 
 ## What this is
 
 **9Router** (`9router-app`) — a local AI routing gateway + Next.js dashboard. Exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers with format translation, model-combo fallback, multi-account fallback, OAuth/API-key credential management, token refresh, quota/usage tracking, and optional cloud sync.
 
-Two published artifacts in this repo:
+Three published artifacts in this repo:
 - **Dashboard + gateway** (root `package.json`, `9router-app`) — the Next.js server doing the actual routing.
 - **CLI launcher** (`cli/`, published to npm as `9router`) — separate package that installs/starts the server and manages tray icon. Own `package.json`, version, and build.
+- **Agent skills** (`skills/`) — drop-in `SKILL.md` files (9router entry skill + per-capability: chat, image, video, tts, stt, embeddings, web-fetch, web-search, kiraai-*) distributed via raw GitHub links (see `skills/README.md`) for external AI agents (Claude, Cursor, ChatGPT) to consume 9Router as a tool. Not Claude Code skills — a product feature.
+
+## Fork & upstream sync
+
+**This repo is a fork.** The original upstream project is still actively developed independently, and new upstream versions are regularly merged into this fork's `master-forked` branch as they're released (see merge commits like "Merge branch 'master-forked' into conflict/…", "Merge pull request … from nqdev-group/master").
+
+- Upstream can touch any file under `src/` and `open-sse/` at any time via a future merge. Anything hand-written directly in those trees is a **future merge-conflict liability**.
+- This is the concrete reason for the [New features: always in packages/](#new-features-always-in-packages-hard-rule) hard rule: code isolated in `packages/` and only *imported* from `src/`/`open-sse/` rarely conflicts with upstream merges, because upstream doesn't know `packages/` exists.
+- When resolving merge conflicts from an upstream sync, prefer keeping upstream's version of files under `src/`/`open-sse/` and re-applying any local customization as a `packages/*` import instead of inline edits, where feasible.
 
 ## Dev commands
 
@@ -51,7 +60,7 @@ Test aliases (from `tests/vitest.config.js`): `open-sse/` → `../open-sse/`, `@
 
 Real provider tests gated by `RUN_REAL=1`. Read credentials from `~/.9router/db/data.sqlite`.
 
-**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. Expected red:
+**Suite is NOT all-green on plain checkout.** ~938 pass, ~64 fail. Judge regressions with `tests/__baseline__/verify-no-regression.mjs`, not raw `npx vitest run`. **Windows gotcha:** this script matches `known-fails.txt` lines by splitting each result's file path on `"/app/"` (the container path prefix `known-fails.txt` was captured under) — on Windows, `vitest run --reporter=json` produces native `D:\...` paths with no `/app/`, so every comparison key becomes `"undefined :: <test name>"` and the script reports every currently-failing test as a fresh regression, even ones already in `known-fails.txt`. Don't trust its verdict on Windows; instead diff the raw failing test names against `known-fails.txt` by eye, or run the script on Linux/CI. Expected red:
 - 26 items in `tests/__baseline__/known-fails.txt` (rtk, oauth-cursor-auto-import, translator-request-normalization, etc.).
 - `unit/embeddings.cloud.test.js` imports `cloud/src/handlers/embeddings.js` — `cloud/` worker dir **not in this repo**, always fails here.
 - `unit/xai-oauth-service.test.js` times out (5s) when xAI endpoint-discovery fetch unreachable/unmocked.
@@ -73,7 +82,7 @@ CLI → /v1/* (next rewrites) → src/app/api/v1/* (thin route)
 → Dashboard → src/app/(dashboard)/dashboard/* → src/app/api/* (CRUD)
 ```
 
-Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/responses` → `/api/v1/responses`, `/codex/:path*` → `/api/v1/responses`.
+Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/v1beta/:path*` → `/api/v1beta/:path*`, `/responses` → `/api/v1/responses`, `/codex/:path*` → `/api/v1/responses`.
 
 ## Path aliases (jsconfig.json)
 
@@ -83,21 +92,32 @@ Next.js rewrites (`next.config.mjs`): `/v1/:path*` → `/api/v1/:path*`, `/respo
 
 `packages/index.js` is a stub file that makes `@9router/*` resolve; never delete it.
 
-## New features: always in packages/
+## New features: always in packages/ (hard rule)
 
-**All new features/engines must live in `packages/` and be imported via `@9router/*`.**
+**RÀNG BUỘC BẮT BUỘC: Toàn bộ code phát triển mới (feature/engine/logic) phải được viết trong `packages/`, sau đó import/require vào app (`src/`, `open-sse/`) để dùng. Tuyệt đối KHÔNG viết logic trực tiếp vào app.**
+
+- All new features/engines must live in `packages/` and be imported via `@9router/*` — never written directly inside `src/` or `open-sse/`.
+- `src/` and `open-sse/` may only **consume** `packages/*` via import; they must not contain the feature's own business logic.
+- Exceptions are narrow and fixed: `src/app/api/` may grow (thin routes only — call into `packages/`), `src/lib/` may grow (infra glue: DB driver, adapters), `open-sse/` may grow for its own engine internals (providers/executors/translators — see `open-sse/AGENTS.md`). Everything else is off-limits for new logic.
+- If a suitable `packages/*` subdir doesn't exist yet, create a new one there — do not fall back to writing inline in `src/` or `open-sse/` "just this once".
 
 ```
 packages/
-  cmem/          → @9router/cmem        (context memory engine)
-  components/    → @9router/components/ (UI: caveman, cmem, cost, rtk, token-saver-report)
-  validation/    → @9router/validation/ (schemas)
-  kira-ai/       → @9router/kira-ai/    (Kira AI integration)
-  providers/     → @9router/providers/  (extra provider registry)
-  mcpServer/     → @9router/mcpServer/  (MCP server)
-  utils/         → @9router/utils/      (shared utilities)
-  revidapi/      → @9router/revidapi/   (Revid API)
+  cmem/           → @9router/cmem           (context memory engine)
+  components/     → @9router/components/    (UI: caveman, cmem, cost, rtk, token-saver-report)
+  validation/     → @9router/validation/    (schemas)
+  providers/      → @9router/providers/     (extra provider registry)
+  provider-alert/ → @9router/provider-alert/ (Discord alerts on account down/recovery; used by src/sse/services/auth.js and dashboard settings/provider-alert page)
+  services/       → @9router/services/      (extra model-prefix inference, extends open-sse/services/model.js)
+  tier-routing/   → @9router/tier-routing/  (cost/tier-aware combo model reordering; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js)
+  token-limit-routing/ → @9router/token-limit-routing/ (bypasses combo models whose configured max-input-token limit can't fit the prompt; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js + src/lib/db/repos/modelTokenLimitsRepo.js)
+  model-combo-cooldown/ → @9router/model-combo-cooldown/ (per-combo model cooldown: a model that fails inside a combo is skipped in THAT combo for 5 min, in-memory, fail-open when all models are cooling down; used by open-sse/services/combo.js `handleComboChat`, always-on via `modelCooldown: { enabled: true }` set in both combo branches of src/sse/handlers/chat.js — not applied to Fusion combos)
+  mcpServer/      → @9router/mcpServer/     (9Router-as-MCP-server: exposes 9Router capabilities as MCP tools over Streamable HTTP at /v1/mcp, via @modelcontextprotocol/sdk; unrelated to src/app/api/mcp/[plugin]/* which is 9Router-as-MCP-client, see packages/AGENTS.md)
+  utils/          → @9router/utils/         (shared utilities)
+  revidapi/       → @9router/revidapi/      (Revid API)
 ```
+
+Note: `packages/kira-ai/` was removed — do not reference it.
 
 Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`. Pipeline hooks in `open-sse/handlers/chatCore.js` import logic from `packages/cmem/`, `packages/validation/`, etc. Never create new dirs under `src/` for feature logic. Only `src/app/api/` (routes) and `src/lib/` (infra) may grow.
 
@@ -107,24 +127,30 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 |-----|-------------|
 | `open-sse/` | Standalone SSE engine — providers, executors, translators, RTK, config, PrivacyEngine. Has own AGENTS.md. |
 | `src/sse/` | Request entry (`chat.js`), auth services, logger — bridges Next.js routes to open-sse. |
-| `src/app/api/` | Next.js API routes — V1 compat, dashboard CRUD, OAuth, CLI tools. 26 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, etc.). |
+| `src/app/api/` | Next.js API routes — V1/V1beta compat, dashboard CRUD, OAuth, CLI tools. 27 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, v1beta, etc.). |
 | `src/app/(dashboard)/` | React dashboard pages. |
 | `packages/` | All new feature engines, UI packages, validation, utils — imported via `@9router/*`. |
 | `tests/` | Separate vitest package. |
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |
 | `src/shared/` | Shared React components, hooks, constants, services. |
 | `src/store/` | Zustand stores (providerStore, settingsStore, themeStore, userStore, notificationStore, headerSearchStore). |
+| `skills/` | Published agent-skill definitions (SKILL.md per capability) — product artifact, distributed externally, not project tooling. |
 
 ## Provider system
 
 Providers defined in `open-sse/providers/registry/{id}.js` → built into `open-sse/providers/index.js` (PROVIDERS + PROVIDER_MODELS). `open-sse/config/providers.js` re-exports from `providers/index.js`. Models in `open-sse/config/providerModels.js` re-exports PROVIDER_MODELS from `providers/index.js` + adds CORE_PROVIDER_MODELS.
 
-**To add a provider:**
-1. Copy `open-sse/providers/REGISTRY_TEMPLATE.js` → `open-sse/providers/registry/{id}.js`
-2. Add models to `open-sse/config/providerModels.js`
-3. Regenerate `open-sse/providers/registry/index.js` (auto-generated import list — don't hand-edit)
-4. Optionally add executor in `open-sse/executors/` + register in `open-sse/executors/index.js`
-5. Optionally add translators in `open-sse/translator/request/` + `response/`, import in `open-sse/translator/index.js`
+`open-sse/providers/index.js` builds `REGISTRY` by spreading `extraProviders` (imported from `@9router/providers/registry/index.js`, i.e. `packages/providers/registry/index.js`) **first**, then the static `open-sse/providers/registry/{id}.js` entries — both sources merge into the same `PROVIDERS`/`PROVIDER_MODELS`/`PROVIDER_MEDIA` maps at runtime.
+
+**RÀNG BUỘC BẮT BUỘC — khai báo provider AI mới (không thuộc upstream) PHẢI đi qua `packages/providers/registry/`, KHÔNG hand-edit `open-sse/providers/registry/index.js`:**
+1. Tạo `packages/providers/registry/{id}.js` (copy shape từ `open-sse/providers/REGISTRY_TEMPLATE.js`).
+2. Đăng ký trong `packages/providers/registry/index.js` — file này nhỏ, **hand-maintained** (không phải auto-generated), thêm 1 dòng import `pcNN` + 1 dòng trong mảng export.
+3. Optionally add executor in `open-sse/executors/` + register in `open-sse/executors/index.js` (executor internals vẫn thuộc `open-sse/` vì đây là engine logic dùng chung, không phải khai báo provider).
+4. Optionally add translators in `open-sse/translator/request/` + `response/`, import in `open-sse/translator/index.js`.
+
+Lý do: `open-sse/providers/registry/index.js` là auto-generated import list và là file upstream sync thường xuyên chạm vào — hand-edit trực tiếp vào đó là **future merge-conflict liability** (xem [Fork & upstream sync](#fork--upstream-sync)). `packages/providers/registry/` cô lập mọi provider do team này tự thêm, upstream không biết tới thư mục này nên gần như không bao giờ conflict. Các provider hiện có theo pattern này: `kira`, `llm7`, `sambanova`, `revidapi`, `vilao`.
+
+`open-sse/providers/registry/{id}.js` + regenerate `open-sse/providers/registry/index.js` chỉ dành cho provider đến từ **chính upstream** (qua merge) — không tự tay thêm provider mới vào đường này.
 
 ## Translation pipeline
 
@@ -145,6 +171,8 @@ All run in `chatCore.js` before translation, in order: PrivacyEngine → RTK →
 | **CMEM** | Context memory engine. Opt-in, disabled by default. Uses `cmem_*` tables in the 9router DB. | `packages/cmem/` |
 
 Preprocessors in `open-sse/rtk/preprocessors/` (contentCleaner, etc.) run before filters.
+
+Root-level `.rtk/` is unrelated: a git-ignored local scratch dir for runtime/temp data, name collision is intentional/accepted — see `.rtk/README.md`.
 
 ## DB driver chain
 
@@ -187,11 +215,11 @@ Proxy: `HTTP_PROXY`/`HTTPS_PROXY` (and lowercase variants) for upstream calls.
 ## Pitfalls
 
 - `open-sse/config/providers.js` re-exports from `providers/index.js` — don't declare PROVIDERS there directly
-- `open-sse/providers/registry/index.js` is auto-generated — regenerate after adding registry files, don't hand-edit
+- `open-sse/providers/registry/index.js` is auto-generated (upstream-owned) — don't hand-edit; new provider integrations go in `packages/providers/registry/` instead (see [Provider system](#provider-system))
 - Binary formats (kiro EventStream, cursor protobuf, commandcode NDJSON) don't round-trip through OpenAI translator
 - RTK/caveman/ponytail/headroom inject hooks run in `chatCore.js` before translation — all fail-open, never throw
 - `tests/` is a separate npm package — install deps there before running tests
 - `packages/index.js` is required for `@9router/*` path alias resolution — don't delete
 - `.opencode/opencode.jsonc` is a bare schema reference; no custom instructions configured there
-- Versioning: root and `cli/` versioned independently. Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
+- Versioning: root and `cli/` have separate `package.json` version fields, but `cli/scripts/build-cli.js` overwrites root's version to match `cli/`'s on every `npm run build` in `cli/` — not truly independent in practice (see `cli/AGENTS.md`). Changes logged in `CHANGELOG.md`. Commit style: Conventional Commits (`fix(translator): …`, `feat(…)`)
 - `eslint.config.mjs` uses the modern flat config (`eslint/config`). Lint: `npx eslint .`. No separate typecheck script.

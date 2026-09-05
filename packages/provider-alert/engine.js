@@ -12,7 +12,7 @@ function hasActiveModelLock(connection) {
   return false;
 }
 
-function classifyConnections(connections) {
+export function classifyConnections(connections) {
   let available = 0;
   let temporarilyDown = 0;
   let permanentlyDown = 0;

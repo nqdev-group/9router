@@ -26,6 +26,70 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { maybeAutoSyncModelsDev } from "open-sse/services/modelsDevService.js";
+import { getPricingForModel } from "open-sse/providers/pricing.js";
+import { getTodaySpendUsd } from "@/lib/db/repos/usageRepo.js";
+import { estimatePromptTokens } from "@9router/token-limit-routing";
+import { getModelTokenLimitForModel } from "@/lib/db/repos/modelTokenLimitsRepo.js";
+
+// Cost/tier-aware reorder config (Phase 5 of input-tokens-optimization.md). Fail-open:
+// any error while checking today's spend just disables the budget-exceeded branch,
+// it never blocks routing.
+async function buildTierRoutingConfig(settings) {
+  if (!settings.tierRoutingEnabled) return null;
+
+  const dailyCap = settings.tierRoutingDailyBudgetCapUsd;
+  let overBudget = false;
+  if (dailyCap && dailyCap > 0) {
+    try {
+      const spentToday = await getTodaySpendUsd();
+      overBudget = spentToday >= dailyCap;
+    } catch (e) {
+      log.warn("COMBO", `tier-routing budget check failed, ignoring cap`, { error: e.message || String(e) });
+    }
+  }
+
+  return {
+    enabled: true,
+    mode: settings.tierRoutingMode || "cheapest-first",
+    freeTierThreshold: settings.tierRoutingFreeTierThresholdUsd,
+    overBudget,
+    getPricing: (modelStr) => {
+      const slash = modelStr.indexOf("/");
+      const provider = slash > 0 ? modelStr.slice(0, slash) : "";
+      const model = slash > 0 ? modelStr.slice(slash + 1) : modelStr;
+      return getPricingForModel(provider, model);
+    },
+  };
+}
+
+// Token-limit bypass — bypasses combo models whose configured max-input-token limit
+// can't fit the estimated prompt. Fail-open: filterModelsByTokenLimit never empties
+// the combo, so a misconfigured/oversized limit just falls through to the provider's
+// own context-length error instead of blocking routing.
+//
+// getModelTokenLimitForModel() is async (reads the KV override DB) but combo.js's
+// filter runs synchronously, so every combo model's limit is pre-resolved here
+// (once, via Promise.all) into a plain lookup map instead of an async accessor.
+async function buildTokenLimitRoutingConfig(settings, body, comboModels) {
+  if (!settings.tokenLimitRoutingEnabled) return null;
+
+  const promptTokens = estimatePromptTokens(body);
+  const limitEntries = await Promise.all(
+    comboModels.map(async (modelStr) => {
+      const slash = modelStr.indexOf("/");
+      const provider = slash > 0 ? modelStr.slice(0, slash) : "";
+      const model = slash > 0 ? modelStr.slice(slash + 1) : modelStr;
+      return [modelStr, await getModelTokenLimitForModel(provider, model)];
+    })
+  );
+  const limits = Object.fromEntries(limitEntries);
+
+  return {
+    enabled: true,
+    promptTokens,
+    getMaxInputTokens: (modelStr) => (modelStr in limits ? limits[modelStr] : null),
+  };
+}
 
 let modelsDevInitiated = false;
 
@@ -148,7 +212,10 @@ export async function handleChat(request, clientRawRequest = null) {
       log,
       comboName: modelStr,
       comboStrategy,
-      comboStickyLimit
+      comboStickyLimit,
+      tierRouting: await buildTierRoutingConfig(settings),
+      tokenLimitRouting: await buildTokenLimitRoutingConfig(settings, body, comboModels),
+      modelCooldown: { enabled: true },
     });
   }
 
@@ -226,7 +293,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         log,
         comboName: modelStr,
         comboStrategy,
-        comboStickyLimit
+        comboStickyLimit,
+        tierRouting: await buildTierRoutingConfig(chatSettings),
+        tokenLimitRouting: await buildTokenLimitRoutingConfig(chatSettings, body, comboModels),
+        modelCooldown: { enabled: true },
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });

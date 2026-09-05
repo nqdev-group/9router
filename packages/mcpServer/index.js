@@ -1,1 +1,2 @@
-export { createMCPServer } from "./lib/server.js";
+export { createMcpServer } from "./lib/server.js";
+export { handleMcpHttpRequest } from "./lib/transport/httpHandler.js";

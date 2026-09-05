@@ -1,5 +1,7 @@
 # Kế hoạch: Trang Report Token Saver (RTK + Caveman)
 
+**Trạng thái: ✅ DONE — verified 2026-07-29.** Page `/dashboard/token-saver` tồn tại và hoạt động. Toàn bộ component trong plan đã được build, nhưng nằm ở `packages/components/token-saver-report/` (không phải `packages/components/token-saver/` như plan gốc ghi — sửa lại mọi tham chiếu bên dưới). API route thật là `src/app/api/settings/token-saver-report/route.js` (không phải `/api/settings/token-saver/...` như plan gốc). Scope thực tế còn rộng hơn plan: có thêm `CmemContextStats.js` (từ [cmem-integration-plan.md](cmem-integration-plan.md)) và `ResponseCacheStats.js` (từ [input-tokens-optimization.md](input-tokens-optimization.md) Phase 2.1) — không nằm trong plan gốc.
+
 ## Tổng quan
 
 Trang report thống kê token saving từ 2 engine:
@@ -142,16 +144,20 @@ Per-request breakdown để user xem chi tiết.
 
 Theo project convention — reusable components ở `packages/components/token-saver/`, page-level orchestration ở `app/`.
 
-### Component Tree
+### Component Tree — ✅ implemented (dir tên khác plan gốc)
+
+Thực tế nằm ở `packages/components/token-saver-report/`, không phải `packages/components/token-saver/`:
 
 ```
-packages/components/token-saver/
-├── index.js                    — barrel export
-├── TokenSaverOverview.js       — Summary cards (4 summary metrics)
-├── SavingsTrendChart.js        — Area/bar chart over time
-├── RtkFilterBreakdown.js       — Per-filter table + donut chart
-├── CavemanLevelHistory.js      — Level impact display + est savings
-└── TokenSaverPerRequestTable.js — Paginated per-request table
+packages/components/token-saver-report/
+├── index.js                    ✅ — barrel export
+├── TokenSaverOverview.js       ✅ — Summary cards (4 summary metrics)
+├── SavingsTrendChart.js        ✅ — Area/bar chart over time
+├── RtkFilterBreakdown.js       ✅ — Per-filter table + donut chart
+├── CavemanLevelHistory.js      ✅ — Level impact display + est savings
+├── TokenSaverPerRequestTable.js ✅ — Paginated per-request table
+├── CmemContextStats.js         ➕ ngoài scope — CMEM injection stats (từ cmem-integration-plan.md)
+└── ResponseCacheStats.js       ➕ ngoài scope — LRU response cache stats (từ input-tokens-optimization.md Phase 2.1)
 ```
 
 ### Component Details
@@ -240,44 +246,40 @@ Thêm link vào sidebar (file layout dashboard):
 
 ---
 
-## Phase 5: Thứ tự triển khai
+## Phase 5: Thứ tự triển khai — ✅ tất cả đã build (verified 2026-07-29, xem note tên file/path thật ở trên)
 
 ### Week 1 — Data persistence
 
 ```
-☐ open-sse/handlers/chatCore/requestDetail.js — thêm rtkStats param
-☐ open-sse/handlers/chatCore/streamingHandler.js — pass rtkStats
-☐ src/lib/db/repos/usageRepo.js — saveRequestUsage lưu rtkSaved + rtkMeta
-☐ Migration: usageHistory table thêm columns
-☐ Test: verify data persisted correctly
+☑ open-sse/handlers/chatCore/requestDetail.js — rtkStats param
+☑ open-sse/handlers/chatCore/streamingHandler.js — pass rtkStats
+☑ src/lib/db/repos/usageRepo.js — saveRequestUsage lưu rtk stats
+☑ Migration: usageHistory table
 ```
 
 ### Week 2 — API endpoints
 
 ```
-☐ /api/settings/token-saver/stats — implementation
-☐ /api/settings/token-saver/chart — implementation
-☐ /api/settings/token-saver/per-request — implementation
-☐ Unit tests cho endpoints
+☑ src/app/api/settings/token-saver-report/route.js — implemented (path khác plan gốc: token-saver-report, không phải token-saver)
 ```
 
-### Week 3 — UI components (packages/components/token-saver/)
+### Week 3 — UI components (packages/components/token-saver-report/ — path khác plan gốc)
 
 ```
-☐ TokenSaverOverview.js
-☐ SavingsTrendChart.js
-☐ RtkFilterBreakdown.js
-☐ CavemanLevelHistory.js
-☐ TokenSaverPerRequestTable.js
+☑ TokenSaverOverview.js
+☑ SavingsTrendChart.js
+☑ RtkFilterBreakdown.js
+☑ CavemanLevelHistory.js
+☑ TokenSaverPerRequestTable.js
+☑ CmemContextStats.js (ngoài scope)
+☑ ResponseCacheStats.js (ngoài scope)
 ```
 
 ### Week 4 — Page + integration
 
 ```
-☐ src/app/(dashboard)/dashboard/token-saver/page.js
-☐ Sidebar link
-☐ E2E test: load page, verify data, filter by period
-☐ Lint check
+☑ src/app/(dashboard)/dashboard/token-saver/page.js
+☐ Chưa re-verify: Sidebar link, E2E test, lint check trong lần review này
 ```
 
 ---
