@@ -215,6 +215,7 @@ export async function handleChat(request, clientRawRequest = null) {
       comboStickyLimit,
       tierRouting: await buildTierRoutingConfig(settings),
       tokenLimitRouting: await buildTokenLimitRoutingConfig(settings, body, comboModels),
+      modelCooldown: { enabled: true },
     });
   }
 
@@ -295,6 +296,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         comboStickyLimit,
         tierRouting: await buildTierRoutingConfig(chatSettings),
         tokenLimitRouting: await buildTokenLimitRoutingConfig(chatSettings, body, comboModels),
+        modelCooldown: { enabled: true },
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });
