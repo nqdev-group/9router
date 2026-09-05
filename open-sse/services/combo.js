@@ -8,6 +8,7 @@ import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 import { classifyTask, reorderByCost, reorderFreeTierFirst } from "@9router/tier-routing";
 import { filterModelsByTokenLimit } from "@9router/token-limit-routing";
+import { filterSkippedComboModels, markComboModelFailed } from "@9router/model-combo-cooldown";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -287,9 +288,12 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {boolean} [options.tokenLimitRouting.enabled]
  * @param {number} [options.tokenLimitRouting.promptTokens] - Estimated prompt token count (computed once by caller)
  * @param {(modelStr: string) => number|null} [options.tokenLimitRouting.getMaxInputTokens]
+ * @param {Object} [options.modelCooldown] - Skip models that recently failed inside this same combo
+ * @param {boolean} [options.modelCooldown.enabled]
+ * @param {number} [options.modelCooldown.ttlMs] - Cooldown duration; defaults to 5 minutes (see packages/model-combo-cooldown)
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null, modelCooldown = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -303,6 +307,19 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
     if (filtered.length !== rotatedModels.length) {
       const bypassed = rotatedModels.filter((m) => !filtered.includes(m));
       log.info("COMBO", `token-limit: bypass [${bypassed.join(", ")}] (prompt=${tokenLimitRouting.promptTokens} tokens)`);
+    }
+    rotatedModels = filtered;
+  }
+
+  // Model cooldown — skip models that failed inside THIS combo within the last TTL
+  // (default 5 min). Scope is per-combo (see packages/model-combo-cooldown), so the
+  // same model can still be tried normally in a different combo. Fail-open: never
+  // empties the candidate pool if every model happens to be cooling down.
+  if (modelCooldown?.enabled) {
+    const filtered = filterSkippedComboModels(comboName, rotatedModels);
+    if (filtered.length !== rotatedModels.length) {
+      const skipped = rotatedModels.filter((m) => !filtered.includes(m));
+      log.info("COMBO", `cooldown: skip [${skipped.join(", ")}] (recent failure in combo "${comboName}")`);
     }
     rotatedModels = filtered;
   }
@@ -401,11 +418,13 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       lastError = errorText || String(result.status);
       if (!lastStatus) lastStatus = result.status;
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
+      if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
     } catch (error) {
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;
       log.warn("COMBO", `Model ${modelStr} threw error, trying next`, { error: lastError });
+      if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
     }
   }
 

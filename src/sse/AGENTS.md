@@ -24,7 +24,7 @@ to the next account/model. Not an engine itself — no translation/provider logi
 3. `getComboModels(modelStr)` (`services/model.js`) checks if the model name is a combo. If so:
    - strategy = per-combo override (`settings.comboStrategies[name].fallbackStrategy`) else `settings.comboStrategy` else `"fallback"`.
    - `augmentModelsWithCapacityAdapter` (open-sse) may insert extra models when the request needs a capability (e.g. vision) the target lacks.
-   - `"fusion"` strategy → `handleFusionChat` (open-sse `services/combo.js`, panel + judge models). Any other strategy → `handleComboChat` (round-robin/sticky/fallback across `augmentedModels`), passed `tierRouting` (cost-aware reorder, `buildTierRoutingConfig`) and `tokenLimitRouting` (drops models whose configured max-input-tokens can't fit the prompt, `buildTokenLimitRoutingConfig`).
+   - `"fusion"` strategy → `handleFusionChat` (open-sse `services/combo.js`, panel + judge models). Any other strategy → `handleComboChat` (round-robin/sticky/fallback across `augmentedModels`), passed `tierRouting` (cost-aware reorder, `buildTierRoutingConfig`), `tokenLimitRouting` (drops models whose configured max-input-tokens can't fit the prompt, `buildTokenLimitRoutingConfig`), and `modelCooldown: { enabled: true }` (skips a model that recently failed inside THIS combo for 5 min, in-memory, per-combo scope, fail-open when all models are cooling down — `@9router/model-combo-cooldown`, not applied to `handleFusionChat`).
    - Both combo entry points take `handleSingleModel: (body, model) => handleSingleModelChat(...)` as the callback that tries one model — **the actual retry/fallback loop lives in `open-sse/services/combo.js`, not here**; this file only supplies the per-model unit of work.
 4. If not a combo, single model may still get capacity-adapter-augmented into a mini combo (`chat.js:217`).
 5. `handleSingleModelChat` (`chat.js:240`) is the **account fallback loop**: `while (true)` over `getProviderCredentials(provider, excludeConnectionIds, model)`.
@@ -47,7 +47,7 @@ No circuit breaker beyond per-model-per-account cooldown locks (`modelLock_${mod
 
 | Issue | Where |
 |---|---|
-| Combo detection runs twice (once in `handleChat`, again in `handleSingleModelChat` when `modelInfo.provider` is null) — keep both branches' combo-handling logic (fusion/strategy/tierRouting/tokenLimitRouting) in sync if you touch one | `chat.js:167-213` and `chat.js:245-293` (near-duplicate code) |
+| Combo detection runs twice (once in `handleChat`, again in `handleSingleModelChat` when `modelInfo.provider` is null) — keep both branches' combo-handling logic (fusion/strategy/tierRouting/tokenLimitRouting/modelCooldown) in sync if you touch one | `chat.js:167-213` and `chat.js:245-293` (near-duplicate code) |
 | Leftover debug `console.log("🚀 QuyNH: ...")` statements print raw `modelInfo`/`parsed` on every request | `chat.js:242`, `services/model.js:51` |
 | Alert fire-and-forget blocks: `markAccountUnavailable`/`clearAccountError` don't await the Discord webhook call, so a slow/broken webhook never delays the response — but also means failures there are invisible unless you check logs | `services/auth.js:264-293`, `348-369` |
 | `*.orig` files exist for exactly `chat.js` and `auth.js` — these two are known upstream-merge-conflict hotspots; per root `AGENTS.md`, prefer keeping upstream's version and moving local customizations into `packages/*` | `handlers/chat.js.orig`, `services/auth.js.orig` |
