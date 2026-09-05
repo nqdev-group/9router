@@ -124,3 +124,14 @@ Yêu cầu bổ sung: thêm trang dashboard riêng để xem model nào đang b�
 **Đã verify:** thêm 2 unit test cho `listActiveCooldowns` (đa combo, loại bỏ entry hết hạn) — pass. Khởi động dev server thật (`npm run dev`, port 20127), curl cả 2 route mới lẫn `combos-v2`/`api/combos` cũ — cả 2 trả về đúng cùng hành vi gate-auth (307 redirect cho page, `{"error":"Unauthorized"}` cho API) chứng tỏ route mới không crash và không phá vỡ auth middleware hiện có.
 
 **Giới hạn đã biết:** không có credential đăng nhập trong môi trường này nên **chưa verify được bằng mắt** giao diện thật sau khi login (bảng model, badge, đồng hồ đếm ngược) — chỉ verify được routing/build/auth-gate ở tầng HTTP. Cần người dùng tự mở `/dashboard/combo-cooldown` sau khi login để xác nhận UI.
+
+## 9. Phase 2 bổ sung tiếp (2026-09-05): dropdown chọn combo
+
+Yêu cầu bổ sung: trang `/dashboard/combo-cooldown` đang xếp chồng bảng của TẤT CẢ combo — đổi lại thành 1 dropdown chọn combo, grid bên dưới chỉ hiển thị đúng combo đang chọn.
+
+**File sửa:** [src/app/(dashboard)/dashboard/combo-cooldown/page.js](<../src/app/(dashboard)/dashboard/combo-cooldown/page.js>)
+- Thêm state `selectedCombo`; tự động chọn combo đầu tiên khi danh sách combo tải xong (`useEffect` phụ vào `combosWithModels`).
+- Dùng component có sẵn `@/shared/components/Select` (barrel `src/shared/components/index.js`) làm dropdown, `options` là danh sách `{value: combo.name, label: combo.name}`.
+- Thay đoạn `combosWithModels.map(...)` (render N Card xếp chồng) bằng 1 khối `activeCombo && (...)` — chỉ render đúng 1 Card/table cho combo đang chọn, lọc từ `cooldownMap` đã fetch sẵn (không gọi lại API khi đổi lựa chọn trong dropdown).
+
+**Đã verify:** khởi động lại dev server, curl `/dashboard/combo-cooldown` → vẫn 307 (auth-gate như cũ), không log lỗi compile trong `npm run dev`. Chưa verify bằng mắt sau login (cùng giới hạn môi trường như mục 8).

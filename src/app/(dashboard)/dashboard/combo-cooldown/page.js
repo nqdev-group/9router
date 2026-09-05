@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Card from "@/shared/components/Card";
 import Badge from "@/shared/components/Badge";
+import Select from "@/shared/components/Select";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -23,6 +24,7 @@ export default function ComboCooldownPage() {
   const [cooldowns, setCooldowns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
+  const [selectedCombo, setSelectedCombo] = useState("");
 
   const loadCombos = useCallback(async () => {
     try {
@@ -74,6 +76,24 @@ export default function ComboCooldownPage() {
     [combos]
   );
 
+  // Auto-select the first combo once the list loads, so the grid always has
+  // something to show without requiring an extra click.
+  useEffect(() => {
+    if (!selectedCombo && combosWithModels.length > 0) {
+      setSelectedCombo(combosWithModels[0].name);
+    }
+  }, [selectedCombo, combosWithModels]);
+
+  const comboOptions = useMemo(
+    () => combosWithModels.map((c) => ({ value: c.name, label: c.name })),
+    [combosWithModels]
+  );
+
+  const activeCombo = useMemo(
+    () => combosWithModels.find((c) => c.name === selectedCombo) || null,
+    [combosWithModels, selectedCombo]
+  );
+
   const affectedCount = cooldowns.length;
   const affectedCombos = useMemo(() => new Set(cooldowns.map((c) => c.comboName)).size, [cooldowns]);
 
@@ -116,15 +136,26 @@ export default function ComboCooldownPage() {
         </Card>
       )}
 
-      {combosWithModels.map((combo) => {
-        const rows = combo.models.map((model) => ({
+      {combosWithModels.length > 0 && (
+        <Select
+          label="Combo"
+          value={selectedCombo}
+          onChange={(e) => setSelectedCombo(e.target.value)}
+          options={comboOptions}
+          placeholder="Select a combo"
+          className="max-w-xs"
+        />
+      )}
+
+      {activeCombo && (() => {
+        const rows = activeCombo.models.map((model) => ({
           model,
-          expiresAt: cooldownMap[cooldownKey(combo.name, model)] || null,
+          expiresAt: cooldownMap[cooldownKey(activeCombo.name, model)] || null,
         }));
         const hasCooldown = rows.some((r) => r.expiresAt);
 
         return (
-          <Card key={combo.id || combo.name} title={combo.name} padding="none">
+          <Card title={activeCombo.name} padding="none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-bg text-text-muted uppercase text-xs">
@@ -166,7 +197,7 @@ export default function ComboCooldownPage() {
             )}
           </Card>
         );
-      })}
+      })()}
     </div>
   );
 }
