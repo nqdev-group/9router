@@ -28,6 +28,9 @@ product
 .DS_Store
 *.pem
 
+# python venv (docs/view-docs.bat)
+.venv/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
