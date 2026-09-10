@@ -1,0 +1,1366 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "9Router — Public API (Ollama-compatible + client API)",
+    "version": "1.0.0",
+    "description": "Public, no-login API surface for integrating with 9Router: the OpenAI/Claude/Gemini-compatible /v1/* gateway and the Ollama-compatible /v1/ollama/api/* surface. Internal dashboard/admin routes (settings, providers, oauth, keys, usage, ...) are documented separately behind dashboard login — not included here on purpose (see plans/2026-09-10-ollama-api-swagger-planning.md §2.3).",
+    "contact": {
+      "name": "9Router"
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "9Router API key (create one under Dashboard → Keys). Sent as `Authorization: Bearer <key>`. Also accepted as `x-api-key` on Claude-format routes."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "type": "integer"
+          },
+          "total_tokens": {
+            "type": "integer"
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant",
+              "tool"
+            ]
+          },
+          "content": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "OpenAIChatCompletionRequest": {
+        "type": "object",
+        "required": [
+          "model",
+          "messages"
+        ],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "cc/claude-opus-4-8",
+            "description": "<provider-alias>/<model-name> or a combo name"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "stream": {
+            "type": "boolean",
+            "default": false
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "temperature": {
+            "type": "number"
+          },
+          "max_tokens": {
+            "type": "integer"
+          }
+        }
+      },
+      "OpenAIChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "example": "chat.completion"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "message": {
+                  "$ref": "#/components/schemas/ChatMessage"
+                },
+                "finish_reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "summary": "OpenAI-compatible chat completions",
+        "description": "Also the default endpoint for Cursor CLI. Streams SSE when stream:true.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenAIChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat completion (JSON) or text/event-stream when stream:true",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenAIChatCompletionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "summary": "Claude Messages API-compatible chat",
+        "description": "Body shape follows Anthropic's Messages API (messages[].content as blocks, top-level system, anthropic_version).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "messages"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "system": {
+                    "type": "string"
+                  },
+                  "max_tokens": {
+                    "type": "integer"
+                  },
+                  "stream": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Claude-format message (JSON) or SSE when stream:true"
+          },
+          "401": {
+            "description": "Missing/invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages/count_tokens": {
+      "post": {
+        "summary": "Estimate token count for a Claude-format messages array",
+        "description": "Estimate only (~4 chars/token), not an exact provider tokenizer count.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ChatMessage"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token estimate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "input_tokens": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/responses": {
+      "post": {
+        "summary": "OpenAI Responses API-compatible endpoint (Codex)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        }
+                      }
+                    ]
+                  },
+                  "stream": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Responses-format output (JSON) or SSE when stream:true"
+          }
+        }
+      }
+    },
+    "/v1/responses/compact": {
+      "post": {
+        "summary": "OpenAI Responses API + _compact: true (reduced token echo)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Same shape as /v1/responses"
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "List available models and combos (OpenAI format)",
+        "responses": {
+          "200": {
+            "description": "Model list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "list"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "cc/claude-opus-4-8"
+                          },
+                          "object": {
+                            "type": "string"
+                          },
+                          "owned_by": {
+                            "type": "string"
+                          },
+                          "context_length": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models/{kind}": {
+      "get": {
+        "summary": "List models filtered by kind",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "tts",
+                "stt",
+                "embedding",
+                "image-to-text",
+                "web"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered model list, same shape as /v1/models"
+          }
+        }
+      }
+    },
+    "/v1/models/info": {
+      "get": {
+        "summary": "Detailed info for a single model",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cc/claude-opus-4-8"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Model detail: endpoint, capabilities, context window, params"
+          }
+        }
+      }
+    },
+    "/v1/embeddings": {
+      "post": {
+        "summary": "OpenAI-compatible embeddings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "openai/text-embedding-3-small"
+                  },
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embeddings list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "embedding": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "usage": {
+                      "$ref": "#/components/schemas/Usage"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/images/generations": {
+      "post": {
+        "summary": "OpenAI-compatible image generation (14 providers)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "prompt"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "openai/dall-e-3"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "n": {
+                    "type": "integer"
+                  },
+                  "size": {
+                    "type": "string",
+                    "example": "1024x1024"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated image(s) (URL or base64)"
+          }
+        }
+      }
+    },
+    "/v1/audio/speech": {
+      "post": {
+        "summary": "Text-to-speech (7 special adapters + 10 config-driven formats)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "openai/tts-1"
+                  },
+                  "input": {
+                    "type": "string"
+                  },
+                  "voice": {
+                    "type": "string",
+                    "example": "alloy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio binary (audio/mpeg or provider-native format)"
+          }
+        }
+      }
+    },
+    "/v1/audio/transcriptions": {
+      "post": {
+        "summary": "Speech-to-text",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "file"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "openai/whisper-1"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transcription text"
+          }
+        }
+      }
+    },
+    "/v1/audio/voices": {
+      "get": {
+        "summary": "List available TTS voices",
+        "responses": {
+          "200": {
+            "description": "Voice list"
+          }
+        }
+      }
+    },
+    "/v1/videos/generations": {
+      "post": {
+        "summary": "Async video generation (e.g. xAI Grok Imagine)",
+        "responses": {
+          "202": {
+            "description": "Job accepted — poll /v1/videos/{id}"
+          }
+        }
+      }
+    },
+    "/v1/videos/edits": {
+      "post": {
+        "summary": "Video edit job",
+        "responses": {
+          "202": {
+            "description": "Job accepted"
+          }
+        }
+      }
+    },
+    "/v1/videos/extensions": {
+      "post": {
+        "summary": "Video extension job",
+        "responses": {
+          "202": {
+            "description": "Job accepted"
+          }
+        }
+      }
+    },
+    "/v1/videos/{id}": {
+      "get": {
+        "summary": "Poll a video generation/edit/extension job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status/result"
+          }
+        }
+      }
+    },
+    "/v1/web/fetch": {
+      "post": {
+        "summary": "Fetch and extract a URL's content (Firecrawl, Jina Reader, Tavily, Exa)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extracted content"
+          }
+        }
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "summary": "Web search (10 dedicated APIs + 7 chat-based search providers)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results"
+          }
+        }
+      }
+    },
+    "/v1/mcp": {
+      "post": {
+        "summary": "9Router as an MCP server (Streamable HTTP transport)",
+        "description": "MCP JSON-RPC over HTTP — see packages/mcpServer/. Not a plain REST call; use an MCP client.",
+        "responses": {
+          "200": {
+            "description": "MCP JSON-RPC response"
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/chat": {
+      "post": {
+        "summary": "Ollama-compatible chat",
+        "description": "Point an Ollama SDK/CLI's base host URL at <this-server>/v1/ollama — it appends /api/chat itself and lands here unchanged. Non-streaming (stream:false) returns one JSON object; streaming returns newline-delimited JSON, not SSE.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "messages"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "images": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "base64"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "format": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "json"
+                        ]
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "options": {
+                    "type": "object"
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ollama ChatResponse (JSON) or NDJSON stream",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "done": {
+                      "type": "boolean"
+                    },
+                    "done_reason": {
+                      "type": "string"
+                    },
+                    "total_duration": {
+                      "type": "integer",
+                      "description": "nanoseconds"
+                    },
+                    "load_duration": {
+                      "type": "integer",
+                      "description": "always 0 — 9Router has no local model-load step"
+                    },
+                    "prompt_eval_count": {
+                      "type": "integer"
+                    },
+                    "eval_count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/generate": {
+      "post": {
+        "summary": "Ollama-compatible single-prompt completion",
+        "description": "Built internally as a 1-2 message chat request. suffix (fill-in-the-middle) is best-effort appended text, not true FIM infill — no equivalent across 9Router's 40+ providers. raw is a no-op.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "prompt"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "suffix": {
+                    "type": "string"
+                  },
+                  "system": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ollama GenerateResponse (JSON) or NDJSON stream"
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/embed": {
+      "post": {
+        "summary": "Ollama-compatible embeddings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "dimensions": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embeddings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "type": "string"
+                    },
+                    "embeddings": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/tags": {
+      "get": {
+        "summary": "List models (Ollama ListResponse shape)",
+        "description": "Reflects 9Router's real model catalog — the same list /v1/models uses. size/digest/quantization_level are clearly-marked placeholders: 9Router routes to remote provider APIs, it has no local model file to report those from.",
+        "responses": {
+          "200": {
+            "description": "Model list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "models": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "modified_at": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "integer"
+                          },
+                          "digest": {
+                            "type": "string"
+                          },
+                          "details": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/ps": {
+      "get": {
+        "summary": "List running models",
+        "description": "Always returns an empty list — 9Router is a stateless API router, there is no local \"model loaded in VRAM\" concept to report.",
+        "responses": {
+          "200": {
+            "description": "Empty list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "models": {
+                      "type": "array",
+                      "items": {},
+                      "maxItems": 0
+                    }
+                  }
+                },
+                "example": {
+                  "models": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/show": {
+      "post": {
+        "summary": "Show model details",
+        "description": "parameters/license/template are always empty strings — they describe a local Modelfile, which has no equivalent for an API-routed model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model details"
+          },
+          "404": {
+            "description": "Unknown model",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/version": {
+      "get": {
+        "summary": "9Router version (Ollama-shape)",
+        "description": "Distinct from /api/version (dashboard app-update-check, different response shape) — separate namespace, no conflict.",
+        "responses": {
+          "200": {
+            "description": "Version string",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "version": "0.5.69"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/create": {
+      "post": {
+        "summary": "Create a model — not supported",
+        "description": "9Router has no local model files to create. Returns 501.",
+        "responses": {
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/copy": {
+      "post": {
+        "summary": "Copy a model — not supported",
+        "description": "Returns 501.",
+        "responses": {
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/pull": {
+      "post": {
+        "summary": "Pull a model — not supported",
+        "description": "Returns 501.",
+        "responses": {
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/push": {
+      "post": {
+        "summary": "Push a model — not supported",
+        "description": "Returns 501.",
+        "responses": {
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ollama/api/delete": {
+      "delete": {
+        "summary": "Delete a model — not supported",
+        "description": "Returns 501. Note: DELETE method, per the Ollama spec (not POST).",
+        "responses": {
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1beta/models": {
+      "get": {
+        "summary": "List models (Gemini ListModel format)",
+        "responses": {
+          "200": {
+            "description": "Gemini-shape model list"
+          }
+        }
+      }
+    },
+    "/v1beta/models/{model}:generateContent": {
+      "post": {
+        "summary": "Gemini-compatible generateContent",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contents"
+                ],
+                "properties": {
+                  "contents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gemini GenerateContentResponse"
+          }
+        }
+      }
+    },
+    "/v1beta/models/{model}:streamGenerateContent": {
+      "post": {
+        "summary": "Gemini-compatible streamGenerateContent (SSE)",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contents"
+                ],
+                "properties": {
+                  "contents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "text/event-stream of GenerateContentResponse chunks"
+          }
+        }
+      }
+    }
+  }
+}

@@ -50,6 +50,7 @@ const systemItems = [
   { href: "/dashboard/settings/provider-alert", label: "Provider Alert", icon: "notifications" },
   { href: "/dashboard/settings/privacy", label: "Privacy Engine", icon: "lock" },
   { href: "/dashboard/settings/models-dev", label: "Models.dev", icon: "database" },
+  { href: "/dashboard/api-docs", label: "API Docs", icon: "description", isNew: true },
 ];
 
 /**

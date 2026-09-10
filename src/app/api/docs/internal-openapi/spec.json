@@ -1,0 +1,2471 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "9Router — Internal/Admin API (path + summary only)",
+    "version": "1.0.0",
+    "description": "Dashboard/admin API surface — settings, providers, oauth, keys, usage, cli-tools, etc. Lighter documentation tier by design (path + summary + auth requirement, no request/response body schemas) — see plans/2026-09-10-ollama-api-swagger-planning.md §6. Public client-facing API (Ollama + /v1/*) is documented separately at /docs/api (no login required)."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Dashboard JWT session cookie or CLI token — see each path's x-9router-auth note for the exact gate."
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "POST /api/auth/login",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "POST /api/auth/logout",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/callback": {
+      "get": {
+        "summary": "GET /api/auth/oidc/callback",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/start": {
+      "get": {
+        "summary": "GET /api/auth/oidc/start",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/test": {
+      "post": {
+        "summary": "POST /api/auth/oidc/test",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Local-only (enforced by dashboardGuard). Never returns the default literal.",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/saml/acs": {
+      "post": {
+        "summary": "POST /api/auth/saml/acs",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/saml/metadata": {
+      "get": {
+        "summary": "GET /api/auth/saml/metadata",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/saml/start": {
+      "get": {
+        "summary": "GET /api/auth/saml/start",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/saml/test": {
+      "post": {
+        "summary": "POST /api/auth/saml/test",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "summary": "GET /api/auth/status",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/all-statuses": {
+      "get": {
+        "summary": "Batch endpoint: gather all CLI tool statuses in one round-trip",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/antigravity-mitm/alias": {
+      "get": {
+        "summary": "GET - Get MITM aliases for a tool",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT - Save MITM aliases for a specific tool",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/antigravity-mitm": {
+      "get": {
+        "summary": "GET - Full MITM status (server + per-tool DNS)",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Start MITM server (cert + server, no DNS)",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Stop MITM server (removes all DNS first, then kills server)",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH - Toggle DNS for a specific tool (enable/disable)",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/claude-settings": {
+      "get": {
+        "summary": "GET - Check claude CLI and read current settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Backup old fields and write new settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Reset settings (remove env fields)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/cline-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/cline-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/cline-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/cline-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/codex-settings": {
+      "get": {
+        "summary": "GET - Check codex CLI and read current settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Update 9Router settings (merge with existing config)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Remove 9Router settings only (keep other settings)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/copilot-settings": {
+      "get": {
+        "summary": "GET - Read current copilot config",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Apply 9Router config to chatLanguageModels.json",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Remove 9Router entry from chatLanguageModels.json",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/cowork-mcp-registry": {
+      "get": {
+        "summary": "GET /api/cli-tools/cowork-mcp-registry",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/cowork-mcp-tools": {
+      "post": {
+        "summary": "POST /api/cli-tools/cowork-mcp-tools",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/cowork-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/cowork-settings",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/cowork-settings",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/cowork-settings",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/deepseek-tui-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/deepseek-tui-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/deepseek-tui-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/deepseek-tui-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/devin-settings": {
+      "get": {
+        "summary": "GET — install detection only. No config to write: the binary handles its own auth.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/droid-settings": {
+      "get": {
+        "summary": "GET - Check droid CLI and read current settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "Also accepts `activeModel` to set which model is active/primary",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Remove 9Router customModels only (keep other settings)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/grok-build-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/grok-build-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/grok-build-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/grok-build-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/hermes-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/hermes-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/hermes-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/hermes-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/jcode-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/jcode-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/jcode-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/jcode-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/kilo-settings": {
+      "get": {
+        "summary": "GET /api/cli-tools/kilo-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/cli-tools/kilo-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/cli-tools/kilo-settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/openclaw-settings": {
+      "get": {
+        "summary": "GET - Check openclaw CLI and read current settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Update 9Router settings (merge with existing settings)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Remove 9Router settings only (keep other settings)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/cli-tools/opencode-settings": {
+      "get": {
+        "summary": "GET - Check opencode CLI and read current settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST - Apply 9Router as openai-compatible provider (multi-model support)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH - Update specific settings (e.g., clear active model)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE - Remove 9Router provider or specific models from config",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/combos/cooldowns": {
+      "get": {
+        "summary": "(in-memory state from packages/model-combo-cooldown, no DB involved)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/combos": {
+      "get": {
+        "summary": "GET /api/combos - Get all combos",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/combos - Create new combo",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/combos/{id}": {
+      "get": {
+        "summary": "GET /api/combos/[id] - Get combo by ID",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/combos/[id] - Update combo",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/combos/[id] - Delete combo",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/docs/internal-openapi": {
+      "get": {
+        "summary": "whenever routes are added/removed under src/app/api/ (outside v1/v1beta).",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/extras": {
+      "get": {
+        "summary": "GET /api/headroom/extras",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/headroom/extras",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/headroom/extras",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/proxy/{path}": {
+      "get": {
+        "summary": "GET /api/headroom/proxy/{path}",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "x-9router-note": "catch-all path segment(s)",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/headroom/proxy/{path}",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "x-9router-note": "catch-all path segment(s)",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/headroom/proxy/{path}",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "x-9router-note": "catch-all path segment(s)",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/headroom/proxy/{path}",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "x-9router-note": "catch-all path segment(s)",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/headroom/proxy/{path}",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "x-9router-note": "catch-all path segment(s)",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/restart": {
+      "post": {
+        "summary": "POST /api/headroom/restart",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/start": {
+      "post": {
+        "summary": "POST /api/headroom/start",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/status": {
+      "get": {
+        "summary": "GET /api/headroom/status",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/headroom/stop": {
+      "post": {
+        "summary": "POST /api/headroom/stop",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "GET /api/health",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/init": {
+      "get": {
+        "summary": "This API route is called automatically to initialize app",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/keys": {
+      "get": {
+        "summary": "GET /api/keys - List API keys",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/keys - Create new API key",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/keys/{id}": {
+      "get": {
+        "summary": "GET /api/keys/[id] - Get single key",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/keys/[id] - Update key",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/keys/[id] - Delete API key",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/locale": {
+      "post": {
+        "summary": "POST /api/locale",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/mcp/{plugin}/message": {
+      "post": {
+        "summary": "POST /api/mcp/{plugin}/message",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/mcp/{plugin}/sse": {
+      "get": {
+        "summary": "GET /api/mcp/{plugin}/sse",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/deepgram/voices": {
+      "get": {
+        "summary": "Each Deepgram voice = one model (canonical_name like \"aura-2-thalia-en\")",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/elevenlabs/voices": {
+      "get": {
+        "summary": "Uses direct DB read (no mutex) to avoid blocking on concurrent TTS requests",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/inworld/voices": {
+      "get": {
+        "summary": "Returns { languages, byLang } grouped by language code (same shape as edge-tts/elevenlabs)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/minimax/voices": {
+      "get": {
+        "summary": "Returns { languages, byLang } grouped for the shared TTS voice picker.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/revidapi/voices": {
+      "get": {
+        "summary": "GET /api/media-providers/tts/revidapi/voices",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/media-providers/tts/voices": {
+      "get": {
+        "summary": "?apiKey=xxx  (required for elevenlabs)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/model-token-limits": {
+      "get": {
+        "summary": "for models that don't have an override yet.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Body: { provider: { model: number } }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Query params: ?provider=xxx&model=yyy (optional)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/alias": {
+      "get": {
+        "summary": "GET /api/models/alias - Get all aliases",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/models/alias - Set model alias",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/models/alias?alias=xxx - Delete alias",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/availability": {
+      "get": {
+        "summary": "GET /api/models/availability",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/models/availability",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/catalog-sync": {
+      "get": {
+        "summary": "GET /api/models/catalog-sync - Sync status and what the catalog currently holds",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/models/catalog-sync - Run a sync now instead of waiting for the timer",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/custom": {
+      "get": {
+        "summary": "GET /api/models/custom - List all custom models",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/models/custom - Add custom model",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/models/custom?providerAlias=xxx&id=yyy&type=zzz",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/disabled": {
+      "get": {
+        "summary": "GET /api/models/disabled?providerAlias=xxx",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/models/disabled  body: { providerAlias, ids: [...] }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/models/disabled?providerAlias=xxx[&id=yyy]",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models": {
+      "get": {
+        "summary": "GET /api/models - Get models with aliases",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/models - Update model alias",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models/test": {
+      "post": {
+        "summary": "POST /api/models/test - Ping a single model via internal completions or embeddings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models-dev/custom-mappings": {
+      "get": {
+        "summary": "GET /api/models-dev/custom-mappings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/models-dev/custom-mappings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models-dev": {
+      "get": {
+        "summary": "GET /api/models-dev",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/models-dev",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/models-dev/sync": {
+      "post": {
+        "summary": "POST /api/models-dev/sync",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/models-dev/sync",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/codex/bulk-import": {
+      "post": {
+        "summary": "Tokens are NEVER echoed back in the response.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/codex/import-token": {
+      "post": {
+        "summary": "Body: { accessToken: string, name?: string }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/cursor/auto-import": {
+      "get": {
+        "summary": "Strategy: better-sqlite3 → sqlite3 CLI → manual fallback",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/cursor/import": {
+      "post": {
+        "summary": "- machineId: string - Machine ID from storage.serviceMachineId",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get instructions for importing Cursor token",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/gitlab/pat": {
+      "post": {
+        "summary": "Authenticate GitLab Duo with a Personal Access Token (PAT)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/grok-cli/bulk-import": {
+      "post": {
+        "summary": "expires_in / expiresIn / expires_at / expiresAt",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/iflow/cookie": {
+      "post": {
+        "summary": "Body: { cookie: \"BXAuth=xxx; ...\" }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/api-key": {
+      "post": {
+        "summary": "Q model catalog, then stored with authMethod=\"api_key\".",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/auto-import": {
+      "get": {
+        "summary": "linked client registration file so token refresh works.",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/import": {
+      "post": {
+        "summary": "token can be refreshed via the regional AWS OIDC endpoint.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/import-cli-proxy": {
+      "post": {
+        "summary": "Import Kiro CLIProxyAPI auth JSON for Microsoft external_idp accounts.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/social-authorize": {
+      "get": {
+        "summary": "Uses kiro:// custom protocol as required by AWS Cognito",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/kiro/social-exchange": {
+      "post": {
+        "summary": "Callback URL will be in format: kiro://kiro.kiroAgent/authenticate-success?code=XXX&state=YYY",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/{provider}/{action}": {
+      "get": {
+        "summary": "GET /api/oauth/[provider]/device-code - Request device code (for device_code flow)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/oauth/[provider]/poll - Poll for token (device_code flow)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pricing": {
+      "get": {
+        "summary": "Get current pricing configuration (merged user + defaults)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Body: { provider: { model: { input: number, output: number, cached: number, ... } } }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Query params: ?provider=xxx&model=yyy (optional)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/provider-nodes": {
+      "get": {
+        "summary": "GET /api/provider-nodes - List all provider nodes",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/provider-nodes - Create provider node",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/provider-nodes/validate": {
+      "post": {
+        "summary": "POST /api/provider-nodes/validate - Validate API key against base URL",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/provider-nodes/{id}": {
+      "put": {
+        "summary": "PUT /api/provider-nodes/[id] - Update provider node",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/provider-nodes/[id] - Delete provider node and its connections",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/client": {
+      "get": {
+        "summary": "GET /api/providers/client",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/kilo/free-models": {
+      "get": {
+        "summary": "GET /api/providers/kilo/free-models",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers": {
+      "get": {
+        "summary": "GET /api/providers - List all connections",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/providers - Create new connection (API Key only, OAuth via separate flow)",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/suggested-models": {
+      "get": {
+        "summary": "GET /api/providers/suggested-models",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/test-batch": {
+      "post": {
+        "summary": "POST /api/providers/test-batch - Test multiple connections by group",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/validate": {
+      "post": {
+        "summary": "POST /api/providers/validate - Validate API key with provider",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/{id}/models": {
+      "get": {
+        "summary": "GET /api/providers/[id]/models - Get models list from provider",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/{id}": {
+      "get": {
+        "summary": "GET /api/providers/[id] - Get single connection",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/providers/[id] - Update connection",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/providers/[id] - Delete connection",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/{id}/test": {
+      "post": {
+        "summary": "POST /api/providers/[id]/test - Test connection",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/providers/{id}/test-models": {
+      "post": {
+        "summary": "Actual requests go through the internal endpoint that matches each model kind.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools/cloudflare-deploy": {
+      "post": {
+        "summary": "POST /api/proxy-pools/cloudflare-deploy",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools/deno-deploy": {
+      "post": {
+        "summary": "POST /api/proxy-pools/deno-deploy",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools": {
+      "get": {
+        "summary": "GET /api/proxy-pools - List proxy pools",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/proxy-pools - Create proxy pool",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools/vercel-deploy": {
+      "post": {
+        "summary": "POST /api/proxy-pools/vercel-deploy",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools/{id}": {
+      "get": {
+        "summary": "GET /api/proxy-pools/[id] - Get proxy pool",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "put": {
+        "summary": "PUT /api/proxy-pools/[id] - Update proxy pool",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/proxy-pools/[id] - Delete proxy pool",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/proxy-pools/{id}/test": {
+      "post": {
+        "summary": "POST /api/proxy-pools/[id]/test - Test proxy pool entry",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/health": {
+      "post": {
+        "summary": "POST /api/pxpipe/health",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "get": {
+        "summary": "GET mirrors POST so the card can probe on page load without a mutation call.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/install": {
+      "post": {
+        "summary": "Install (or repair — same operation, reinstalls @latest) then re-run the health check.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/logs": {
+      "get": {
+        "summary": "GET /api/pxpipe/logs",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/restart": {
+      "post": {
+        "summary": "Reload the in-process module (picks up an upgraded install without a server restart).",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/start": {
+      "post": {
+        "summary": "Auto-installs first when the package is missing and pxpipeAutoInstall is on.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/stats": {
+      "get": {
+        "summary": "GET /api/pxpipe/stats",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/status": {
+      "get": {
+        "summary": "GET /api/pxpipe/status",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/pxpipe/stop": {
+      "post": {
+        "summary": "uncompressed passthrough until it is started again.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/caveman": {
+      "get": {
+        "summary": "GET /api/settings/caveman",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/caveman",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/cmem/observations": {
+      "get": {
+        "summary": "GET /api/settings/cmem/observations",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/cmem/observations",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/settings/cmem/observations",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/cmem": {
+      "get": {
+        "summary": "GET /api/settings/cmem",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/cmem",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/cmem/search": {
+      "post": {
+        "summary": "POST /api/settings/cmem/search",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/cmem/test": {
+      "post": {
+        "summary": "POST /api/settings/cmem/test",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/database": {
+      "get": {
+        "summary": "GET /api/settings/database",
+        "x-9router-auth": "Always protected — JWT (dashboard login) or CLI token, even if requireLogin is disabled",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/settings/database",
+        "x-9router-auth": "Always protected — JWT (dashboard login) or CLI token, even if requireLogin is disabled",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/privacy": {
+      "get": {
+        "summary": "GET /api/settings/privacy",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/privacy",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/provider-alert": {
+      "get": {
+        "summary": "GET /api/settings/provider-alert",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/provider-alert",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/proxy-test": {
+      "post": {
+        "summary": "POST /api/settings/proxy-test",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/require-login": {
+      "get": {
+        "summary": "GET /api/settings/require-login",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/response-cache": {
+      "get": {
+        "summary": "GET /api/settings/response-cache",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/response-cache",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/settings/response-cache",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "summary": "GET /api/settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/rtk/filters": {
+      "get": {
+        "summary": "GET /api/settings/rtk/filters",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/rtk": {
+      "get": {
+        "summary": "GET /api/settings/rtk",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/rtk",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/rtk/test": {
+      "post": {
+        "summary": "POST /api/settings/rtk/test",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/tier-routing": {
+      "get": {
+        "summary": "GET /api/settings/tier-routing",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/tier-routing",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/token-limit-routing": {
+      "get": {
+        "summary": "GET /api/settings/token-limit-routing",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "patch": {
+        "summary": "PATCH /api/settings/token-limit-routing",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/settings/token-saver-report": {
+      "get": {
+        "summary": "@returns {Promise<NextResponse>} A JSON response containing the requested data or an error message.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/shutdown": {
+      "post": {
+        "summary": "POST /api/shutdown",
+        "x-9router-auth": "Always protected — JWT (dashboard login) or CLI token, even if requireLogin is disabled",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tags": {
+      "get": {
+        "summary": "GET /api/tags",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/console-logs": {
+      "get": {
+        "summary": "GET /api/translator/console-logs",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/translator/console-logs",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/console-logs/stream": {
+      "get": {
+        "summary": "GET /api/translator/console-logs/stream",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/load": {
+      "get": {
+        "summary": "GET /api/translator/load",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/save": {
+      "post": {
+        "summary": "POST /api/translator/save",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/send": {
+      "post": {
+        "summary": "POST /api/translator/send",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/translator/translate": {
+      "post": {
+        "summary": "POST /api/translator/translate",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/disable": {
+      "post": {
+        "summary": "POST /api/tunnel/disable",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/enable": {
+      "post": {
+        "summary": "POST /api/tunnel/enable",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/status": {
+      "get": {
+        "summary": "GET /api/tunnel/status",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/tailscale-check": {
+      "get": {
+        "summary": "GET /api/tunnel/tailscale-check",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/tailscale-disable": {
+      "post": {
+        "summary": "POST /api/tunnel/tailscale-disable",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/tailscale-enable": {
+      "post": {
+        "summary": "POST /api/tunnel/tailscale-enable",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/tunnel/tailscale-install": {
+      "post": {
+        "summary": "POST /api/tunnel/tailscale-install",
+        "x-9router-auth": "Local-only — CLI token, or loopback request + dashboard login",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/chart": {
+      "get": {
+        "summary": "GET /api/usage/chart",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/history": {
+      "get": {
+        "summary": "GET /api/usage/history",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/logs": {
+      "get": {
+        "summary": "GET /api/usage/logs",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/providers": {
+      "get": {
+        "summary": "Returns list of unique providers from request details",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/request-details": {
+      "get": {
+        "summary": "Query parameters: page, pageSize (1-100), provider, model, connectionId, status, startDate, endDate",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/request-logs": {
+      "get": {
+        "summary": "GET /api/usage/request-logs",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/stats": {
+      "get": {
+        "summary": "GET /api/usage/stats",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/stream": {
+      "get": {
+        "summary": "GET /api/usage/stream",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/{connectionId}/codex-reset-credits": {
+      "get": {
+        "summary": "GET /api/usage/{connectionId}/codex-reset-credits",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/usage/{connectionId}/codex-reset-credits",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/usage/{connectionId}": {
+      "get": {
+        "summary": "GET /api/usage/[connectionId] - Get usage data for a specific connection",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "summary": "GET /api/version",
+        "x-9router-auth": "Public — no auth required",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/version/shutdown": {
+      "post": {
+        "summary": "Shutdown app to release file locks for manual update",
+        "x-9router-auth": "Always protected — JWT (dashboard login) or CLI token, even if requireLogin is disabled",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/version/update": {
+      "post": {
+        "summary": "POST /api/version/update",
+        "x-9router-auth": "Always protected — JWT (dashboard login) or CLI token, even if requireLogin is disabled",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    }
+  }
+}
