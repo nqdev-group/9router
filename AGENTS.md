@@ -112,6 +112,7 @@ packages/
   tier-routing/   → @9router/tier-routing/  (cost/tier-aware combo model reordering; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js)
   token-limit-routing/ → @9router/token-limit-routing/ (bypasses combo models whose configured max-input-token limit can't fit the prompt; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js + src/lib/db/repos/modelTokenLimitsRepo.js)
   model-combo-cooldown/ → @9router/model-combo-cooldown/ (per-combo model cooldown: a model that fails inside a combo is skipped in THAT combo for 5 min, in-memory, fail-open when all models are cooling down; used by open-sse/services/combo.js `handleComboChat`, always-on via `modelCooldown: { enabled: true }` set in both combo branches of src/sse/handlers/chat.js — not applied to Fusion combos)
+  ollama-compat/ → @9router/ollama-compat/ (Ollama-compatible chat surface: translates Ollama request/response wire format ↔ OpenAI shape + Ollama NDJSON streaming transform + model-catalog/ps/version response builders; used by thin routes under src/app/api/v1/ollama/api/*, mounted at `/api/v1/ollama/api/*` — separate namespace from the old `/v1/api/chat` route and `open-sse/utils/ollamaTransform.js`, which are left untouched, see plans/2026-09-10-ollama-api-swagger-planning.md)
   mcpServer/      → @9router/mcpServer/     (9Router-as-MCP-server: exposes 9Router capabilities as MCP tools over Streamable HTTP at /v1/mcp, via @modelcontextprotocol/sdk; unrelated to src/app/api/mcp/[plugin]/* which is 9Router-as-MCP-client, see packages/AGENTS.md)
   utils/          → @9router/utils/         (shared utilities)
   revidapi/       → @9router/revidapi/      (Revid API)
@@ -129,6 +130,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 | `src/sse/` | Request entry (`chat.js`), auth services, logger — bridges Next.js routes to open-sse. |
 | `src/app/api/` | Next.js API routes — V1/V1beta compat, dashboard CRUD, OAuth, CLI tools. 27 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, v1beta, etc.). |
 | `src/app/(dashboard)/` | React dashboard pages. |
+| `src/app/docs/api/` | Public (no-login) Swagger UI page for the `/v1/*` + `/v1/ollama/api/*` surface — reads `public/openapi/ollama-public.json` (static file, no route). Not under `(dashboard)`/`/api/` so `src/dashboardGuard.js` never gates it. Internal/admin routes are documented separately (Phase 4, not yet built), never added to this public spec. See `plans/2026-09-10-ollama-api-swagger-planning.md`. |
 | `packages/` | All new feature engines, UI packages, validation, utils — imported via `@9router/*`. |
 | `tests/` | Separate vitest package. |
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |
