@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "9Router — Internal/Admin API (path + summary only)",
+    "title": "9Router — Internal/Admin API",
     "version": "1.0.0",
     "description": "Dashboard/admin API surface — settings, providers, oauth, keys, usage, cli-tools, etc. Lighter documentation tier by design (path + summary + auth requirement, no request/response body schemas) — see plans/2026-09-10-ollama-api-swagger-planning.md §6. Public client-facing API (Ollama + /v1/*) is documented separately at /docs/api (no login required)."
   },
   "servers": [
     {
-      "url": "/"
+      "url": "/api/"
     }
   ],
   "security": [

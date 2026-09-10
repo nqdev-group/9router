@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "9Router — Public API (Ollama-compatible + client API)",
+    "title": "9Router — Public API",
     "version": "1.0.0",
     "description": "Public, no-login API surface for integrating with 9Router: the OpenAI/Claude/Gemini-compatible /v1/* gateway and the Ollama-compatible /v1/ollama/api/* surface. Internal dashboard/admin routes (settings, providers, oauth, keys, usage, ...) are documented separately behind dashboard login — not included here on purpose (see plans/2026-09-10-ollama-api-swagger-planning.md §2.3).",
     "contact": {
@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "/"
+      "url": "/api/"
     }
   ],
   "security": [
