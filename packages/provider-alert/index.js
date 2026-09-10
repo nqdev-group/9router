@@ -1,6 +1,7 @@
 export {
   checkAllAccountsDown,
   checkRecovery,
+  classifyConnections,
   formatAlertMessage,
   formatRecoveryMessage,
   setLastAlertTime,

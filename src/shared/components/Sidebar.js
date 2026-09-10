@@ -46,9 +46,7 @@ const debugItems = [
 const systemItems = [
   { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
   { href: "/dashboard/skills", label: "Skills", icon: "extension" },
-  { href: "/dashboard/settings/provider-alert", label: "Provider Alert", icon: "notifications" },
-  { href: "/dashboard/settings/privacy", label: "Privacy Engine", icon: "lock" },
-  { href: "/dashboard/settings/models-dev", label: "Models.dev", icon: "database" },
+  { href: "/dashboard/mcp-server", label: "MCP Server", icon: "hub" },
 ];
 
 /**
@@ -57,12 +55,18 @@ const systemItems = [
  * By placing it above the System section, we can also encourage users to explore and utilize these powerful features of 9Router.
  */
 const compressionContextItems = [
+  { href: "/dashboard/api-docs", label: "API Docs", icon: "description", isNew: true },
   { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
+  { href: "/dashboard/combo-cooldown", label: "Combo Cooldown", icon: "schedule", isNew: true },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
   { href: "/dashboard/settings/response-cache", label: "Response Cache", icon: "cached" },
+  { href: "/dashboard/settings/token-limits", label: "Token Limit Routing", icon: "rule" },
   { href: "/dashboard/token-saver-report", label: "Token Saver Report", icon: "savings" },
+  { href: "/dashboard/settings/provider-alert", label: "Provider Alert", icon: "notifications" },
+  { href: "/dashboard/settings/privacy", label: "Privacy Engine", icon: "lock" },
+  { href: "/dashboard/settings/models-dev", label: "Models.dev", icon: "database" },
 ];
 
 export default function Sidebar({ onClose }) {

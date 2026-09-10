@@ -8,7 +8,7 @@ export default {
   async synthesize(text, model, credentials) {
     if (!credentials?.apiKey) throw new Error("No Kira AI API key configured");
 
-    let ttsModel = "kira-2.5-flash";
+    let ttsModel = "kira-3.0-flash-tts";
     let voice = "Kore";
     if (model && model.includes("/")) {
       const parts = model.split("/");

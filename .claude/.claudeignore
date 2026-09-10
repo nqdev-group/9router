@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.yarn/
+
+# Environment & Secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local runtime data
+~/.9router/
+*.sqlite
+*.db
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build & Generated
+.next/
+dist/
+build/
+
+# Large / binary
+*.zip
+*.tar.gz
