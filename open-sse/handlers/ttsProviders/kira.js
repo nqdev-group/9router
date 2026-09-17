@@ -2,7 +2,9 @@ import { Buffer } from "node:buffer";
 
 const KIRA_TTS_URL = "https://kiraai.vn/api/v1/audio/speech";
 
-const VOICE_MAP = { alloy: "Kore", echo: "Fenrir", fable: "Puck", onyx: "Charon", nova: "Aoede" };
+// Per GET https://kiraai.vn/api/v1/audio/voices (verified live, 2026-09-17) —
+// "shimmer" was previously missing here despite being a real, documented voice id.
+const VOICE_MAP = { alloy: "Kore", echo: "Fenrir", fable: "Puck", onyx: "Charon", nova: "Aoede", shimmer: "Kore" };
 
 export default {
   async synthesize(text, model, credentials) {

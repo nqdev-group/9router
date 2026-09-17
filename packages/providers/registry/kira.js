@@ -36,6 +36,17 @@ export default {
       "Accept": "*/*",
     },
     retry: { 429: { attempts: 6 }, 503: { attempts: 3 } },
+    // Per https://kiraai.vn/documents/ (verified live, 2026-09-17), Kira also exposes an
+    // OpenAI Responses-API-compatible endpoint at POST /api/v1/responses (SSE, tool
+    // calling — docs frame it as "Codex Integration"), plus authenticated account-mgmt
+    // routes: GET /user/profile (VND + token balance, daily usage), GET /user/usage/logs
+    // (paginated per-call log with cost_vnd), GET|POST /user/keys. None of these are
+    // wired up here: /responses needs the same kind of dedicated executor github.js uses
+    // for its `responsesUrl` (a generic baseUrl swap isn't enough — see
+    // open-sse/executors/github.js), and the /user/* endpoints' exact response shape
+    // hasn't been confirmed against a real API key yet. Candidates for a future PR, not
+    // guessed at here.
+    //
     // "usage" isn't wired to a live JSON API (Kira has no entry in open-sse/services/usage.js's
     // USAGE_HANDLERS) — these are reference links for humans, not fetched programmatically.
     usage: {
@@ -90,9 +101,9 @@ export default {
   passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
   // No sttConfig: live catalog (https://kiraai.vn/api/v1/models) has no speech-to-text
-  // model/endpoint listed, and guessing common paths (/v1/audio/transcriptions, /v1/stt)
-  // both 404'd — Kira's marketing page mentions STT but the API contract for it isn't
-  // confirmed. Add it once a real endpoint + model id is verified.
+  // model/endpoint listed, guessing common paths (/v1/audio/transcriptions, /v1/stt) both
+  // 404'd, and the official API reference (https://kiraai.vn/documents/, checked
+  // 2026-09-17) documents no STT route either — Kira doesn't offer it yet.
   serviceKinds: ["llm", "image", "video", "tts"],
   ttsConfig: {
     baseUrl: "https://kiraai.vn/api/v1/audio/speech",
@@ -108,23 +119,31 @@ export default {
       { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS Preview" },
       { id: "gemini-2.5-flash-tts", name: "Gemini 2.5 Flash TTS" },
     ],
+    // Public voice ids per GET https://kiraai.vn/api/v1/audio/voices (verified live,
+    // 2026-09-17) — that endpoint also returns each id's internal engine voice
+    // ("mapped_to": alloy→Kore, echo→Fenrir, fable→Puck, onyx→Charon, nova→Aoede,
+    // shimmer→Kore), which open-sse/handlers/ttsProviders/kira.js's VOICE_MAP mirrors
+    // for the bare-voice (no explicit ttsModel) call shape. "shimmer" was previously
+    // missing from both this list and that map.
     voices: [
-      { id: "Kore", name: "Kore" },
-      { id: "Fenrir", name: "Fenrir" },
-      { id: "Puck", name: "Puck" },
-      { id: "Charon", name: "Charon" },
-      { id: "Aoede", name: "Aoede" },
+      { id: "alloy", name: "Alloy (Nữ, miền Bắc)" },
+      { id: "echo", name: "Echo (Nam, miền Bắc)" },
+      { id: "fable", name: "Fable (Nữ, miền Nam)" },
+      { id: "onyx", name: "Onyx (Nam, miền Nam)" },
+      { id: "nova", name: "Nova (Nữ, miền Bắc)" },
+      { id: "shimmer", name: "Shimmer (Nữ, miền Bắc)" },
     ],
   },
   imageConfig: {
     baseUrl: "https://kiraai.vn/api/v1/images/generations",
   },
-  // Async video jobs (create at POST .../generations, poll at GET .../{request_id}) —
-  // same shape as xai.js. Route confirmed live: POST https://kiraai.vn/api/v1/videos/generations
-  // returns 401 "Authentication required" (route exists, just needs a real key), not 404.
-  // Previously missing entirely despite "video" being listed in serviceKinds and both
-  // kira-3.0-video/-flash being declared above — video generation would 400 with
-  // "Provider 'kira' does not support video generation" without this block.
+  // Async video jobs: create at POST {baseUrl}/generations, poll at
+  // GET {baseUrl}/operations/{request_id} — per https://kiraai.vn/documents/ and
+  // confirmed live (POST .../generations and GET .../operations/{id} both 401
+  // "Authentication required" — route exists; GET .../{id} without "operations/" 404s).
+  // The poll path does NOT match the generic xai.js-shaped default in videoCore.js
+  // (which polls {baseUrl}/{id}), so open-sse/handlers/videoProviders/kira.js provides
+  // a dedicated adapter — this baseUrl is shared by both.
   videoConfig: {
     baseUrl: "https://kiraai.vn/api/v1/videos",
   },
