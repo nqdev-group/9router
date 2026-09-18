@@ -19,6 +19,7 @@ import {
   KIMCHI_CONFIG,
 } from "@/lib/oauth/constants/oauth";
 import { buildClineHeaders } from "@/shared/utils/clineAuth";
+import { TESTERS as EXTRA_TESTERS } from "@9router/providers/test/testUtils.js";
 
 // OAuth provider test endpoints
 const OAUTH_TEST_CONFIG = {
@@ -511,6 +512,15 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
       // 400/529 still confirms key accepted; only 401/403 = bad key
       const valid = res.status !== 401 && res.status !== 403;
       return { valid, error: valid ? null : "Invalid API key or base URL" };
+    } catch (err) {
+      return { valid: false, error: err.message };
+    }
+  }
+
+  const extraTester = EXTRA_TESTERS[connection.provider];
+  if (extraTester) {
+    try {
+      return await extraTester(connection, effectiveProxy, fetchWithConnectionProxy);
     } catch (err) {
       return { valid: false, error: err.message };
     }
