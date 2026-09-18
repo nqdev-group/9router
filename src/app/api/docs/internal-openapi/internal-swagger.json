@@ -3,11 +3,11 @@
   "info": {
     "title": "9Router — Internal/Admin API",
     "version": "1.0.0",
-    "description": "Dashboard/admin API surface — settings, providers, oauth, keys, usage, cli-tools, etc. Lighter documentation tier by design (path + summary + auth requirement, no request/response body schemas) — see plans/2026-09-10-ollama-api-swagger-planning.md §6. Public client-facing API (Ollama + /v1/*) is documented separately at /docs/api (no login required)."
+    "description": "Dashboard/admin API surface — settings, providers, oauth, keys, usage, cli-tools, etc."
   },
   "servers": [
     {
-      "url": "/api/"
+      "url": "/"
     }
   ],
   "security": [
@@ -1391,6 +1391,28 @@
     "/api/oauth/kiro/social-exchange": {
       "post": {
         "summary": "Callback URL will be in format: kiro://kiro.kiroAgent/authenticate-success?code=XXX&state=YYY",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/xiaomi-mimo/api-key": {
+      "post": {
+        "summary": "Body: { apiKey, uid?, baseUrl? }",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/oauth/xiaomi-mimo/auto-import": {
+      "get": {
+        "summary": "GET /api/oauth/xiaomi-mimo/auto-import",
         "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
         "responses": {
           "200": {

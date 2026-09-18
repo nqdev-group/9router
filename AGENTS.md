@@ -130,7 +130,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 | `src/sse/` | Request entry (`chat.js`), auth services, logger — bridges Next.js routes to open-sse. |
 | `src/app/api/` | Next.js API routes — V1/V1beta compat, dashboard CRUD, OAuth, CLI tools. 27 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, v1beta, etc.). |
 | `src/app/(dashboard)/` | React dashboard pages. |
-| `src/app/docs/api/` | Public (no-login) Swagger UI page for the `/v1/*` + `/v1/ollama/api/*` surface — reads `public/openapi/ollama-public.json` (static file, no route). Not under `(dashboard)`/`/api/` so `src/dashboardGuard.js` never gates it. Internal/admin routes are documented separately (Phase 4, not yet built), never added to this public spec. See `plans/2026-09-10-ollama-api-swagger-planning.md`. |
+| `src/app/docs/api/` | Public (no-login) Swagger UI page for the `/v1/*` + `/v1/ollama/api/*` surface — reads `public/openapi/public-swagger.json` (static file, no route). Not under `(dashboard)`/`/api/` so `src/dashboardGuard.js` never gates it. Internal/admin routes are documented separately at `/dashboard/api-docs` (gated), never added to this public spec. See `plans/2026-09-10-ollama-api-swagger-planning.md`. |
 | `packages/` | All new feature engines, UI packages, validation, utils — imported via `@9router/*`. |
 | `tests/` | Separate vitest package. |
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |

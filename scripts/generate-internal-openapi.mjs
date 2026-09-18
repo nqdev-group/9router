@@ -1,7 +1,7 @@
-// Regenerates src/app/api/docs/internal-openapi/spec.json — the "path +
+// Regenerates src/app/api/docs/internal-openapi/internal-swagger.json — the "path +
 // summary + auth requirement" tier OpenAPI doc for 9Router's internal/admin
 // API surface (everything under src/app/api/ except v1/ and v1beta/, which
-// are documented separately in public/openapi/ollama-public.json).
+// are documented separately in public/openapi/public-swagger.json).
 //
 // Re-run this whenever routes are added/removed under src/app/api/ (outside
 // v1/v1beta) so the internal docs page doesn't go stale:
@@ -18,7 +18,7 @@ import { fileURLToPath } from "url";
 
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const API_ROOT = join(REPO_ROOT, "src", "app", "api");
-const OUT_PATH = join(API_ROOT, "docs", "internal-openapi", "spec.json");
+const OUT_PATH = join(API_ROOT, "docs", "internal-openapi", "internal-swagger.json");
 
 // Copied from src/dashboardGuard.js (not exported there — this is a one-time
 // generation script, not a runtime dependency of the app). If

@@ -7,8 +7,8 @@ import { dirname, resolve } from "node:path";
 // class of "hand-edit broke the JSON structure silently" risk as
 // ollama-public-openapi-spec.test.js, plus a scope check specific to this
 // file: it must document ADMIN routes only, never the public /v1 surface
-// (that's public/openapi/ollama-public.json's job).
-const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/docs/internal-openapi/spec.json");
+// (that's public/openapi/public-swagger.json's job).
+const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/docs/internal-openapi/internal-swagger.json");
 
 describe("internal OpenAPI spec (dashboard/api-docs page)", () => {
   it("is valid, parseable JSON", () => {

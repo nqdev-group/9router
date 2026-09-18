@@ -3,7 +3,7 @@
   "info": {
     "title": "9Router — Public API",
     "version": "1.0.0",
-    "description": "Public, no-login API surface for integrating with 9Router: the OpenAI/Claude/Gemini-compatible /v1/* gateway and the Ollama-compatible /v1/ollama/api/* surface. Internal dashboard/admin routes (settings, providers, oauth, keys, usage, ...) are documented separately behind dashboard login — not included here on purpose (see plans/2026-09-10-ollama-api-swagger-planning.md §2.3).",
+    "description": "Public, no-login API surface for integrating with 9Router",
     "contact": {
       "name": "9Router"
     }
@@ -11,6 +11,48 @@
   "servers": [
     {
       "url": "/api/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Chat & Completions",
+      "description": "OpenAI/Claude/Codex-compatible chat & text generation."
+    },
+    {
+      "name": "Models",
+      "description": "Discover available models and combos."
+    },
+    {
+      "name": "Embeddings",
+      "description": "OpenAI-compatible embeddings."
+    },
+    {
+      "name": "Images",
+      "description": "Image generation."
+    },
+    {
+      "name": "Audio",
+      "description": "Text-to-speech and speech-to-text."
+    },
+    {
+      "name": "Video",
+      "description": "Async video generation/edit jobs."
+    },
+    {
+      "name": "Web & Search",
+      "description": "URL fetch/extract and web search."
+    },
+    {
+      "name": "MCP",
+      "description": "9Router as an MCP server (Streamable HTTP)."
+    },
+    {
+      "name": "Ollama API",
+      "description": "Ollama-compatible surface, mounted at /v1/ollama/api/*."
+    },
+    {
+      "name": "Gemini API",
+      "description": "Gemini-compatible surface, mounted at /v1beta/*."
     }
   ],
   "security": [
@@ -177,6 +219,9 @@
   "paths": {
     "/v1/chat/completions": {
       "post": {
+        "tags": [
+          "Chat & Completions"
+        ],
         "summary": "OpenAI-compatible chat completions",
         "description": "Also the default endpoint for Cursor CLI. Streams SSE when stream:true.",
         "requestBody": {
@@ -215,6 +260,9 @@
     },
     "/v1/messages": {
       "post": {
+        "tags": [
+          "Chat & Completions"
+        ],
         "summary": "Claude Messages API-compatible chat",
         "description": "Body shape follows Anthropic's Messages API (messages[].content as blocks, top-level system, anthropic_version).",
         "requestBody": {
@@ -270,6 +318,9 @@
     },
     "/v1/messages/count_tokens": {
       "post": {
+        "tags": [
+          "Chat & Completions"
+        ],
         "summary": "Estimate token count for a Claude-format messages array",
         "description": "Estimate only (~4 chars/token), not an exact provider tokenizer count.",
         "requestBody": {
@@ -314,6 +365,9 @@
     },
     "/v1/responses": {
       "post": {
+        "tags": [
+          "Chat & Completions"
+        ],
         "summary": "OpenAI Responses API-compatible endpoint (Codex)",
         "requestBody": {
           "required": true,
@@ -359,6 +413,9 @@
     },
     "/v1/responses/compact": {
       "post": {
+        "tags": [
+          "Chat & Completions"
+        ],
         "summary": "OpenAI Responses API + _compact: true (reduced token echo)",
         "requestBody": {
           "required": true,
@@ -394,6 +451,9 @@
     },
     "/v1/models": {
       "get": {
+        "tags": [
+          "Models"
+        ],
         "summary": "List available models and combos (OpenAI format)",
         "responses": {
           "200": {
@@ -438,6 +498,9 @@
     },
     "/v1/models/{kind}": {
       "get": {
+        "tags": [
+          "Models"
+        ],
         "summary": "List models filtered by kind",
         "parameters": [
           {
@@ -466,6 +529,9 @@
     },
     "/v1/models/info": {
       "get": {
+        "tags": [
+          "Models"
+        ],
         "summary": "Detailed info for a single model",
         "parameters": [
           {
@@ -487,6 +553,9 @@
     },
     "/v1/embeddings": {
       "post": {
+        "tags": [
+          "Embeddings"
+        ],
         "summary": "OpenAI-compatible embeddings",
         "requestBody": {
           "required": true,
@@ -556,6 +625,9 @@
     },
     "/v1/images/generations": {
       "post": {
+        "tags": [
+          "Images"
+        ],
         "summary": "OpenAI-compatible image generation (14 providers)",
         "requestBody": {
           "required": true,
@@ -596,6 +668,9 @@
     },
     "/v1/audio/speech": {
       "post": {
+        "tags": [
+          "Audio"
+        ],
         "summary": "Text-to-speech (7 special adapters + 10 config-driven formats)",
         "requestBody": {
           "required": true,
@@ -633,6 +708,9 @@
     },
     "/v1/audio/transcriptions": {
       "post": {
+        "tags": [
+          "Audio"
+        ],
         "summary": "Speech-to-text",
         "requestBody": {
           "required": true,
@@ -667,6 +745,9 @@
     },
     "/v1/audio/voices": {
       "get": {
+        "tags": [
+          "Audio"
+        ],
         "summary": "List available TTS voices",
         "responses": {
           "200": {
@@ -677,6 +758,9 @@
     },
     "/v1/videos/generations": {
       "post": {
+        "tags": [
+          "Video"
+        ],
         "summary": "Async video generation (e.g. xAI Grok Imagine)",
         "responses": {
           "202": {
@@ -687,6 +771,9 @@
     },
     "/v1/videos/edits": {
       "post": {
+        "tags": [
+          "Video"
+        ],
         "summary": "Video edit job",
         "responses": {
           "202": {
@@ -697,6 +784,9 @@
     },
     "/v1/videos/extensions": {
       "post": {
+        "tags": [
+          "Video"
+        ],
         "summary": "Video extension job",
         "responses": {
           "202": {
@@ -707,6 +797,9 @@
     },
     "/v1/videos/{id}": {
       "get": {
+        "tags": [
+          "Video"
+        ],
         "summary": "Poll a video generation/edit/extension job",
         "parameters": [
           {
@@ -727,6 +820,9 @@
     },
     "/v1/web/fetch": {
       "post": {
+        "tags": [
+          "Web & Search"
+        ],
         "summary": "Fetch and extract a URL's content (Firecrawl, Jina Reader, Tavily, Exa)",
         "requestBody": {
           "required": true,
@@ -756,6 +852,9 @@
     },
     "/v1/search": {
       "post": {
+        "tags": [
+          "Web & Search"
+        ],
         "summary": "Web search (10 dedicated APIs + 7 chat-based search providers)",
         "requestBody": {
           "required": true,
@@ -784,6 +883,9 @@
     },
     "/v1/mcp": {
       "post": {
+        "tags": [
+          "MCP"
+        ],
         "summary": "9Router as an MCP server (Streamable HTTP transport)",
         "description": "MCP JSON-RPC over HTTP — see packages/mcpServer/. Not a plain REST call; use an MCP client.",
         "responses": {
@@ -795,6 +897,9 @@
     },
     "/v1/ollama/api/chat": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Ollama-compatible chat",
         "description": "Point an Ollama SDK/CLI's base host URL at <this-server>/v1/ollama — it appends /api/chat itself and lands here unchanged. Non-streaming (stream:false) returns one JSON object; streaming returns newline-delimited JSON, not SSE.",
         "requestBody": {
@@ -928,6 +1033,9 @@
     },
     "/v1/ollama/api/generate": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Ollama-compatible single-prompt completion",
         "description": "Built internally as a 1-2 message chat request. suffix (fill-in-the-middle) is best-effort appended text, not true FIM infill — no equivalent across 9Router's 40+ providers. raw is a no-op.",
         "requestBody": {
@@ -977,6 +1085,9 @@
     },
     "/v1/ollama/api/embed": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Ollama-compatible embeddings",
         "requestBody": {
           "required": true,
@@ -1043,6 +1154,9 @@
     },
     "/v1/ollama/api/tags": {
       "get": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "List models (Ollama ListResponse shape)",
         "description": "Reflects 9Router's real model catalog — the same list /v1/models uses. size/digest/quantization_level are clearly-marked placeholders: 9Router routes to remote provider APIs, it has no local model file to report those from.",
         "responses": {
@@ -1089,6 +1203,9 @@
     },
     "/v1/ollama/api/ps": {
       "get": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "List running models",
         "description": "Always returns an empty list — 9Router is a stateless API router, there is no local \"model loaded in VRAM\" concept to report.",
         "responses": {
@@ -1117,6 +1234,9 @@
     },
     "/v1/ollama/api/show": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Show model details",
         "description": "parameters/license/template are always empty strings — they describe a local Modelfile, which has no equivalent for an API-routed model.",
         "requestBody": {
@@ -1156,6 +1276,9 @@
     },
     "/v1/ollama/api/version": {
       "get": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "9Router version (Ollama-shape)",
         "description": "Distinct from /api/version (dashboard app-update-check, different response shape) — separate namespace, no conflict.",
         "responses": {
@@ -1182,6 +1305,9 @@
     },
     "/v1/ollama/api/create": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Create a model — not supported",
         "description": "9Router has no local model files to create. Returns 501.",
         "responses": {
@@ -1200,6 +1326,9 @@
     },
     "/v1/ollama/api/copy": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Copy a model — not supported",
         "description": "Returns 501.",
         "responses": {
@@ -1218,6 +1347,9 @@
     },
     "/v1/ollama/api/pull": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Pull a model — not supported",
         "description": "Returns 501.",
         "responses": {
@@ -1236,6 +1368,9 @@
     },
     "/v1/ollama/api/push": {
       "post": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Push a model — not supported",
         "description": "Returns 501.",
         "responses": {
@@ -1254,6 +1389,9 @@
     },
     "/v1/ollama/api/delete": {
       "delete": {
+        "tags": [
+          "Ollama API"
+        ],
         "summary": "Delete a model — not supported",
         "description": "Returns 501. Note: DELETE method, per the Ollama spec (not POST).",
         "responses": {
@@ -1272,6 +1410,9 @@
     },
     "/v1beta/models": {
       "get": {
+        "tags": [
+          "Gemini API"
+        ],
         "summary": "List models (Gemini ListModel format)",
         "responses": {
           "200": {
@@ -1282,6 +1423,9 @@
     },
     "/v1beta/models/{model}:generateContent": {
       "post": {
+        "tags": [
+          "Gemini API"
+        ],
         "summary": "Gemini-compatible generateContent",
         "parameters": [
           {
@@ -1323,6 +1467,9 @@
     },
     "/v1beta/models/{model}:streamGenerateContent": {
       "post": {
+        "tags": [
+          "Gemini API"
+        ],
         "summary": "Gemini-compatible streamGenerateContent (SSE)",
         "parameters": [
           {

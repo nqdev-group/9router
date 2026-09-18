@@ -2,7 +2,7 @@
 
 import { SwaggerUIEmbed } from "@9router/components";
 
-const SPEC_URL = "/openapi/ollama-public.json";
+const SPEC_URL = "/openapi/public-swagger.json";
 
 export default function PublicApiDocsPage() {
   return (
