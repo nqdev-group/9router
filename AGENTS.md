@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `open-sse/rtk/AGENTS.md` (token-compression engine internals), `open-sse/services/AGENTS.md` (combo/fusion retry loop, model catalogs, token refresh), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback caller side), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `packages/cmem/AGENTS.md` (Context Memory Engine internals), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
 
 ## What this is
 
@@ -153,6 +153,23 @@ Providers defined in `open-sse/providers/registry/{id}.js` → built into `open-
 Lý do: `open-sse/providers/registry/index.js` là auto-generated import list và là file upstream sync thường xuyên chạm vào — hand-edit trực tiếp vào đó là **future merge-conflict liability** (xem [Fork & upstream sync](#fork--upstream-sync)). `packages/providers/registry/` cô lập mọi provider do team này tự thêm, upstream không biết tới thư mục này nên gần như không bao giờ conflict. Các provider hiện có theo pattern này: `kira`, `llm7`, `sambanova`, `revidapi`, `vilao`.
 
 `open-sse/providers/registry/{id}.js` + regenerate `open-sse/providers/registry/index.js` chỉ dành cho provider đến từ **chính upstream** (qua merge) — không tự tay thêm provider mới vào đường này.
+
+### Beyond the registry: other provider-keyed maps that need their own merge
+
+Registering a provider in `packages/providers/registry/` makes it *known* (models, transport, pricing seed) but does **not** automatically make it work everywhere — several `open-sse/` files hold their own provider-keyed map/switch, written to cover only the providers that existed when that file was last touched. A custom provider silently falls through to a generic "not supported" branch on these until it gets its own entry — no error surfaces to the user, it just looks broken (this is how `kira` shipped for weeks with "Available Models" empty, "Test Connection" returning `Provider test not supported`, and no Quota Tracker row, despite the registry entry itself being fine).
+
+Same fix shape every time: put the custom logic in a new file under `packages/providers/<area>/`, export it as a plain object keyed by provider id, then in the corresponding `open-sse/` (or `src/app/api/`) file `import { X as EXTRA_X } from "@9router/providers/<area>/..."` and spread `...EXTRA_X` into that file's own object (or check `EXTRA_X[provider]` before its switch/`default` branch) — never hand-edit the base file's per-provider logic in place, and never rename its existing object just to make room for the spread. Known instances so far:
+
+| Area | Custom-layer file | Exports | Merged into |
+|---|---|---|---|
+| Chat/image pricing overrides | `packages/providers/pricing.js` | `PROVIDER_PRICING` | `open-sse/providers/pricing.js` (`EXTRA_PROVIDER_PRICING`, checked in `getPricingForModel()`) |
+| "Available Models" suggestion filters | `packages/providers/suggested-models/filters.js` | `FILTERS` | `src/app/api/providers/suggested-models/filters.js` (`EXTRA_FILTERS`, spread into that file's own `FILTERS`) |
+| Connection "Test Connection" probes | `packages/providers/test/testUtils.js` | `TESTERS` | `src/app/api/providers/[id]/test/testUtils.js` (`EXTRA_TESTERS`, checked before the `testApiKeyConnection()` switch) |
+| Quota Tracker usage/balance fetch | `packages/providers/usage/index.js` (→ `packages/providers/usage/{id}.js`) | `USAGE_HANDLERS` | `open-sse/services/usage.js` (`EXTRA_USAGE_HANDLERS`, spread into that file's own `USAGE_HANDLERS`) |
+
+Quota Tracker also needs `features: { usage: true, usageApikey: true }` set on the provider's own registry entry — `USAGE_SUPPORTED_PROVIDERS`/`USAGE_APIKEY_PROVIDERS` (`src/shared/constants/providers.js`) derive from that flag, and gate both whether the connection shows up as a card on `/dashboard/quota` and whether `GET /api/usage/{connectionId}` even attempts a fetch. `parseQuotaData()` in `ProviderLimits/utils.js` may also need a `case "<id>":` if the handler's quota shape needs fields the `default` case doesn't forward (e.g. `remainingPercentage`, `unlimited`).
+
+When adding a new custom provider (or auditing an existing one), check all four surfaces above, not just the registry — each is independently easy to miss since none of them error loudly when a provider id is absent.
 
 ## Translation pipeline
 
