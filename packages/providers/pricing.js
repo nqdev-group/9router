@@ -28,79 +28,67 @@ export const PROVIDER_PRICING = {
   // === Kira AI (kiraai.vn) ===
   // Pulled live from https://kiraai.vn/api/v1/models (kira.js sets modelsFetcher to this
   // endpoint, so runtime model ids come from here, not from the static seed list in
-  // packages/providers/registry/kira.js). Re-synced 2026-09-03 against the full live
-  // catalog (49 chat models) — every key below has a matching live id, and every live
-  // chat id has an entry here. Previous snapshot had several dead ids (the "-free"-suffixed
-  // DeepSeek/Qwen variants, "claude-fable-5"/"claude-opus-*", "kira-mini-2.0") that no
-  // longer exist upstream; those are dropped rather than carried forward.
-  // Kira quotes VND at an internal ₫5,000 = $1.00 token-credit rate — verified exact
-  // against gpt-5.6-luna (0% discount): ₫5,000/₫30,000 = canonical $1.00/$6.00 with zero
-  // markup. discount_percent from the live API is applied here BEFORE conversion (e.g.
-  // kimi-k3's discount dropped from 40%→30% between the last snapshot and this one, so
-  // its rate moved from $9.00/$45.60 to $10.50/$53.20 — these badges are promotional and
-  // drift, so this table needs periodic re-sync, not a one-time fetch). is_free:true
-  // models are $0 regardless of their listed VND rate (e.g. kira-mini-1.0 lists
-  // ₫1,000/₫5,000 but is flagged free). cached/reasoning/cache_creation are intentionally
-  // omitted — Kira's API exposes only input/output, and calculateCostFromTokens() already
-  // falls back to input/output rates when those fields are absent.
+  // packages/providers/registry/kira.js). Re-synced 2026-09-18 against the full live
+  // catalog (37 chat models — down from 49 on 2026-09-03, then 43 a day later; this
+  // catalog churns fast, treat any snapshot as stale within days, not months). Every
+  // key below matches a live id, and every live chat id has an entry here. Dropped
+  // entirely: all Gemini/Claude/GPT-*/Kira-legacy passthrough ids from the previous
+  // snapshot (gemini-*, claude-sonnet-5, gpt-5.*, gpt-4o-mini, kira-flash, kira-auto,
+  // kira-2.0, minimax-m3-free) — none of them exist in today's live catalog. Several
+  // formerly-free models are now paid at a steep discount instead (qwen3.8-flash, hy3,
+  // glm-5.3-flash, mimo-v2.5 all lost is_free:true; only kira-mini-1.0 and the new
+  // glm-4.7-flash-free are actually free today) — a discount badge is not the same
+  // guarantee as is_free:true, and both can flip either direction between syncs.
+  // Kira quotes VND at an internal ₫5,000 = $1.00 token-credit rate (unchanged).
+  // discount_percent from the live API is applied here BEFORE conversion. cached/
+  // reasoning/cache_creation intentionally omitted — Kira's API exposes only
+  // input/output, and calculateCostFromTokens() already falls back to those when
+  // absent.
   kira: {
-    "kira-3.5-pro":                 { input: 5.00,   output: 34.00  },
-    "kira-3.5-flash":               { input: 1.80,   output: 11.00  },
-    "kira-2.5-pro":                 { input: 1.30,   output: 9.00   },
-    "kira-2.5-flash":               { input: 1.16,   output: 3.00   },
-    "kira-flash":                   { input: 0.13,   output: 0.39   },
-    "kira-auto":                    { input: 0,      output: 0      },
-    // id corrected: was "kira-mini-2.0" in the previous snapshot — the live id is
-    // "kira-2.0", and it's flagged free now (was paid before).
-    "kira-2.0":                     { input: 0,      output: 0      },
-    "kira-mini-1.0":                { input: 0,      output: 0      },
-    "deepseek-v4-pro":              { input: 2.688,  output: 8.08   },
-    "deepseek-v4-flash":            { input: 0.112,  output: 0.336  },
-    "deepseek-v4-flash-0731":       { input: 0.112,  output: 0.336  },
-    "deepseek-v4-flash-vision-exp": { input: 0.12,   output: 0.34   },
-    // Only Claude model in the live catalog today — the previous "claude-fable-5" /
-    // "claude-opus-*" entries no longer exist upstream.
-    "claude-sonnet-5":              { input: 9.00,   output: 46.80  },
-    "qwen3.8-max":                  { input: 7.00,   output: 21.00  },
-    "qwen3.8-flash":                { input: 0,      output: 0      },
-    "qwen3.6-flash":                { input: 1.12,   output: 4.40   },
-    "qwen3.5-flash":                { input: 1.12,   output: 2.00   },
-    "qwen3.5-omni-plus":            { input: 4.40,   output: 28.00  },
-    "qwen3.7-plus":                 { input: 1.80,   output: 8.00   },
-    "qwen3.7-max":                  { input: 6.20,   output: 18.00  },
-    "gemini-3.8-flash":             { input: 3.42,   output: 17.64  },
-    "gemini-3.7-flash":             { input: 3.42,   output: 17.64  },
-    "gemini-3.6-flash":             { input: 6.30,   output: 36.00  },
-    "gemini-3.5-flash":             { input: 6.30,   output: 36.00  },
-    "gemini-3.5-flash-lite":        { input: 1.44,   output: 9.00   },
-    "gemini-2.5-flash-lite":        { input: 0.378,  output: 1.80   },
-    "mimo-v2.5":                    { input: 0,      output: 0      },
-    "mimo-v2.5-pro":                { input: 4.40,   output: 13.80  },
-    // discount 30% today (was 40% in the previous snapshot — re-verify periodically)
-    "kimi-k3":                      { input: 10.50,  output: 53.20  },
-    "glm-5.3":                      { input: 0.64,   output: 2.30   },
-    "glm-5.3-flash":                { input: 0,      output: 0      },
-    "glm-5.2":                      { input: 5.10,   output: 18.70  },
-    "grok-4.5":                     { input: 8.00,   output: 24.00  },
-    "grok-4.6":                     { input: 8.00,   output: 24.00  },
-    "minimax-m3":                   { input: 1.44,   output: 5.616  },
-    "minimax-m3-free":              { input: 0,      output: 0      },
-    "minimax-m2.7":                 { input: 0,      output: 0      },
-    "gpt-5.6-luna":                 { input: 1.00,   output: 6.00   },
-    "gpt-5.6-terra":                { input: 10.08,  output: 60.80  },
-    "gpt-5.6-sol":                  { input: 15.12,  output: 90.72  },
-    "gpt-5.4":                      { input: 7.80,   output: 46.80  },
-    "gpt-5.4-mini":                 { input: 1.52,   output: 9.36   },
-    "gpt-4o-mini":                  { input: 0.72,   output: 4.50   },
-    "gpt-oss-120b":                 { input: 0.098,  output: 0.20   },
-    // status:"hidden" in the live API (not shown in Kira's own UI) but still a real,
-    // priced, fetchable id — included in case it's reachable via passthroughModels.
-    "gpt-5-nano":                   { input: 1.00,   output: 20.00  },
-    "hy3":                          { input: 0,      output: 0      },
-    "hy4":                          { input: 4.40,   output: 13.20  },
-    "ox-alpha":                     { input: 0.4302, output: 1.4343 },
+    "kira-3.5-pro":                 { input: 5.00,   output: 34.00   },
+    "kira-3.5-flash":               { input: 1.80,   output: 11.00   },
+    "kira-3.5-flash-pdf":           { input: 1.80,   output: 11.00   },
+    "kira-2.5-pro":                 { input: 1.30,   output: 9.00    },
+    "kira-2.5-flash":               { input: 1.16,   output: 3.00    },
+    "kira-mini-1.0":                { input: 0,      output: 0       },
+    "deepseek-v4-pro":              { input: 6.1776, output: 18.5328 },
+    "deepseek-v4-flash":            { input: 1.326,  output: 5.304   },
+    "deepseek-v4-flash-0731":       { input: 1.404,  output: 5.616   },
+    "deepseek-v4.1-flash":          { input: 1.092,  output: 4.368   },
+    "deepseek-v4-flash-vision-exp": { input: 1.56,   output: 6.24    },
+    "qwen3.8-max":                  { input: 10.00,  output: 30.00   },
+    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
+    "qwen3.8-flash":                { input: 0.0848, output: 0.2491  },
+    "qwen3.8-27b":                  { input: 0.152,  output: 1.912   },
+    "qwen3.7-max":                  { input: 6.20,   output: 18.00   },
+    "qwen3.7-plus":                 { input: 1.80,   output: 8.00    },
+    "qwen3.6-flash":                { input: 1.12,   output: 4.40    },
+    "qwen3.5-flash":                { input: 1.12,   output: 2.00    },
+    "qwen3.5-omni-plus":            { input: 4.40,   output: 28.00   },
+    "glm-5.3":                      { input: 1.456,  output: 4.576   },
+    // discount 80% today — no longer is_free:true (was free as of 2026-09-17)
+    "glm-5.3-flash":                { input: 0.1564, output: 0.5216  },
+    "glm-5.2":                      { input: 6.552,  output: 20.592  },
+    // new id (2026-09-18) — actually is_free:true, unlike the discounted-but-paid
+    // glm-5.3-flash above
+    "glm-4.7-flash-free":           { input: 0,      output: 0       },
+    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
+    "mimo-v2.5":                    { input: 0.204,  output: 1.02    },
+    "mimo-v2.5-pro":                { input: 4.40,   output: 13.80   },
+    "mercury-2.5":                  { input: 0.048,  output: 0.16    },
+    "mercury-2":                    { input: 0.044,  output: 0.156   },
+    "kimi-k3":                      { input: 13.50,  output: 68.40   },
+    "grok-4.5":                     { input: 8.00,   output: 24.00   },
+    "grok-4.6":                     { input: 8.00,   output: 24.00   },
+    "minimax-m3":                   { input: 1.60,   output: 6.24    },
+    "minimax-m2.7":                 { input: 1.52,   output: 5.928   },
+    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
+    "hy3":                          { input: 0.06,   output: 0.24    },
+    "hy4":                          { input: 4.40,   output: 13.20   },
+    "ox-alpha":                     { input: 0.7822, output: 2.6078  },
     // tags include "Free" but is_free:false in the live API — trusting the flag, not the tag
-    "dots-3-note-preview":          { input: 1.60,   output: 6.24   },
+    "dots-3-note-preview":          { input: 1.60,   output: 6.24    },
+    "gpt-oss-120b":                 { input: 0.98,   output: 2.00    },
   },
 
   // === LLM7 (llm7.io) ===

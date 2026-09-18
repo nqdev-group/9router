@@ -72,41 +72,41 @@ export default {
     // they weren't affected).
     //
     // Free chat models — verified live (is_free:true in the /api/v1/models response,
-    // 2026-09-03). "kira-mini-2.0" (previously declared here) no longer exists; the
-    // live id is "kira-2.0", and it's free now (was paid at the time of the last check).
+    // 2026-09-18). qwen3.8-flash, hy3, glm-5.3-flash, and mimo-v2.5 (below, under "Paid
+    // highlights") lost is_free:true since the last check (2026-09-17) — they're now
+    // paid at a steep discount (80-90% off) instead of $0, so the "(Miễn phí)" tag was
+    // removed from their names. A discount badge is not the same guarantee as
+    // is_free:true, and either can flip in either direction — don't assume a model
+    // tagged free here stays free.
     { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
-    { id: "kira-auto", name: "Kira Auto (Miễn phí)" },
-    { id: "kira-2.0", name: "Kira 2.0 (Miễn phí)" },
-    { id: "qwen3.8-flash", name: "Qwen3.8 Flash (Miễn phí)" },
-    { id: "hy3", name: "Tencent: Hy3 Free (Miễn phí)" },
-    { id: "glm-5.3-flash", name: "GLM 5.3 Flash (Miễn phí)" },
-    { id: "mimo-v2.5", name: "MiMo V2.5 (Miễn phí)" },
+    { id: "glm-4.7-flash-free", name: "GLM 4.7 Flash (Miễn phí)" },
     // Paid highlights. The "-free"-suffixed DeepSeek/Qwen ids previously listed here
     // ("deepseek-v4-pro-free", "deepseek-v4-flash-free", "deepseek-v4-flash-1b-free",
     // "qwen-3.8-27b-free", "qwen-3.8-max-free") no longer exist in the live catalog —
-    // removed rather than left as dead ids.
+    // removed rather than left as dead ids. "kira-auto", "kira-2.0", and "claude-sonnet-5"
+    // were also removed (2026-09-18) — no longer active on Kira's side; still reachable
+    // via passthroughModels if that changes back.
+    { id: "qwen3.8-flash", name: "Qwen3.8 Flash" },
+    { id: "hy3", name: "Tencent: Hy3" },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash" },
+    { id: "mimo-v2.5", name: "MiMo V2.5" },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
     { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp" },
     { id: "qwen3.8-max", name: "Qwen3.8 Max" },
-    { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
     { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
     { id: "kira-2.0-image", name: "Kira 2.0 Image", type: "image", params: ["n", "size"] },
-    // Gemini-branded models served through Kira's gateway, no "kira-" prefix — ids
-    // verified live.
-    { id: "gemini-3-pro-image-preview", name: "Gemini 3 Pro Image", type: "image", params: ["n", "size"] },
-    { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image", type: "image", params: ["n", "size"] },
-    { id: "gemini-2.5-flash-image", name: "Gemini 2.5 Flash Image", type: "image", params: ["n", "size"] },
     { id: "kira-3.0-video", name: "Kira 3.0 Video", type: "video", params: [] },
     { id: "kira-3.0-video-flash", name: "Kira 3.0 Video Flash", type: "video", params: [] },
   ],
-  // Live catalog (https://kiraai.vn/api/v1/models) has ~37 more chat models beyond this
-  // seed (Claude, GPT-5.x, Gemini, Qwen, Kimi, GLM, Grok, MiMo tiers — see
-  // packages/providers/pricing.js's "kira" block, though that table should be re-synced
-  // against the live catalog separately — several of its ids, e.g. "kira-mini-2.0" and
-  // the "-free"-suffixed DeepSeek variants, are already stale as of this file's update).
-  // passthroughModels lets users pick any of them via modelsFetcher-driven suggestions
-  // without listing every id here.
+  // Live catalog (https://kiraai.vn/api/v1/models) has ~35 more chat models beyond this
+  // seed (DeepSeek/Qwen/GLM/Grok/MiMo/Kimi/Mercury tiers — see packages/providers/pricing.js's
+  // "kira" block for the full priced list, re-synced 2026-09-18 alongside this file).
+  // No Gemini- or GPT-branded passthrough models remain in the live catalog as of
+  // 2026-09-18 (they were present as recently as 2026-09-17) — the 3 Gemini image ids
+  // and 2 Gemini TTS ids previously seeded here (and below in ttsConfig.models) were
+  // removed for the same reason. passthroughModels lets users pick any surviving/future
+  // id via modelsFetcher-driven suggestions without listing every id here.
   passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
   // No sttConfig: live catalog (https://kiraai.vn/api/v1/models) has no speech-to-text
@@ -120,13 +120,13 @@ export default {
     authHeader: "bearer",
     format: "openai",
     // "kira-2.5-flash" is a CHAT model, not TTS — it doesn't appear under TTS in the
-    // live catalog. These 4 are the real TTS ids returned by
-    // https://kiraai.vn/api/v1/models (type:"audio").
+    // live catalog. These 2 are the real TTS ids returned by
+    // https://kiraai.vn/api/v1/models (type:"audio") as of 2026-09-18 — the 2 Gemini-
+    // branded TTS ids previously listed here ("gemini-3.1-flash-tts-preview",
+    // "gemini-2.5-flash-tts") no longer exist live.
     models: [
       { id: "kira-3.0-flash-tts", name: "Kira 3.0 Flash TTS" },
       { id: "kira-2.0-flash-tts", name: "Kira 2.0 Flash TTS" },
-      { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS Preview" },
-      { id: "gemini-2.5-flash-tts", name: "Gemini 2.5 Flash TTS" },
     ],
     // Public voice ids per GET https://kiraai.vn/api/v1/audio/voices (verified live,
     // 2026-09-17) — that endpoint also returns each id's internal engine voice
