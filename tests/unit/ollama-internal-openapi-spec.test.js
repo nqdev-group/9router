@@ -47,4 +47,20 @@ describe("internal OpenAPI spec (dashboard/api-docs page)", () => {
     const op = entry.get || entry.post;
     expect(op["x-9router-note"]).toBe("catch-all path segment(s)");
   });
+
+  it("groups every operation under a declared, non-default, non-Other tag (Swagger UI sidebar must not fall back to 'default')", () => {
+    const spec = JSON.parse(readFileSync(specPath, "utf8"));
+    const declaredTags = new Set(spec.tags.map((t) => t.name));
+    expect(declaredTags.size).toBeGreaterThan(1);
+    for (const [path, methods] of Object.entries(spec.paths)) {
+      for (const [method, op] of Object.entries(methods)) {
+        expect(Array.isArray(op.tags) && op.tags.length > 0, `${method.toUpperCase()} ${path} has no tags`).toBe(true);
+        for (const tag of op.tags) {
+          expect(tag).not.toBe("default");
+          expect(tag).not.toBe("Other");
+          expect(declaredTags.has(tag), `${method.toUpperCase()} ${path} uses undeclared tag "${tag}"`).toBe(true);
+        }
+      }
+    }
+  });
 });

@@ -293,3 +293,14 @@ Người dùng xác nhận CI (GitHub Actions build+test) đã xanh và image Do
 - Không đổi tên 2 file test (`ollama-*-openapi-spec.test.js`) — tên đó phản ánh nội dung test (Ollama route coverage), không phải tên file spec đang document.
 - Rename kèm chạy lại `node scripts/generate-internal-openapi.mjs` để ghi ra tên file mới — số liệu tăng nhẹ so với lúc Phase 4 hoàn thành (**154 path, 239 operation**, trước là 152/237) vì có route mới được thêm vào `src/app/api/` giữa 2 thời điểm, không phải do lỗi rename.
 - Verify sau cả 2 rename: `cd tests && npx vitest run --config ./vitest.config.js ollama` → **51/51 pass** (50 cũ + 1 test tag-coverage mới ở follow-up trước).
+
+### Follow-up (2026-09-18, tiếp) — nhóm tag cho `internal-swagger.json` (đồng bộ với `public-swagger.json`)
+
+Cùng lý do như public spec: `internal-swagger.json` không có field `tags` → Swagger UI dồn hết vào nhóm `default`, khó duyệt với ~154 path. Khác với public spec (viết tay + script `build-openapi.mjs` dùng 1 lần), file này **luôn sinh lại** bởi [scripts/generate-internal-openapi.mjs](../scripts/generate-internal-openapi.mjs) — nên sửa ngay trong generator, không hand-edit `internal-swagger.json`.
+
+- Thêm `TAG_GROUPS` (map top-level dir → tên tag) + `TAG_DESCRIPTIONS` trong generator, dựa theo đúng "Directory map" đã có ở [src/app/api/AGENTS.md](../src/app/api/AGENTS.md): **9 tag** — `Dashboard CRUD` (combos/keys/providers/provider-nodes/proxy-pools/models/models-dev/model-token-limits/media-providers/settings/usage/pricing/tags), `Auth`, `OAuth`, `CLI Tools`, `Sidecar Processes` (headroom/pxpipe/tunnel), `Translator Playground`, `MCP Bridge`, `App & Process` (health/init/locale/version/shutdown), `Docs`.
+- `classifyTag(pathname)` lấy segment đầu sau `/api/`, fallback về tag `"Other"` nếu dir mới chưa được thêm vào `TAG_GROUPS` — kèm `console.warn` liệt kê dir nào bị rơi vào `Other`, để không âm thầm che dấu dir mới quên nhóm.
+- Gắn `tags: [<tên>]` vào từng operation + thêm top-level `spec.tags` (chỉ liệt kê tag thực sự được dùng, đã sort). Chạy lại generator: **0 dir rơi vào `Other`** — toàn bộ 26 dir hiện có đều được map (154 path, 239 operation, 9 tag).
+- Thêm 1 test vào [tests/unit/ollama-internal-openapi-spec.test.js](../tests/unit/ollama-internal-openapi-spec.test.js) (giống test tag-coverage của public spec): mọi operation có tag non-empty, không dùng `"default"` hoặc `"Other"`, mọi tag phải nằm trong `spec.tags` đã khai báo.
+- Cập nhật [src/app/api/AGENTS.md](../src/app/api/AGENTS.md) — nhắc phải đồng bộ `TAG_GROUPS` khi thêm dir mới dưới `src/app/api/`.
+- Verify: `cd tests && npx vitest run --config ./vitest.config.js ollama` → **52/52 pass**.
