@@ -26,6 +26,7 @@ import {
   getVercelAiGatewayUsage,
   getQoderUsage,
 } from "./usage/misc.js";
+import { USAGE_HANDLERS as EXTRA_USAGE_HANDLERS } from "@9router/providers/usage/index.js";
 
 /**
  * Get usage data for a provider connection
@@ -62,6 +63,8 @@ const USAGE_HANDLERS = {
   groq: (c) => getGroqUsage(c.apiKey, c.proxyOptions),
   zed: (c) => getZedUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
   "xiaomi-mimo": (c) => getXiaomiMimoUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
+  // Custom (non-upstream) provider handlers — see packages/providers/usage/index.js
+  ...EXTRA_USAGE_HANDLERS,
 };
 
 export async function getUsageForProvider(connection, proxyOptions = null, options = {}) {

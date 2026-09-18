@@ -156,4 +156,12 @@ export default {
   videoConfig: {
     baseUrl: "https://kiraai.vn/api/v1/videos",
   },
+  // Drives USAGE_APIKEY_PROVIDERS (src/shared/constants/providers.js), which gates
+  // whether GET /api/usage/{connectionId} even attempts a fetch for an apikey
+  // connection — see packages/providers/usage/kira.js for the actual fetch/parse
+  // logic (merged into open-sse/services/usage.js's USAGE_HANDLERS).
+  features: {
+    usage: true,
+    usageApikey: true,
+  },
 };
