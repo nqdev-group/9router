@@ -62,25 +62,34 @@ export default {
     modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
   },
   models: [
+    // No `type`/`kind` on chat entries — the schema defaults kind to "llm" when
+    // omitted (see MODEL_DEFAULTS in open-sse/providers/models/schema.js), and the
+    // dashboard's "Available Models" list only renders entries whose kind is exactly
+    // "llm" (falsy or "llm" — see getModelKind() usage in the providers/[id] page).
+    // These entries previously all set `type: "chat"`, which is not "llm" — every
+    // single chat model was silently filtered out of that list as a result (image/
+    // video entries render in their own section by their own explicit `type`, so
+    // they weren't affected).
+    //
     // Free chat models — verified live (is_free:true in the /api/v1/models response,
     // 2026-09-03). "kira-mini-2.0" (previously declared here) no longer exists; the
     // live id is "kira-2.0", and it's free now (was paid at the time of the last check).
-    { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)", type: "chat" },
-    { id: "kira-auto", name: "Kira Auto (Miễn phí)", type: "chat" },
-    { id: "kira-2.0", name: "Kira 2.0 (Miễn phí)", type: "chat" },
-    { id: "qwen3.8-flash", name: "Qwen3.8 Flash (Miễn phí)", type: "chat" },
-    { id: "hy3", name: "Tencent: Hy3 Free (Miễn phí)", type: "chat" },
-    { id: "glm-5.3-flash", name: "GLM 5.3 Flash (Miễn phí)", type: "chat" },
-    { id: "mimo-v2.5", name: "MiMo V2.5 (Miễn phí)", type: "chat" },
+    { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
+    { id: "kira-auto", name: "Kira Auto (Miễn phí)" },
+    { id: "kira-2.0", name: "Kira 2.0 (Miễn phí)" },
+    { id: "qwen3.8-flash", name: "Qwen3.8 Flash (Miễn phí)" },
+    { id: "hy3", name: "Tencent: Hy3 Free (Miễn phí)" },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash (Miễn phí)" },
+    { id: "mimo-v2.5", name: "MiMo V2.5 (Miễn phí)" },
     // Paid highlights. The "-free"-suffixed DeepSeek/Qwen ids previously listed here
     // ("deepseek-v4-pro-free", "deepseek-v4-flash-free", "deepseek-v4-flash-1b-free",
     // "qwen-3.8-27b-free", "qwen-3.8-max-free") no longer exist in the live catalog —
     // removed rather than left as dead ids.
-    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", type: "chat" },
-    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", type: "chat" },
-    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", type: "chat" },
-    { id: "qwen3.8-max", name: "Qwen3.8 Max", type: "chat" },
-    { id: "claude-sonnet-5", name: "Claude Sonnet 5", type: "chat" },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
+    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp" },
+    { id: "qwen3.8-max", name: "Qwen3.8 Max" },
+    { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
     { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
     { id: "kira-2.0-image", name: "Kira 2.0 Image", type: "image", params: ["n", "size"] },
     // Gemini-branded models served through Kira's gateway, no "kira-" prefix — ids
