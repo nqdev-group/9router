@@ -1,0 +1,16 @@
+# Runtime/scratch data for this repo's local tooling — not the open-sse/rtk/
+# token-compression engine, and not the personal `rtk` CLI tool. See README.md
+# in this directory for the disambiguation.
+
+*.tmp
+*.temp
+*.cache
+.cache/
+*.log
+logs/
+.env.local
+.env.*.local
+*.pid
+*.lock
+*.session
+*.sock
