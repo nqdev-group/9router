@@ -1,17 +1,30 @@
 // Kira AI usage/quota — GET https://kiraai.vn/api/v1/user/profile
 // Auth: Bearer <apiKey>
 //
-// Endpoint choice verified live (2026-09-18): GET /api/v1/user/profile returns 401
-// "no_token_provided" with no Authorization header and 403 "invalid_or_expired_token"
-// with a bad one (same endpoint already used to validate connections — see
-// packages/providers/test/testUtils.js) — so it's the right auth-gated place to pull
-// balance/usage from. The exact SUCCESS response shape is NOT verified (no live API
-// key was available while writing this) — field names below are a best-effort guess
-// from the labels shown on https://kiraai.vn/developer/: "Tokens model Kira còn lại"
-// (remaining Kira-model token balance), "Đã dùng hôm nay" (used today), "Số dư ví
-// còn lại" (remaining VND wallet balance). If the Quota page shows "no recognized
-// usage fields" or clearly wrong numbers for a real account, fetch this endpoint with
-// a real key and correct the field paths below to match.
+// Verified live (2026-09-18) against a real account — success shape:
+//   { success: true, user: { ..., balances: {
+//     vnd_balance, token_balance, daily_token_limit, free_daily_limit,
+//     tokens_used_today, vnd_spent_today, token_expires_at
+//   } } }
+// (401 "no_token_provided" with no Authorization header, 403
+// "invalid_or_expired_token" with a bad one — same endpoint already used to
+// validate connections, see packages/providers/test/testUtils.js.)
+//
+// Three numbers worth surfacing:
+//   - tokens_used_today / (daily_token_limit ?? free_daily_limit): a real daily
+//     quota that resets — shown as a normal used/total bar. daily_token_limit is
+//     null on a plain personal account (this test account) and presumably set on
+//     paid/Dev plans; free_daily_limit (195,000,000 on this account) is the
+//     fallback everyone gets. No reset timestamp is returned, so resetAt is left
+//     null (renders "N/A") rather than guessing a timezone.
+//   - token_balance: a separate declining pool (30,000 on this account, no paired
+//     "total" field in the response — not the same number as the free/paid plan's
+//     monthly token allowance mentioned in this provider's own notice text) —
+//     shown as a non-resetting credit pot, same "unlimited while positive" style
+//     DeepSeek's balance uses (open-sse/services/usage/deepseek.js).
+//   - vnd_balance: pay-as-you-go wallet balance — same credit-pot treatment.
+// vnd_spent_today / token_expires_at are not surfaced — redundant with the above
+// (spent-today is implied by the daily-used row) or null on every account seen so far.
 
 import { proxyAwareFetch } from "open-sse/utils/proxyFetch.js";
 import { toFiniteNumber } from "open-sse/services/usage/shared.js";
@@ -49,56 +62,47 @@ export async function getKiraUsage(apiKey = null, proxyOptions = null) {
     }
 
     const data = await response.json().catch(() => null);
-    if (!data || typeof data !== "object") {
-      return { message: "Kira AI profile response was not JSON." };
+    const balances = data?.user?.balances;
+    if (!balances || typeof balances !== "object") {
+      return { message: "Kira AI profile response was missing user.balances." };
     }
-
-    // Unwrap a possible envelope — the actual shape isn't confirmed yet.
-    const p = data.data || data.user || data.profile || data;
 
     const quotas = {};
 
-    // Monthly/plan token allowance — resets monthly per this provider's own
-    // notice text in packages/providers/registry/kira.js ("Cá nhân 5,000,000
-    // token/tháng"). Guessed field names — correct once verified.
-    const tokenTotal = toFiniteNumber(
-      p.token_limit ?? p.tokenLimit ?? p.monthly_token_limit ?? p.plan_token_limit,
-      null,
-    );
-    const tokenRemaining = toFiniteNumber(
-      p.token_balance ?? p.tokenBalance ?? p.remaining_tokens ?? p.remainingTokens,
-      null,
-    );
-    if (tokenTotal !== null && tokenRemaining !== null) {
-      quotas["Tokens (this cycle)"] = {
-        used: Math.max(0, tokenTotal - tokenRemaining),
-        total: tokenTotal,
-        resetAt: p.token_reset_at ?? p.tokenResetAt ?? null,
+    const dailyLimit = toFiniteNumber(balances.daily_token_limit ?? balances.free_daily_limit, null);
+    const usedToday = toFiniteNumber(balances.tokens_used_today, null);
+    if (dailyLimit !== null && dailyLimit > 0 && usedToday !== null) {
+      quotas["Tokens used today"] = {
+        used: usedToday,
+        total: dailyLimit,
+        resetAt: null,
       };
     }
 
-    // Pay-as-you-go wallet balance (VND) — a credit pot, not a refilling
-    // quota, so it's shown the same "unlimited while balance > 0" way
-    // open-sse/services/usage/deepseek.js shows DeepSeek's balance.
-    const walletBalance = toFiniteNumber(
-      p.wallet_balance ?? p.walletBalance ?? p.balance_vnd ?? p.balance,
-      null,
-    );
-    if (walletBalance !== null) {
+    const tokenBalance = toFiniteNumber(balances.token_balance, null);
+    if (tokenBalance !== null) {
+      quotas["Token balance"] = {
+        used: 0,
+        total: Math.max(0, tokenBalance),
+        remainingPercentage: tokenBalance > 0 ? 100 : 0,
+        resetAt: null,
+        unlimited: tokenBalance > 0,
+      };
+    }
+
+    const vndBalance = toFiniteNumber(balances.vnd_balance, null);
+    if (vndBalance !== null) {
       quotas["Wallet balance (VND)"] = {
         used: 0,
-        total: Math.max(0, walletBalance),
-        remainingPercentage: walletBalance > 0 ? 100 : 0,
+        total: Math.max(0, Math.round(vndBalance)),
+        remainingPercentage: vndBalance > 0 ? 100 : 0,
         resetAt: null,
-        unlimited: walletBalance > 0,
+        unlimited: vndBalance > 0,
       };
     }
 
     if (Object.keys(quotas).length === 0) {
-      return {
-        plan: "Kira AI",
-        message: "Kira AI connected, but no recognized usage fields were found in the profile response — field names in packages/providers/usage/kira.js need updating to match the real API.",
-      };
+      return { plan: "Kira AI", message: "Kira AI connected. No balance data returned." };
     }
 
     return { plan: "Kira AI", quotas };
