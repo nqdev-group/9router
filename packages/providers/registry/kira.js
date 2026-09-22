@@ -62,15 +62,6 @@ export default {
     modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
   },
   models: [
-    // No `type`/`kind` on chat entries — the schema defaults kind to "llm" when
-    // omitted (see MODEL_DEFAULTS in open-sse/providers/models/schema.js), and the
-    // dashboard's "Available Models" list only renders entries whose kind is exactly
-    // "llm" (falsy or "llm" — see getModelKind() usage in the providers/[id] page).
-    // These entries previously all set `type: "chat"`, which is not "llm" — every
-    // single chat model was silently filtered out of that list as a result (image/
-    // video entries render in their own section by their own explicit `type`, so
-    // they weren't affected).
-    //
     // Free chat models — verified live (is_free:true in the /api/v1/models response,
     // 2026-09-18). qwen3.8-flash, hy3, glm-5.3-flash, and mimo-v2.5 (below, under "Paid
     // highlights") lost is_free:true since the last check (2026-09-17) — they're now
@@ -79,7 +70,6 @@ export default {
     // is_free:true, and either can flip in either direction — don't assume a model
     // tagged free here stays free.
     { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
-    { id: "glm-4.7-flash-free", name: "GLM 4.7 Flash (Miễn phí)" },
     // Paid highlights. The "-free"-suffixed DeepSeek/Qwen ids previously listed here
     // ("deepseek-v4-pro-free", "deepseek-v4-flash-free", "deepseek-v4-flash-1b-free",
     // "qwen-3.8-27b-free", "qwen-3.8-max-free") no longer exist in the live catalog —
