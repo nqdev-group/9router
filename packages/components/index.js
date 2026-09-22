@@ -16,3 +16,5 @@ export { CmemStatsCards } from "./cmem/StatsCards.js";
 export { ObservationList } from "./cmem/ObservationList.js";
 
 export { SwaggerUIEmbed } from "./swagger/SwaggerUIEmbed.js";
+
+export { ErrorFrequencyChart } from "./error-stats/ErrorFrequencyChart.js";

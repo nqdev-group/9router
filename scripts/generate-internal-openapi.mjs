@@ -69,6 +69,7 @@ const TAG_GROUPS = {
   usage: "Dashboard CRUD",
   pricing: "Dashboard CRUD",
   tags: "Dashboard CRUD",
+  "error-stats": "Dashboard CRUD",
   auth: "Auth",
   oauth: "OAuth",
   "cli-tools": "CLI Tools",
@@ -86,7 +87,7 @@ const TAG_GROUPS = {
 };
 
 const TAG_DESCRIPTIONS = {
-  "Dashboard CRUD": "Combos, keys, providers, provider-nodes, proxy-pools, models, models-dev, model-token-limits, media-providers, settings, usage, pricing, tags — one dir per resource, [id] for item routes.",
+  "Dashboard CRUD": "Combos, keys, providers, provider-nodes, proxy-pools, models, models-dev, model-token-limits, media-providers, settings, usage, pricing, tags, error-stats — one dir per resource, [id] for item routes.",
   Auth: "Dashboard login (login, logout, status, reset-password, oidc, saml).",
   OAuth: "Generic OAuth device-code + PKCE handler, plus provider-specific auto-import/cookie-auth flows.",
   "CLI Tools": "Reads/writes local CLI config files for Claude Code, Codex, Cline, Copilot, Droid, Kilo, Opencode, and others.",

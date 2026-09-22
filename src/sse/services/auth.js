@@ -4,6 +4,7 @@ import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLock
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { getAntigravityQuotaCache } from "./antigravityQuota.js";
+import { logAccountError } from "@/lib/errorLogDb/errorLogRepo.js";
 import * as log from "../utils/logger.js";
 
 // Mutex to prevent race conditions during account selection
@@ -274,6 +275,10 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     lastErrorAt: new Date().toISOString(),
     backoffLevel: newBackoffLevel ?? backoffLevel
   });
+
+  // Fire-and-forget: separate error-log DB for the error-stats dashboard, not
+  // awaited so a slow/failing write never adds latency to the request path.
+  void logAccountError({ provider: resolveProviderId(provider), connectionId, model, errorCode: status });
 
   const lockKey = Object.keys(lockUpdate)[0];
   const connName = conn?.displayName || conn?.name || conn?.email || connectionId.slice(0, 8);

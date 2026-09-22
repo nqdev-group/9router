@@ -25,7 +25,7 @@
     },
     {
       "name": "Dashboard CRUD",
-      "description": "Combos, keys, providers, provider-nodes, proxy-pools, models, models-dev, model-token-limits, media-providers, settings, usage, pricing, tags — one dir per resource, [id] for item routes."
+      "description": "Combos, keys, providers, provider-nodes, proxy-pools, models, models-dev, model-token-limits, media-providers, settings, usage, pricing, tags, error-stats — one dir per resource, [id] for item routes."
     },
     {
       "name": "Docs",
@@ -869,6 +869,20 @@
         }
       }
     },
+    "/api/combos/remove-model": {
+      "post": {
+        "tags": [
+          "Dashboard CRUD"
+        ],
+        "summary": "before calling this.",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
     "/api/combos": {
       "get": {
         "tags": [
@@ -887,6 +901,20 @@
           "Dashboard CRUD"
         ],
         "summary": "POST /api/combos - Create new combo",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/combos/using-model": {
+      "get": {
+        "tags": [
+          "Dashboard CRUD"
+        ],
+        "summary": "Query-param, not a dynamic path segment, because model strings contain \"/\".",
         "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
         "responses": {
           "200": {
@@ -939,6 +967,34 @@
           "Docs"
         ],
         "summary": "whenever routes are added/removed under src/app/api/ (outside v1/v1beta).",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/error-stats/accounts": {
+      "get": {
+        "tags": [
+          "Dashboard CRUD"
+        ],
+        "summary": "GET /api/error-stats/accounts - hourly error-frequency chart data, provider|account breakdown",
+        "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
+        "responses": {
+          "200": {
+            "description": "See handler source for exact response shape (path+summary-only tier, see plans/2026-09-10-ollama-api-swagger-planning.md §6)"
+          }
+        }
+      }
+    },
+    "/api/error-stats/models": {
+      "get": {
+        "tags": [
+          "Dashboard CRUD"
+        ],
+        "summary": "(show combos using this model / remove from all combos — see Phase 2).",
         "x-9router-auth": "Protected — JWT (dashboard login) required unless requireLogin=false",
         "responses": {
           "200": {

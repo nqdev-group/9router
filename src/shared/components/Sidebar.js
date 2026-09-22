@@ -58,6 +58,7 @@ const compressionContextItems = [
   { href: "/dashboard/api-docs", label: "API Docs", icon: "description", isNew: true },
   { href: "/dashboard/combos-v2", label: "Combos Pipeline", icon: "account_tree", isNew: true },
   { href: "/dashboard/combo-cooldown", label: "Combo Cooldown", icon: "schedule", isNew: true },
+  { href: "/dashboard/error-stats", label: "Error Stats", icon: "error", isNew: true },
   { href: "/dashboard/settings/rtk-engine", label: "RTK Engine", icon: "bolt" },
   { href: "/dashboard/settings/caveman-engine", label: "Caveman Engine", icon: "text_snippet" },
   { href: "/dashboard/settings/cmem-engine", label: "CMEM Engine", icon: "memory" },
