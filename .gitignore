@@ -28,6 +28,9 @@ product
 .DS_Store
 *.pem
 
+# python venv (docs/view-docs.bat)
+.venv/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -113,3 +116,10 @@ dist/*
 # ===== Ignore archived files =====
 archived/
 !archived/.gitignore
+
+# ===== Local runtime/scratch data (see .rtk/README.md) =====
+.rtk/*
+!.rtk/.gitignore
+!.rtk/README.md
+
+.playwright-mcp
