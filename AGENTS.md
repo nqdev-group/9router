@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
+Canonical knowledge for this repo. Read before doing significant work. See also `open-sse/AGENTS.md` (SSE engine internals), `open-sse/rtk/AGENTS.md` (token-compression engine internals), `open-sse/services/AGENTS.md` (combo/fusion retry loop, model catalogs, token refresh), `tests/translator/AGENTS.md` (translator test patterns), `src/sse/AGENTS.md` (Next.js↔open-sse bridge, combo/account-fallback caller side), `src/app/api/AGENTS.md` (API route conventions, auth/middleware), `src/lib/db/AGENTS.md` (SQLite driver/schema/repos), `packages/AGENTS.md` (feature-package internals, `@9router/*` resolution), `packages/cmem/AGENTS.md` (Context Memory Engine internals), `cli/AGENTS.md` (npm CLI package, build/publish). `CLAUDE.md` is a thin pointer — project knowledge lives here.
 
 ## What this is
 
@@ -111,7 +111,7 @@ packages/
   services/       → @9router/services/      (extra model-prefix inference, extends open-sse/services/model.js)
   tier-routing/   → @9router/tier-routing/  (cost/tier-aware combo model reordering; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js)
   token-limit-routing/ → @9router/token-limit-routing/ (bypasses combo models whose configured max-input-token limit can't fit the prompt; used by open-sse/services/combo.js, config via src/sse/handlers/chat.js + src/lib/db/repos/modelTokenLimitsRepo.js)
-  model-combo-cooldown/ → @9router/model-combo-cooldown/ (per-combo model cooldown: a model that fails inside a combo is skipped in THAT combo for 5 min, in-memory, fail-open when all models are cooling down; used by open-sse/services/combo.js `handleComboChat`, always-on via `modelCooldown: { enabled: true }` set in both combo branches of src/sse/handlers/chat.js — not applied to Fusion combos)
+  model-combo-cooldown/ → @9router/model-combo-cooldown/ (per-combo model cooldown: a model that fails inside a combo is skipped in THAT combo for 5 min, in-memory, fail-open when all models are cooling down; used by open-sse/services/combo.js `handleComboChat`, always-on via `modelCooldown: { enabled: true }` set in both combo branches of src/sse/handlers/chat.js — not applied to Fusion combos; `clearModelCooldown(comboName, modelStr)` added 2026-09-22 to clear exactly one pair — used by the "remove model from all combos" bulk action, see src/app/api/combos/remove-model/route.js)
   ollama-compat/ → @9router/ollama-compat/ (Ollama-compatible chat surface: translates Ollama request/response wire format ↔ OpenAI shape + Ollama NDJSON streaming transform + model-catalog/ps/version response builders; used by thin routes under src/app/api/v1/ollama/api/*, mounted at `/api/v1/ollama/api/*` — separate namespace from the old `/v1/api/chat` route and `open-sse/utils/ollamaTransform.js`, which are left untouched, see plans/2026-09-10-ollama-api-swagger-planning.md)
   mcpServer/      → @9router/mcpServer/     (9Router-as-MCP-server: exposes 9Router capabilities as MCP tools over Streamable HTTP at /v1/mcp, via @modelcontextprotocol/sdk; unrelated to src/app/api/mcp/[plugin]/* which is 9Router-as-MCP-client, see packages/AGENTS.md)
   utils/          → @9router/utils/         (shared utilities)
@@ -130,7 +130,7 @@ Dashboard pages in `src/app/(dashboard)/` import UI from `packages/components/`.
 | `src/sse/` | Request entry (`chat.js`), auth services, logger — bridges Next.js routes to open-sse. |
 | `src/app/api/` | Next.js API routes — V1/V1beta compat, dashboard CRUD, OAuth, CLI tools. 27 sub-dirs (auth, combos, providers, keys, settings, usage, oauth, v1beta, etc.). |
 | `src/app/(dashboard)/` | React dashboard pages. |
-| `src/app/docs/api/` | Public (no-login) Swagger UI page for the `/v1/*` + `/v1/ollama/api/*` surface — reads `public/openapi/ollama-public.json` (static file, no route). Not under `(dashboard)`/`/api/` so `src/dashboardGuard.js` never gates it. Internal/admin routes are documented separately (Phase 4, not yet built), never added to this public spec. See `plans/2026-09-10-ollama-api-swagger-planning.md`. |
+| `src/app/docs/api/` | Public (no-login) Swagger UI page for the `/v1/*` + `/v1/ollama/api/*` surface — reads `public/openapi/public-swagger.json` (static file, no route). Not under `(dashboard)`/`/api/` so `src/dashboardGuard.js` never gates it. Internal/admin routes are documented separately at `/dashboard/api-docs` (gated), never added to this public spec. See `plans/2026-09-10-ollama-api-swagger-planning.md`. |
 | `packages/` | All new feature engines, UI packages, validation, utils — imported via `@9router/*`. |
 | `tests/` | Separate vitest package. |
 | `cli/` | Standalone npm CLI package (`9router` on npm). Pack/publish from here. |
@@ -153,6 +153,23 @@ Providers defined in `open-sse/providers/registry/{id}.js` → built into `open-
 Lý do: `open-sse/providers/registry/index.js` là auto-generated import list và là file upstream sync thường xuyên chạm vào — hand-edit trực tiếp vào đó là **future merge-conflict liability** (xem [Fork & upstream sync](#fork--upstream-sync)). `packages/providers/registry/` cô lập mọi provider do team này tự thêm, upstream không biết tới thư mục này nên gần như không bao giờ conflict. Các provider hiện có theo pattern này: `kira`, `llm7`, `sambanova`, `revidapi`, `vilao`.
 
 `open-sse/providers/registry/{id}.js` + regenerate `open-sse/providers/registry/index.js` chỉ dành cho provider đến từ **chính upstream** (qua merge) — không tự tay thêm provider mới vào đường này.
+
+### Beyond the registry: other provider-keyed maps that need their own merge
+
+Registering a provider in `packages/providers/registry/` makes it *known* (models, transport, pricing seed) but does **not** automatically make it work everywhere — several `open-sse/` files hold their own provider-keyed map/switch, written to cover only the providers that existed when that file was last touched. A custom provider silently falls through to a generic "not supported" branch on these until it gets its own entry — no error surfaces to the user, it just looks broken (this is how `kira` shipped for weeks with "Available Models" empty, "Test Connection" returning `Provider test not supported`, and no Quota Tracker row, despite the registry entry itself being fine).
+
+Same fix shape every time: put the custom logic in a new file under `packages/providers/<area>/`, export it as a plain object keyed by provider id, then in the corresponding `open-sse/` (or `src/app/api/`) file `import { X as EXTRA_X } from "@9router/providers/<area>/..."` and spread `...EXTRA_X` into that file's own object (or check `EXTRA_X[provider]` before its switch/`default` branch) — never hand-edit the base file's per-provider logic in place, and never rename its existing object just to make room for the spread. Known instances so far:
+
+| Area | Custom-layer file | Exports | Merged into |
+|---|---|---|---|
+| Chat/image pricing overrides | `packages/providers/pricing.js` | `PROVIDER_PRICING` | `open-sse/providers/pricing.js` (`EXTRA_PROVIDER_PRICING`, checked in `getPricingForModel()`) |
+| "Available Models" suggestion filters | `packages/providers/suggested-models/filters.js` | `FILTERS` | `src/app/api/providers/suggested-models/filters.js` (`EXTRA_FILTERS`, spread into that file's own `FILTERS`) |
+| Connection "Test Connection" probes | `packages/providers/test/testUtils.js` | `TESTERS` | `src/app/api/providers/[id]/test/testUtils.js` (`EXTRA_TESTERS`, checked before the `testApiKeyConnection()` switch) |
+| Quota Tracker usage/balance fetch | `packages/providers/usage/index.js` (→ `packages/providers/usage/{id}.js`) | `USAGE_HANDLERS` | `open-sse/services/usage.js` (`EXTRA_USAGE_HANDLERS`, spread into that file's own `USAGE_HANDLERS`) |
+
+Quota Tracker also needs `features: { usage: true, usageApikey: true }` set on the provider's own registry entry — `USAGE_SUPPORTED_PROVIDERS`/`USAGE_APIKEY_PROVIDERS` (`src/shared/constants/providers.js`) derive from that flag, and gate both whether the connection shows up as a card on `/dashboard/quota` and whether `GET /api/usage/{connectionId}` even attempts a fetch. `parseQuotaData()` in `ProviderLimits/utils.js` may also need a `case "<id>":` if the handler's quota shape needs fields the `default` case doesn't forward (e.g. `remainingPercentage`, `unlimited`).
+
+When adding a new custom provider (or auditing an existing one), check all four surfaces above, not just the registry — each is independently easy to miss since none of them error loudly when a provider id is absent.
 
 ## Translation pipeline
 
@@ -185,6 +202,8 @@ Priority order (see `src/lib/db/driver.js`):
 `better-sqlite3` is optional (`optionalDependencies`) — `npm install` doesn't fail without it. sql.js is guaranteed fallback.
 
 All DB access goes through `getAdapter()` from `src/lib/db/driver.js`. Repos in `src/lib/db/repos/` (including `cmemRepo.js`, `settingsRepo.js`, `combosRepo.js`, `usageRepo.js`, etc.).
+
+**`src/lib/errorLogDb/`** (added 2026-09-22) is a **second, fully independent DB** — `error-log.sqlite`, separate file from the app's `data.sqlite`, same `DATA_DIR/db/` directory (no new Docker volume needed). Mirrors `src/lib/db/driver.js`'s fallback-chain + singleton exactly (`getErrorLogAdapter()`, own `global._errorLogDbAdapter` slot) but owns its own minimal schema (1 table, `error_log`) instead of going through `migrate.js`. Deliberately isolated so the error-log write path (high-frequency, from `auth.js` per account-failure and `combo.js` per model-failure) never contends with app DB reads/writes. `errorLogRepo.js` holds both the writes (`logAccountError`/`logModelError`, fail-open — never throws) and the read-side chart aggregation (`getAccountErrorChartData`/`getModelErrorChartData`, hourly buckets, 7-day retention). See `plans/2026-09-22-provider-model-error-stats-planning.md`.
 
 ## Barrel export pattern
 

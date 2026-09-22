@@ -29,6 +29,19 @@ describe("checkFallbackError — request-scoped vs account-scoped failures", () 
     expect(checkFallbackError(422, "quota exceeded").shouldFallback).toBe(true);
   });
 
+  it("falls back and cools down a 400 that actually reports a dead model", () => {
+    // Regression: OpenCode Zen reports a permanently unavailable model as a 400
+    // ("Upstream request failed: Model is unavailable"), not 404/406. Without a
+    // dedicated rule this used to hit the request-scoped 4xx default (no fallback,
+    // no cooldown) and the combo re-tried the same dead model on every request.
+    const result = checkFallbackError(400, JSON.stringify({
+      error: "Upstream request failed: Model is unavailable.",
+    }));
+
+    expect(result.shouldFallback).toBe(true);
+    expect(result.cooldownMs).toBeGreaterThan(0);
+  });
+
   it("keeps the transient cooldown for unmatched server errors", () => {
     const result = checkFallbackError(503, "upstream exploded");
 

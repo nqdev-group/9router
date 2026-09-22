@@ -293,7 +293,7 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {number} [options.modelCooldown.ttlMs] - Cooldown duration; defaults to 5 minutes (see packages/model-combo-cooldown)
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null, modelCooldown = null }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null, modelCooldown = null, onModelError = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -363,16 +363,22 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   let earliestRetryAfter = null;
   let lastStatus = null;
 
+  // Short id shared by every log line below, so concurrent requests hitting the
+  // same combo (log.info/log.warn here carry no request context of their own —
+  // see open-sse/AGENTS.md) don't look like a single desynced sequence when their
+  // lines interleave on a shared console/log stream.
+  const reqId = Math.random().toString(36).slice(2, 8);
+
   for (let i = 0; i < rotatedModels.length; i++) {
     const modelStr = rotatedModels[i];
-    log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
+    log.info("COMBO", `[${reqId}] Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
     try {
       const result = await handleSingleModel(body, modelStr);
-      
+
       // Success (2xx) - return response
       if (result.ok) {
-        log.info("COMBO", `Model ${modelStr} succeeded`);
+        log.info("COMBO", `[${reqId}] Model ${modelStr} succeeded`);
         return result;
       }
 
@@ -401,7 +407,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorText);
 
       if (!shouldFallback) {
-        log.warn("COMBO", `Model ${modelStr} failed (no fallback)`, { status: result.status });
+        log.warn("COMBO", `[${reqId}] Model ${modelStr} failed (no fallback)`, { status: result.status });
         return result;
       }
 
@@ -410,21 +416,26 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // skipped immediately (fixes: combo falls through on transient 503)
       if (cooldownMs && cooldownMs > 0 && cooldownMs <= 5000 &&
           (result.status === 503 || result.status === 502 || result.status === 504)) {
-        log.info("COMBO", `Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
+        log.info("COMBO", `[${reqId}] Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
         await new Promise(r => setTimeout(r, cooldownMs));
       }
 
       // Fallback to next model
       lastError = errorText || String(result.status);
       if (!lastStatus) lastStatus = result.status;
-      log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
+      log.warn("COMBO", `[${reqId}] Model ${modelStr} failed, trying next`, { status: result.status });
       if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
+      // Independent of modelCooldown — error-stats logging shouldn't depend on
+      // whether the cooldown-skip feature happens to be toggled on. Injected by
+      // the caller (src/sse/handlers/chat.js) so this file never imports src/.
+      onModelError?.({ comboName, modelStr, status: result.status });
     } catch (error) {
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;
-      log.warn("COMBO", `Model ${modelStr} threw error, trying next`, { error: lastError });
+      log.warn("COMBO", `[${reqId}] Model ${modelStr} threw error, trying next`, { error: lastError });
       if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
+      onModelError?.({ comboName, modelStr, status: lastStatus });
     }
   }
 

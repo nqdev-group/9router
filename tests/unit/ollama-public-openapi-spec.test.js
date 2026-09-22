@@ -7,7 +7,7 @@ import { dirname, resolve } from "node:path";
 // time: a hand-typed JSON.stringify-equivalent structure with one extra
 // closing brace, which parsed "successfully" up to a point and silently
 // dropped the rest of the paths. Cheap enough to run on every test pass.
-const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../public/openapi/ollama-public.json");
+const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../public/openapi/public-swagger.json");
 
 describe("public OpenAPI spec (docs/api page)", () => {
   it("is valid, parseable JSON", () => {
@@ -46,6 +46,21 @@ describe("public OpenAPI spec (docs/api page)", () => {
     for (const path of Object.keys(spec.paths)) {
       for (const prefix of forbiddenPrefixes) {
         expect(path.startsWith(prefix)).toBe(false);
+      }
+    }
+  });
+
+  it("groups every operation under a declared, non-default tag (Swagger UI sidebar must not fall back to 'default')", () => {
+    const spec = JSON.parse(readFileSync(specPath, "utf8"));
+    const declaredTags = new Set(spec.tags.map((t) => t.name));
+    expect(declaredTags.size).toBeGreaterThan(1);
+    for (const [path, methods] of Object.entries(spec.paths)) {
+      for (const [method, op] of Object.entries(methods)) {
+        expect(Array.isArray(op.tags) && op.tags.length > 0, `${method.toUpperCase()} ${path} has no tags`).toBe(true);
+        for (const tag of op.tags) {
+          expect(tag).not.toBe("default");
+          expect(declaredTags.has(tag), `${method.toUpperCase()} ${path} uses undeclared tag "${tag}"`).toBe(true);
+        }
       }
     }
   });

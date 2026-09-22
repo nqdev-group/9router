@@ -81,7 +81,7 @@ Quyết định ban đầu là "public toàn bộ" nhưng phát sinh mâu thuẫ
 - [x] M9: `create`/`copy`/`pull`/`push`/`delete` → 5 route stub `501`, message rõ lý do ([notImplemented.js](../packages/ollama-compat/notImplemented.js)). `delete` dùng method `DELETE` (đúng chuẩn Ollama), 4 route còn lại dùng `POST`.
 
 ### Phase 3 — Swagger PUBLIC ([QUYIT-729](https://nhquydev.atlassian.net/browse/QUYIT-729), ~2.75d, phụ thuộc Phase 1+2) — ✅ Đã hoàn thành 2026-09-10
-- [x] M10a: Viết OpenAPI 3.1 spec — thực tế 12 route Ollama (không phải 13, xem mục 10) + 20 route `/v1/*` + 3 route `/v1beta/*` (Gemini) = 35 path, tại [public/openapi/ollama-public.json](../public/openapi/ollama-public.json).
+- [x] M10a: Viết OpenAPI 3.1 spec — thực tế 12 route Ollama (không phải 13, xem mục 10) + 20 route `/v1/*` + 3 route `/v1beta/*` (Gemini) = 35 path, tại [public/openapi/public-swagger.json](../public/openapi/public-swagger.json).
 - [x] Wire Swagger UI qua CDN `swagger-ui-dist@5` (không thêm npm dependency) vào route public mới [src/app/docs/api/page.js](../src/app/docs/api/page.js), verify KHÔNG cần login (curl trả 200 trực tiếp, không redirect `/login`).
 - [x] Cấu hình `securitySchemes.bearerAuth` (type `http`/scheme `bearer`) trong spec cho nút Authorize Try-it-out nhập API key thật — không load `swagger-ui-standalone-preset.js` (tránh lộ thanh nhập URL spec tuỳ ý, chỉ dùng đúng spec cố định của 9Router).
 
@@ -215,8 +215,8 @@ Ngoài ra, `src/sse/handlers/chat.js` → `open-sse/handlers/chatCore.js` đã c
 
 | File | Nội dung |
 |---|---|
-| [public/openapi/ollama-public.json](../public/openapi/ollama-public.json) | OpenAPI 3.1 spec, 35 path: 12 route Ollama (chat/generate/embed/tags/ps/show/version + 5 stub) + 20 route `/v1/*` client-facing (chat/completions, messages, messages/count_tokens, responses, responses/compact, models×3, embeddings, images/generations, audio×3, videos×4, web/fetch, search, mcp) + 3 route `/v1beta/*` Gemini format. `components.securitySchemes.bearerAuth` (`type:http, scheme:bearer`) áp global qua `security`. |
-| [src/app/docs/api/page.js](../src/app/docs/api/page.js) | Trang public (route `/docs/api`) — client component tự load CSS/JS `swagger-ui-dist@5` qua CDN (jsdelivr), gọi `SwaggerUIBundle({url:"/openapi/ollama-public.json", layout:"BaseLayout"})`. **Không** load `swagger-ui-standalone-preset.js` (tránh hiện thanh nhập URL spec tuỳ ý — chỉ khoá cứng vào spec của 9Router). |
+| [public/openapi/public-swagger.json](../public/openapi/public-swagger.json) | OpenAPI 3.1 spec, 35 path: 12 route Ollama (chat/generate/embed/tags/ps/show/version + 5 stub) + 20 route `/v1/*` client-facing (chat/completions, messages, messages/count_tokens, responses, responses/compact, models×3, embeddings, images/generations, audio×3, videos×4, web/fetch, search, mcp) + 3 route `/v1beta/*` Gemini format. `components.securitySchemes.bearerAuth` (`type:http, scheme:bearer`) áp global qua `security`. |
+| [src/app/docs/api/page.js](../src/app/docs/api/page.js) | Trang public (route `/docs/api`) — client component tự load CSS/JS `swagger-ui-dist@5` qua CDN (jsdelivr), gọi `SwaggerUIBundle({url:"/openapi/public-swagger.json", layout:"BaseLayout"})`. **Không** load `swagger-ui-standalone-preset.js` (tránh hiện thanh nhập URL spec tuỳ ý — chỉ khoá cứng vào spec của 9Router). |
 | [tests/unit/ollama-public-openapi-spec.test.js](../tests/unit/ollama-public-openapi-spec.test.js) | 4 test: JSON hợp lệ (guard đúng lỗi vừa gặp lúc viết tay — xem bên dưới), có `bearerAuth`, đủ 12 route Ollama, KHÔNG chứa bất kỳ route quản trị nội bộ nào (`/api/settings`, `/api/providers`, `/api/keys`, `/api/oauth`, `/api/usage`, `/api/cli-tools`). |
 
 ### Files đã sửa
@@ -234,7 +234,7 @@ Ngoài ra, `src/sse/handlers/chat.js` → `open-sse/handlers/chatCore.js` đã c
 
 - **Unit test:** `cd tests && npx vitest run --config ./vitest.config.js ollama` → **44/44 pass** (25 cũ + 4 spec test mới + 15 test ollama khác đã có từ trước trong repo, không có test nào fail).
 - **Smoke-test qua dev server thật đang chạy:**
-  - `curl /openapi/ollama-public.json` → 200, parse được, 35 path (bao gồm `/v1beta/*` được thêm sau khi phát hiện thiếu).
+  - `curl /openapi/public-swagger.json` → 200, parse được, 35 path (bao gồm `/v1beta/*` được thêm sau khi phát hiện thiếu).
   - `curl -L /docs/api` → 200, **không redirect** `/login` — xác nhận đúng là trang public.
   - HTML trả về server-side có chứa `<h1>...Public API Docs</h1>` và `<div id="swagger-ui">` — xác nhận trang render đúng nội dung tĩnh.
   - CDN `swagger-ui-dist@5` CSS + JS bundle → cả 2 trả `200` khi curl trực tiếp — xác nhận asset thật sự tồn tại và tải được.
@@ -251,7 +251,7 @@ Ngoài ra, `src/sse/handlers/chat.js` → `open-sse/handlers/chatCore.js` đã c
 | File | Nội dung |
 |---|---|
 | [scripts/generate-internal-openapi.mjs](../scripts/generate-internal-openapi.mjs) | Script sinh spec tự động — quét toàn bộ `route.js` dưới `src/app/api/` (trừ `v1/`/`v1beta/` đã có ở Phase 3), trích method (`export function METHOD` và `export const METHOD =`), map file path → URL path (`[id]`→`{id}`, `[...path]`→`{path}` + đánh dấu `x-9router-note` catch-all), phân loại auth theo đúng 4 nhóm của `dashboardGuard.js` (Public/Protected/Always-protected/Local-only, copy nguyên logic từ đó vì các list không export). Chạy lại: `node scripts/generate-internal-openapi.mjs`. |
-| [src/app/api/docs/internal-openapi/spec.json](../src/app/api/docs/internal-openapi/spec.json) | Output của script trên — **152 path, 237 operation** (nhiều hơn ước tính ~110-120 vì đếm hết mọi route.js, kể cả route rất nhỏ). |
+| [src/app/api/docs/internal-openapi/internal-swagger.json](../src/app/api/docs/internal-openapi/internal-swagger.json) | Output của script trên — **152 path, 237 operation** (nhiều hơn ước tính ~110-120 vì đếm hết mọi route.js, kể cả route rất nhỏ). Tên file gốc là `spec.json`, đổi thành `internal-swagger.json` ngày 2026-09-18 (xem mục 12). |
 | [src/app/api/docs/internal-openapi/route.js](../src/app/api/docs/internal-openapi/route.js) | Thin route `GET` trả `spec.json` — path bắt đầu `/api/` và không có trong allow-list public của `dashboardGuard.js` nên **tự động** yêu cầu JWT/CLI token, không cần code auth riêng. |
 | [packages/components/swagger/SwaggerUIEmbed.js](../packages/components/swagger/SwaggerUIEmbed.js) | Component share (refactor từ code Phase 3) — nhận prop `specUrl`/`domId`, dùng cho cả trang public và trang dashboard mới. |
 | [src/app/(dashboard)/dashboard/api-docs/page.js](<../src/app/(dashboard)/dashboard/api-docs/page.js>) | Trang dashboard mới (yêu cầu login), dùng `SwaggerUIEmbed`. |
@@ -276,3 +276,31 @@ Ngoài ra, `src/sse/handlers/chat.js` → `open-sse/handlers/chatCore.js` đã c
   - `GET /api/docs/internal-openapi` (không auth) → `401 {"error":"Unauthorized"}` — đúng, path này không nằm trong allow-list public của `dashboardGuard.js`.
   - `GET /dashboard/api-docs` (không cookie login) → redirect `/login` — đúng, xác nhận trang được gate đúng như route dashboard khác.
 - **Giới hạn còn mở (giống Phase 1-3):** chưa verify được bằng browser thật (không có Playwright MCP) rằng Swagger UI hiển thị đúng ~152 route sau khi login; chưa test Authorize+Try-it-out bằng API key thật + JWT session thật. Chất lượng field `summary` phần lớn (191/237 operation tính tới trước fix, tỷ lệ tương đương sau fix) chỉ là fallback `"METHOD /path"` vì đa số file route.js trong repo không có comment ngay trên hàm export — chấp nhận được vì đây đúng là trade-off của tier nhẹ đã chọn, không phải bug.
+
+## 12. Follow-up (2026-09-18) — nhóm operation theo tag trong `public/openapi/public-swagger.json`
+
+Người dùng xác nhận CI (GitHub Actions build+test) đã xanh và image Docker đã push lên GitHub Packages cho toàn bộ 4 phase, rồi yêu cầu bổ sung `tags` cho spec public — Swagger UI trước đó gom hết 35 operation vào 1 nhóm `default` (do OpenAPI không có field `tags` thì SwaggerUIBundle tự fallback default), khó duyệt khi có nhiều API.
+
+- Thêm top-level `tags` (10 nhóm, có `description`): `Chat & Completions`, `Models`, `Embeddings`, `Images`, `Audio`, `Video`, `Web & Search`, `MCP`, `Ollama API`, `Gemini API`.
+- Gắn `tags: ["<nhóm>"]` vào cả 35 operation hiện có trong `paths` — không đổi request/response schema nào, chỉ thêm field `tags`.
+- Thêm 1 test mới vào [tests/unit/ollama-public-openapi-spec.test.js](../tests/unit/ollama-public-openapi-spec.test.js): mọi operation phải có `tags` non-empty, không operation nào dùng tag `"default"`, mọi tag dùng phải nằm trong danh sách `spec.tags` đã khai báo — regression guard nếu sau này thêm route mới mà quên gắn tag. **5/5 test pass** (4 cũ + 1 mới).
+- Chưa cần sửa `scripts/generate-internal-openapi.mjs` (spec Phase 4) vì trang dashboard `/dashboard/api-docs` dùng tier "path+summary" khác, không có yêu cầu nhóm tag từ người dùng ở phase này — để mở nếu sau này cần.
+
+### Follow-up (2026-09-18, tiếp) — đổi tên 2 file spec
+
+- `public/openapi/ollama-public.json` → `public/openapi/public-swagger.json` (`git mv`, giữ history). Cập nhật mọi nơi tham chiếu tên file cũ: [src/app/docs/api/page.js](../src/app/docs/api/page.js) (`SPEC_URL`), [tests/unit/ollama-public-openapi-spec.test.js](../tests/unit/ollama-public-openapi-spec.test.js) (`specPath`), [tests/unit/ollama-internal-openapi-spec.test.js](../tests/unit/ollama-internal-openapi-spec.test.js) (comment), [scripts/generate-internal-openapi.mjs](../scripts/generate-internal-openapi.mjs) (comment), [AGENTS.md](../AGENTS.md), [src/app/api/AGENTS.md](../src/app/api/AGENTS.md).
+- `src/app/api/docs/internal-openapi/spec.json` → `src/app/api/docs/internal-openapi/internal-swagger.json` (`git mv`). Cập nhật [src/app/api/docs/internal-openapi/route.js](../src/app/api/docs/internal-openapi/route.js) (import path), [scripts/generate-internal-openapi.mjs](../scripts/generate-internal-openapi.mjs) (`OUT_PATH` + comment đầu file), [tests/unit/ollama-internal-openapi-spec.test.js](../tests/unit/ollama-internal-openapi-spec.test.js) (`specPath`), [src/app/api/AGENTS.md](../src/app/api/AGENTS.md).
+- Không đổi tên 2 file test (`ollama-*-openapi-spec.test.js`) — tên đó phản ánh nội dung test (Ollama route coverage), không phải tên file spec đang document.
+- Rename kèm chạy lại `node scripts/generate-internal-openapi.mjs` để ghi ra tên file mới — số liệu tăng nhẹ so với lúc Phase 4 hoàn thành (**154 path, 239 operation**, trước là 152/237) vì có route mới được thêm vào `src/app/api/` giữa 2 thời điểm, không phải do lỗi rename.
+- Verify sau cả 2 rename: `cd tests && npx vitest run --config ./vitest.config.js ollama` → **51/51 pass** (50 cũ + 1 test tag-coverage mới ở follow-up trước).
+
+### Follow-up (2026-09-18, tiếp) — nhóm tag cho `internal-swagger.json` (đồng bộ với `public-swagger.json`)
+
+Cùng lý do như public spec: `internal-swagger.json` không có field `tags` → Swagger UI dồn hết vào nhóm `default`, khó duyệt với ~154 path. Khác với public spec (viết tay + script `build-openapi.mjs` dùng 1 lần), file này **luôn sinh lại** bởi [scripts/generate-internal-openapi.mjs](../scripts/generate-internal-openapi.mjs) — nên sửa ngay trong generator, không hand-edit `internal-swagger.json`.
+
+- Thêm `TAG_GROUPS` (map top-level dir → tên tag) + `TAG_DESCRIPTIONS` trong generator, dựa theo đúng "Directory map" đã có ở [src/app/api/AGENTS.md](../src/app/api/AGENTS.md): **9 tag** — `Dashboard CRUD` (combos/keys/providers/provider-nodes/proxy-pools/models/models-dev/model-token-limits/media-providers/settings/usage/pricing/tags), `Auth`, `OAuth`, `CLI Tools`, `Sidecar Processes` (headroom/pxpipe/tunnel), `Translator Playground`, `MCP Bridge`, `App & Process` (health/init/locale/version/shutdown), `Docs`.
+- `classifyTag(pathname)` lấy segment đầu sau `/api/`, fallback về tag `"Other"` nếu dir mới chưa được thêm vào `TAG_GROUPS` — kèm `console.warn` liệt kê dir nào bị rơi vào `Other`, để không âm thầm che dấu dir mới quên nhóm.
+- Gắn `tags: [<tên>]` vào từng operation + thêm top-level `spec.tags` (chỉ liệt kê tag thực sự được dùng, đã sort). Chạy lại generator: **0 dir rơi vào `Other`** — toàn bộ 26 dir hiện có đều được map (154 path, 239 operation, 9 tag).
+- Thêm 1 test vào [tests/unit/ollama-internal-openapi-spec.test.js](../tests/unit/ollama-internal-openapi-spec.test.js) (giống test tag-coverage của public spec): mọi operation có tag non-empty, không dùng `"default"` hoặc `"Other"`, mọi tag phải nằm trong `spec.tags` đã khai báo.
+- Cập nhật [src/app/api/AGENTS.md](../src/app/api/AGENTS.md) — nhắc phải đồng bộ `TAG_GROUPS` khi thêm dir mới dưới `src/app/api/`.
+- Verify: `cd tests && npx vitest run --config ./vitest.config.js ollama` → **52/52 pass**.

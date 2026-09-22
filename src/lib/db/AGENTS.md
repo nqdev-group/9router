@@ -34,7 +34,7 @@ SQLite persistence layer: driver abstraction, versioned + additive schema sync, 
 | `disabledModelsRepo.js` | `kv` (scope `disabledModels`) | Per-provider disabled model id lists |
 | `usageRepo.js` | `usageHistory`, `usageDaily` | Request logging, stats/chart aggregation, token-saver stats, `statsEmitter` (SSE-like live feed) |
 | `requestDetailsRepo.js` | `requestDetails` | Full request/response detail log (header sanitization, pruned, excluded from backups) |
-| `cmemRepo.js` | `cmem_observations`, `cmem_sessions`, `cmem_context_cache` (+ FTS5 virtual table) | CMEM engine tables — **not** in `schema.js TABLES`; created lazily via `initCmemTables()` |
+| `cmemRepo.js` | `cmem_observations`, `cmem_sessions`, `cmem_context_cache` (+ FTS5 virtual table) | CMEM engine tables — **not** in `schema.js TABLES`. `initCmemTables()` here is dead code (imported but never called); the real DDL is a byte-for-byte duplicate inside `packages/cmem/core/memoryStore.js`'s `MemoryStore.init()` — see `packages/cmem/AGENTS.md` |
 
 ## Adapter API surface
 
@@ -77,7 +77,7 @@ Every adapter in `adapters/` returns the identical **synchronous** shape (only c
 | sql.js persistence is debounced | `sqljsAdapter.js` writes are in-memory; disk flush is `setTimeout(..., 100)` debounced (`scheduleSave`). A crash within that 100ms window loses the last write(s). `close()`/`beforeExit`/`SIGINT`/`SIGTERM` force a flush if `dirty`, but uncaught crashes bypass that. |
 | `better-sqlite3` is optional | In `optionalDependencies` — `npm install` must not fail without it. Never assume it's present; `driver.js` already handles the fallback, don't add code elsewhere that hard-imports it. |
 | `node:sqlite` needs Node ≥22.5 | Checked via `process.versions.node` major/minor before the dynamic import; also skipped entirely under Bun. |
-| CMEM tables bypass the shared schema | `cmem_*` tables aren't in `schema.js TABLES` or the migration chain — `initCmemTables()` is called lazily from the API route (`src/app/api/settings/cmem/route.js`), so a fresh DB has no `cmem_*` tables until that route runs once. FTS5 virtual table creation is wrapped in try/catch (older SQLite builds may lack FTS5). |
+| CMEM tables bypass the shared schema | `cmem_*` tables aren't in `schema.js TABLES` or the migration chain. Table creation actually happens via `MemoryStore.init()` in `packages/cmem/core/memoryStore.js` (invoked whenever a `CmemEngine` is constructed and `.init()`ed) — **not** via `cmemRepo.js`'s `initCmemTables()`, which is imported by `src/app/api/settings/cmem/route.js` but never called anywhere. Two independent copies of the same DDL must be hand-kept in sync; see `packages/cmem/AGENTS.md`. FTS5 virtual table creation is wrapped in try/catch (older SQLite builds may lack FTS5). |
 | `settingsRepo.js.orig` is dead | Stray `.orig` file with a stale `DEFAULT_SETTINGS`; not imported by `index.js` or anything else — don't edit it thinking it's live. |
 | Backups exclude `requestDetails` | `backup.js`'s `BACKUP_EXCLUDE_TABLES` skips the (large, prunable) request-log table so schema-change backups stay small; there is no automated restore, only manual file copy. |
 | WAL checkpoint timers | `better-sqlite3`/`node:sqlite`/`bun:sqlite` adapters each set an unref'd `setInterval` to truncate the WAL every 60s — don't add a second one per adapter instance. |

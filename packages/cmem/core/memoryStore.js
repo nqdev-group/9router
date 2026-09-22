@@ -1,6 +1,52 @@
 const CLEANUP_INTERVAL_MS = 86400000; // 24h
 let _cleanupTimer = null;
 
+// Code-first schema: these mirror the CREATE TABLE statements below and are the
+// single source of truth `ensureColumns()` checks a live table against. Only
+// covers additive, nullable-or-defaulted columns — `CREATE TABLE IF NOT EXISTS`
+// never retrofits a table that already existed under an older column set, and a
+// DB predating a schema change (or one from a fork/older version of this repo)
+// would otherwise throw "no such column: X" at query time instead of self-healing.
+// Primary keys and original NOT-NULL-without-default columns are intentionally
+// excluded — those aren't safely addable via ALTER TABLE on a non-empty table.
+const TABLE_COLUMNS = {
+  cmem_observations: [
+    ["session_id", "TEXT"],
+    ["type", "TEXT NOT NULL DEFAULT 'note'"],
+    ["title", "TEXT"],
+    ["summary", "TEXT"],
+    ["facts", "TEXT DEFAULT '[]'"],
+    ["concepts", "TEXT DEFAULT '[]'"],
+    ["files_read", "TEXT DEFAULT '[]'"],
+    ["files_modified", "TEXT DEFAULT '[]'"],
+    ["tokens", "INTEGER DEFAULT 0"],
+    ["provider", "TEXT"],
+  ],
+  cmem_sessions: [
+    ["project", "TEXT DEFAULT 'default'"],
+    ["ended_at_epoch", "INTEGER"],
+  ],
+  cmem_context_cache: [
+    ["context", "TEXT"],
+    ["token_count", "INTEGER DEFAULT 0"],
+  ],
+};
+
+async function ensureColumns(db, table, columns) {
+  const rows = await db.all(`PRAGMA table_info(${table})`);
+  const existing = new Set(rows.map((r) => r.name));
+  for (const [name, type] of columns) {
+    if (existing.has(name)) continue;
+    try {
+      await db.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+    } catch (e) {
+      // Fail-open: an ALTER TABLE that isn't actually safe (e.g. NOT NULL with no
+      // default on a non-empty table) shouldn't block startup — log and move on.
+      console.warn(`[CMEM] could not add missing column ${table}.${name}: ${e.message}`);
+    }
+  }
+}
+
 export class MemoryStore {
   constructor(db, { retentionDays = 90 } = {}) {
     this.db = db;
@@ -25,6 +71,7 @@ export class MemoryStore {
         created_at_epoch INTEGER NOT NULL
       )
     `);
+    await ensureColumns(this.db, "cmem_observations", TABLE_COLUMNS.cmem_observations);
     await this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_cmem_obs_session ON cmem_observations(session_id)
     `);
@@ -43,6 +90,7 @@ export class MemoryStore {
         ended_at_epoch INTEGER
       )
     `);
+    await ensureColumns(this.db, "cmem_sessions", TABLE_COLUMNS.cmem_sessions);
 
     await this.db.run(`
       CREATE TABLE IF NOT EXISTS cmem_context_cache (
@@ -52,6 +100,7 @@ export class MemoryStore {
         created_at_epoch INTEGER NOT NULL
       )
     `);
+    await ensureColumns(this.db, "cmem_context_cache", TABLE_COLUMNS.cmem_context_cache);
     await this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_cmem_cache_session ON cmem_context_cache(session_id)
     `);
@@ -63,6 +112,38 @@ export class MemoryStore {
         content_rowid='rowid'
       )
     `);
+
+    // cmem_observations_fts is an external-content table — SQLite never
+    // auto-populates it, the app must keep it in sync itself. These triggers cover
+    // every write path: INSERT OR REPLACE (the only write saveObservation does) is
+    // implemented by SQLite as delete-then-insert on conflict, so both fire — no
+    // separate AFTER UPDATE trigger is needed since this table is never plain-UPDATEd.
+    //
+    // Self-heal for rows written before this fix existed: check sqlite_master for
+    // the trigger *before* creating it — its absence means this is the first init()
+    // since upgrading (or a brand new DB), so backfill once via the FTS5 'rebuild'
+    // command. A plain COUNT(*) comparison between the two tables doesn't work here
+    // — on an external-content table it mirrors the content table's row count
+    // regardless of whether the index was ever actually built, so it can't detect
+    // this gap.
+    const triggerExisted = await this.db.get(
+      `SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='cmem_observations_ai'`
+    );
+    await this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS cmem_observations_ai AFTER INSERT ON cmem_observations BEGIN
+        INSERT INTO cmem_observations_fts(rowid, title, content, summary, facts, concepts)
+        VALUES (new.rowid, new.title, new.content, new.summary, new.facts, new.concepts);
+      END
+    `);
+    await this.db.run(`
+      CREATE TRIGGER IF NOT EXISTS cmem_observations_ad AFTER DELETE ON cmem_observations BEGIN
+        INSERT INTO cmem_observations_fts(cmem_observations_fts, rowid, title, content, summary, facts, concepts)
+        VALUES('delete', old.rowid, old.title, old.content, old.summary, old.facts, old.concepts);
+      END
+    `);
+    if (!triggerExisted) {
+      await this.db.run(`INSERT INTO cmem_observations_fts(cmem_observations_fts) VALUES('rebuild')`);
+    }
 
     // Run cleanup on init + start periodic cleanup (process-wide singleton timer)
     await this.cleanup();
@@ -129,15 +210,21 @@ export class MemoryStore {
     const sanitized = query.replace(/['"]/g, "").trim();
     if (!sanitized) return { observations: [], total: 0 };
 
+    // Bind as a quoted FTS5 phrase, not a bare query — a bare query still parses
+    // punctuation (",", ":", "(", ")", "-", "*", "^") as FTS5 query-syntax operators,
+    // which throws "fts5: syntax error near ..." on ordinary user text containing
+    // them. Quoting makes the whole string a literal phrase match instead.
+    const ftsQuery = `"${sanitized.replace(/"/g, '""')}"`;
+
     let sql = `SELECT o.rowid, o.* FROM cmem_observations_fts f JOIN cmem_observations o ON o.rowid = f.rowid WHERE cmem_observations_fts MATCH ?`;
-    const params = [sanitized];
+    const params = [ftsQuery];
     if (type) { sql += ` AND o.type = ?`; params.push(type); }
     sql += ` ORDER BY rank LIMIT ? OFFSET ?`;
     params.push(limit, offset);
     const rows = await this.db.all(sql, params);
     const countRow = await this.db.get(
       `SELECT COUNT(*) as total FROM cmem_observations_fts WHERE cmem_observations_fts MATCH ?`,
-      [sanitized]
+      [ftsQuery]
     );
     return { observations: rows.map(this._rowToObs), total: countRow?.total || 0 };
   }

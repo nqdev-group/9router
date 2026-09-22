@@ -30,6 +30,7 @@ import { getPricingForModel } from "open-sse/providers/pricing.js";
 import { getTodaySpendUsd } from "@/lib/db/repos/usageRepo.js";
 import { estimatePromptTokens } from "@9router/token-limit-routing";
 import { getModelTokenLimitForModel } from "@/lib/db/repos/modelTokenLimitsRepo.js";
+import { logModelError } from "@/lib/errorLogDb/errorLogRepo.js";
 
 // Cost/tier-aware reorder config (Phase 5 of input-tokens-optimization.md). Fail-open:
 // any error while checking today's spend just disables the budget-exceeded branch,
@@ -89,6 +90,17 @@ async function buildTokenLimitRoutingConfig(settings, body, comboModels) {
     promptTokens,
     getMaxInputTokens: (modelStr) => (modelStr in limits ? limits[modelStr] : null),
   };
+}
+
+// Fire-and-forget hook into open-sse/services/combo.js's model-failure branch —
+// logs to the separate error-log DB (src/lib/errorLogDb/) for the error-stats
+// dashboard. combo.js must not import from src/ directly (open-sse/ boundary), so
+// this is injected the same way tierRouting/tokenLimitRouting/modelCooldown are.
+function onModelError({ comboName, modelStr, status }) {
+  const slash = modelStr.indexOf("/");
+  const provider = slash > 0 ? modelStr.slice(0, slash) : "";
+  const model = slash > 0 ? modelStr.slice(slash + 1) : modelStr;
+  logModelError({ provider, model, comboName, errorCode: status });
 }
 
 let modelsDevInitiated = false;
@@ -216,6 +228,7 @@ export async function handleChat(request, clientRawRequest = null) {
       tierRouting: await buildTierRoutingConfig(settings),
       tokenLimitRouting: await buildTokenLimitRoutingConfig(settings, body, comboModels),
       modelCooldown: { enabled: true },
+      onModelError,
     });
   }
 
@@ -246,7 +259,7 @@ export async function handleChat(request, clientRawRequest = null) {
  */
 async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null) {
   const modelInfo = await getModelInfo(modelStr);
-  console.log("🚀 QuyNH: handleSingleModelChat -> modelInfo", modelInfo)
+  // console.log("🚀 QuyNH: handleSingleModelChat -> modelInfo", modelInfo)
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
@@ -297,6 +310,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         tierRouting: await buildTierRoutingConfig(chatSettings),
         tokenLimitRouting: await buildTokenLimitRoutingConfig(chatSettings, body, comboModels),
         modelCooldown: { enabled: true },
+        onModelError,
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });

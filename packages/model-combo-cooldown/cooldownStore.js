@@ -96,3 +96,16 @@ export function resetComboCooldown(comboName) {
     if (k.startsWith(prefix)) cooldowns.delete(k);
   }
 }
+
+/**
+ * Clear cooldown for exactly one (comboName, modelStr) pair — unlike
+ * resetComboCooldown(comboName), which wipes every model in that combo.
+ * Used when a model is removed from a combo (error-stats "remove from all
+ * combos" action, 2026-09-22) so stale cooldown state doesn't linger for a
+ * model/combo pairing that no longer exists.
+ * @param {string} comboName
+ * @param {string} modelStr
+ */
+export function clearModelCooldown(comboName, modelStr) {
+  cooldowns.delete(cooldownKey(comboName, modelStr));
+}

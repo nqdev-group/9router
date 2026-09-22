@@ -1,7 +1,7 @@
-// Regenerates src/app/api/docs/internal-openapi/spec.json — the "path +
+// Regenerates src/app/api/docs/internal-openapi/internal-swagger.json — the "path +
 // summary + auth requirement" tier OpenAPI doc for 9Router's internal/admin
 // API surface (everything under src/app/api/ except v1/ and v1beta/, which
-// are documented separately in public/openapi/ollama-public.json).
+// are documented separately in public/openapi/public-swagger.json).
 //
 // Re-run this whenever routes are added/removed under src/app/api/ (outside
 // v1/v1beta) so the internal docs page doesn't go stale:
@@ -18,7 +18,7 @@ import { fileURLToPath } from "url";
 
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const API_ROOT = join(REPO_ROOT, "src", "app", "api");
-const OUT_PATH = join(API_ROOT, "docs", "internal-openapi", "spec.json");
+const OUT_PATH = join(API_ROOT, "docs", "internal-openapi", "internal-swagger.json");
 
 // Copied from src/dashboardGuard.js (not exported there — this is a one-time
 // generation script, not a runtime dependency of the app). If
@@ -50,6 +50,57 @@ function classifyAuth(pathname) {
     return "Public — no auth required";
   }
   return "Protected — JWT (dashboard login) required unless requireLogin=false";
+}
+
+// Groups the ~26 top-level src/app/api/ resource dirs into Swagger UI
+// sidebar tags, mirroring src/app/api/AGENTS.md's "Directory map" section.
+// Keep this in sync when a new top-level dir is added there.
+const TAG_GROUPS = {
+  combos: "Dashboard CRUD",
+  keys: "Dashboard CRUD",
+  providers: "Dashboard CRUD",
+  "provider-nodes": "Dashboard CRUD",
+  "proxy-pools": "Dashboard CRUD",
+  models: "Dashboard CRUD",
+  "models-dev": "Dashboard CRUD",
+  "model-token-limits": "Dashboard CRUD",
+  "media-providers": "Dashboard CRUD",
+  settings: "Dashboard CRUD",
+  usage: "Dashboard CRUD",
+  pricing: "Dashboard CRUD",
+  tags: "Dashboard CRUD",
+  "error-stats": "Dashboard CRUD",
+  auth: "Auth",
+  oauth: "OAuth",
+  "cli-tools": "CLI Tools",
+  headroom: "Sidecar Processes",
+  pxpipe: "Sidecar Processes",
+  tunnel: "Sidecar Processes",
+  translator: "Translator Playground",
+  mcp: "MCP Bridge",
+  health: "App & Process",
+  init: "App & Process",
+  locale: "App & Process",
+  version: "App & Process",
+  shutdown: "App & Process",
+  docs: "Docs",
+};
+
+const TAG_DESCRIPTIONS = {
+  "Dashboard CRUD": "Combos, keys, providers, provider-nodes, proxy-pools, models, models-dev, model-token-limits, media-providers, settings, usage, pricing, tags, error-stats — one dir per resource, [id] for item routes.",
+  Auth: "Dashboard login (login, logout, status, reset-password, oidc, saml).",
+  OAuth: "Generic OAuth device-code + PKCE handler, plus provider-specific auto-import/cookie-auth flows.",
+  "CLI Tools": "Reads/writes local CLI config files for Claude Code, Codex, Cline, Copilot, Droid, Kilo, Opencode, and others.",
+  "Sidecar Processes": "Spawn/manage local sidecar processes (compress proxy, MITM proxy, Tailscale/tunnel) — start/stop/restart/status.",
+  "Translator Playground": "Dashboard \"test a translation\" playground.",
+  "MCP Bridge": "MCP server registry/tools proxy for dashboard tool cards — client-side bridge, distinct from the real MCP server at /v1/mcp.",
+  "App & Process": "Process/app-level endpoints (health, init, locale, version, shutdown).",
+  Docs: "Serves this internal spec + the public spec's generator output.",
+};
+
+function classifyTag(pathname) {
+  const firstSegment = pathname.replace(/^\/api\//, "").split("/")[0];
+  return TAG_GROUPS[firstSegment] || "Other";
 }
 
 function walk(dir, files = []) {
@@ -111,6 +162,8 @@ function main() {
   });
 
   const paths = {};
+  const usedTags = new Set();
+  const unmapped = new Set();
   for (const file of routeFiles) {
     const urlPath = filePathToUrlPath(file);
     const source = readFileSync(file, "utf8");
@@ -118,6 +171,9 @@ function main() {
     if (Object.keys(methods).length === 0) continue;
 
     const authNote = classifyAuth(urlPath);
+    const tag = classifyTag(urlPath);
+    if (tag === "Other") unmapped.add(urlPath.replace(/^\/api\//, "").split("/")[0]);
+    usedTags.add(tag);
     // Check the raw file path for "[...", not urlPath — filePathToUrlPath()
     // already strips the "..." by the time it produces "{param}".
     const isCatchAll = relative(API_ROOT, file).includes("[...");
@@ -125,6 +181,7 @@ function main() {
     const pathEntry = {};
     for (const [method, summary] of Object.entries(methods)) {
       pathEntry[method.toLowerCase()] = {
+        tags: [tag],
         summary: summary || `${method} ${urlPath}`,
         "x-9router-auth": authNote,
         ...(isCatchAll ? { "x-9router-note": "catch-all path segment(s)" } : {}),
@@ -133,6 +190,15 @@ function main() {
     }
     paths[urlPath] = pathEntry;
   }
+
+  if (unmapped.size > 0) {
+    console.warn("WARNING: unmapped top-level dir(s) fell back to tag \"Other\" — add to TAG_GROUPS in this script:", [...unmapped]);
+  }
+
+  const tags = [...usedTags].sort().map((name) => ({
+    name,
+    description: TAG_DESCRIPTIONS[name] || "Ungrouped — see TAG_GROUPS in scripts/generate-internal-openapi.mjs.",
+  }));
 
   const spec = {
     openapi: "3.1.0",
@@ -143,6 +209,7 @@ function main() {
         "Dashboard/admin API surface — settings, providers, oauth, keys, usage, cli-tools, etc. Lighter documentation tier by design (path + summary + auth requirement, no request/response body schemas) — see plans/2026-09-10-ollama-api-swagger-planning.md §6. Public client-facing API (Ollama + /v1/*) is documented separately at /docs/api (no login required).",
     },
     servers: [{ url: "/" }],
+    tags,
     security: [{ bearerAuth: [] }],
     components: {
       securitySchemes: {

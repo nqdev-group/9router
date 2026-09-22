@@ -5,6 +5,7 @@ import {
   filterSkippedComboModels,
   listActiveCooldowns,
   resetComboCooldown,
+  clearModelCooldown,
 } from "@9router/model-combo-cooldown";
 
 describe("model-combo-cooldown", () => {
@@ -74,5 +75,19 @@ describe("model-combo-cooldown", () => {
     vi.advanceTimersByTime(1001);
 
     expect(listActiveCooldowns()).toEqual([]);
+  });
+
+  it("clearModelCooldown removes exactly one (combo, model) pair, not the whole combo", () => {
+    markComboModelFailed("comboA", "openai/gpt-4o");
+    markComboModelFailed("comboA", "anthropic/claude");
+
+    clearModelCooldown("comboA", "openai/gpt-4o");
+
+    expect(isComboModelSkipped("comboA", "openai/gpt-4o")).toBe(false);
+    expect(isComboModelSkipped("comboA", "anthropic/claude")).toBe(true);
+  });
+
+  it("clearModelCooldown on a non-existent pair is a safe no-op", () => {
+    expect(() => clearModelCooldown("comboA", "openai/gpt-4o")).not.toThrow();
   });
 });

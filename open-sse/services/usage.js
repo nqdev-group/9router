@@ -27,6 +27,7 @@ import {
   getVercelAiGatewayUsage,
   getQoderUsage,
 } from "./usage/misc.js";
+import { USAGE_HANDLERS as EXTRA_USAGE_HANDLERS } from "@9router/providers/usage/index.js";
 
 /**
  * Get usage data for a provider connection
@@ -35,6 +36,8 @@ import {
  */
 // provider → usage handler (ctx carries every arg each handler needs)
 const USAGE_HANDLERS = {
+  // Custom (non-upstream) provider handlers — see packages/providers/usage/index.js
+  ...EXTRA_USAGE_HANDLERS,
   github: (c) => getGitHubUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),
   "gemini-cli": (c) => getGeminiUsage(c.accessToken, c.providerDataWithProjectId, c.proxyOptions),
   antigravity: (c) => getAntigravityUsage(c.accessToken, c.providerSpecificData, c.proxyOptions),

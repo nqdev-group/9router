@@ -616,6 +616,26 @@ export function parseQuotaData(provider, data) {
         }
         break;
 
+      case "kira":
+        // Mix of a resetting token quota ("Tokens (this cycle)") and a
+        // non-resetting credit balance ("Wallet balance (VND)", unlimited:true
+        // while positive) — see packages/providers/usage/kira.js. Forward
+        // `unlimited` explicitly (unlike the "deepseek" case above, which
+        // doesn't and so never renders its balance row as Unlimited).
+        if (data.quotas) {
+          Object.entries(data.quotas).forEach(([name, quota]) => {
+            normalizedQuotas.push({
+              name,
+              used: quota.used || 0,
+              total: quota.total || 0,
+              resetAt: quota.resetAt || null,
+              remainingPercentage: quota.remainingPercentage,
+              unlimited: quota.unlimited === true,
+            });
+          });
+        }
+        break;
+
       case "groq":
         // Requests/Tokens rate-limit windows from response headers — absolute
         // used/total (calculatePercentage derives the bar), like Codex/Kiro.

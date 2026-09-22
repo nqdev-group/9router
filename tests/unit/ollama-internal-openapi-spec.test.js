@@ -7,8 +7,8 @@ import { dirname, resolve } from "node:path";
 // class of "hand-edit broke the JSON structure silently" risk as
 // ollama-public-openapi-spec.test.js, plus a scope check specific to this
 // file: it must document ADMIN routes only, never the public /v1 surface
-// (that's public/openapi/ollama-public.json's job).
-const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/docs/internal-openapi/spec.json");
+// (that's public/openapi/public-swagger.json's job).
+const specPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/docs/internal-openapi/internal-swagger.json");
 
 describe("internal OpenAPI spec (dashboard/api-docs page)", () => {
   it("is valid, parseable JSON", () => {
@@ -46,5 +46,21 @@ describe("internal OpenAPI spec (dashboard/api-docs page)", () => {
     expect(entry).toBeTruthy();
     const op = entry.get || entry.post;
     expect(op["x-9router-note"]).toBe("catch-all path segment(s)");
+  });
+
+  it("groups every operation under a declared, non-default, non-Other tag (Swagger UI sidebar must not fall back to 'default')", () => {
+    const spec = JSON.parse(readFileSync(specPath, "utf8"));
+    const declaredTags = new Set(spec.tags.map((t) => t.name));
+    expect(declaredTags.size).toBeGreaterThan(1);
+    for (const [path, methods] of Object.entries(spec.paths)) {
+      for (const [method, op] of Object.entries(methods)) {
+        expect(Array.isArray(op.tags) && op.tags.length > 0, `${method.toUpperCase()} ${path} has no tags`).toBe(true);
+        for (const tag of op.tags) {
+          expect(tag).not.toBe("default");
+          expect(tag).not.toBe("Other");
+          expect(declaredTags.has(tag), `${method.toUpperCase()} ${path} uses undeclared tag "${tag}"`).toBe(true);
+        }
+      }
+    }
   });
 });
