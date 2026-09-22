@@ -86,15 +86,30 @@ export function compressMessages(body, enabled, rtkConfig) {
         continue;
       }
 
-      // User messages: compress code blocks, long text
+      // User messages: compress code blocks, long text, and any nested
+      // tool_result blocks. Claude's wire format has no separate "tool"
+      // role — tool_result blocks always ride inside a role:"user" turn —
+      // so this must handle them here, or they're never reached below.
       if (msg.role === "user") {
         if (typeof msg.content === "string") {
           msg.content = compressText(msg.content, stats, "user", config);
         } else if (Array.isArray(msg.content)) {
           for (let k = 0; k < msg.content.length; k++) {
             const part = msg.content[k];
-            if (part && part.type === "text" && typeof part.text === "string") {
+            if (!part) continue;
+            if (part.type === "text" && typeof part.text === "string") {
               part.text = compressText(part.text, stats, "user-array", config);
+            } else if (part.type === "tool_result" && part.is_error !== true) {
+              if (typeof part.content === "string") {
+                part.content = compressText(part.content, stats, "claude-string", config);
+              } else if (Array.isArray(part.content)) {
+                for (let m = 0; m < part.content.length; m++) {
+                  const sub = part.content[m];
+                  if (sub && sub.type === "text" && typeof sub.text === "string") {
+                    sub.text = compressText(sub.text, stats, "claude-array", config);
+                  }
+                }
+              }
             }
           }
         }

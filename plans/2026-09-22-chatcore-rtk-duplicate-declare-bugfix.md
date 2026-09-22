@@ -95,21 +95,20 @@ export function saveUsageStats({ ..., rtkStats = null }) {
 |---|---|
 | [open-sse/handlers/chatCore.js](../open-sse/handlers/chatCore.js) | Gộp 2 khai báo `rtkStats` trùng lặp thành 1; di chuyển `const xf = []` lên trước mọi chỗ dùng; gộp 2 block inject Caveman thành 1, gate bằng `tokenSaverEnabled`; thêm `rtkConfig` vào lệnh gọi `compressMessages` cho nhánh `preTranslateRtk` (cursor). |
 | [open-sse/handlers/chatCore/requestDetail.js](../open-sse/handlers/chatCore/requestDetail.js) | `saveUsageStats()`: default param `rtkStats = rtkStats` (tự tham chiếu, luôn throw khi caller không truyền) → `rtkStats = null`. |
+| [tests/unit/force-stream-config.test.js](../tests/unit/force-stream-config.test.js) | Thêm `formatHeadroomSizeLog: vi.fn(() => "")` vào mock `open-sse/rtk/headroom.js` (mock cũ thiếu export mà `chatCore.js` đã gọi từ tháng 6/2026). |
+| [open-sse/rtk/index.js](../open-sse/rtk/index.js) | Nhánh `role === "user"` trong `compressMessages()` quét thêm block `type:"tool_result"` (compress `content` string hoặc mảng text con) — trước đây chỉ quét text, khiến RTK không bao giờ nén tool_result thật của Claude (luôn nằm trong message role "user"). |
 
 ## 4. Trạng thái hiện tại
 
 Chưa commit — đang chờ người dùng review. Verify đã chạy:
-- `node --check` cả 2 file → OK (không còn lỗi parse).
-- 17 file test có đụng tới `chatCore` (rtk-cursor-pretranslate, qoder-billing, opencode-session, opencode-zen-models, opencode-go-muse-spark-responses, opencode-go-models, cline-free-models-envelope, opencode-go-session, extract-usage-cache-shapes, minimax-transport-target-format, openai-responses-nonstream, continuity-strip, codex-native-passthrough-thinking, antigravity-nonstream-usage-3260, kiro-nonstream-error, headroom-chat-core, force-stream-config) + `rtk.test.js` + `system-inject.test.js` → **242/246 pass**.
-- 4 fail còn lại xác nhận là **pre-existing, không liên quan** tới lỗi build hôm nay hoặc tới 2 file đã sửa:
-  - `force-stream-config.test.js` × 2 — mock riêng của test này cho `open-sse/rtk/headroom.js` thiếu export `formatHeadroomSizeLog` (đã được `chatCore.js` gọi từ commit `fb543a1f3`, 2026-06-26 — mock chưa update theo).
-  - `rtk.test.js` × 2 — test `compressMessages` cho Claude tool_result string/array-form, gọi trực tiếp `open-sse/rtk/index.js` (file không đụng tới trong lần sửa này).
+- `node --check` cả 4 file đã sửa → OK (không còn lỗi parse).
+- 18 file test liên quan `chatCore`/RTK (17 file đụng `chatCore` + `rtk.test.js` + `system-inject.test.js`) → **246/246 pass** (sau khi sửa cả 2 mục "việc còn mở" ở §5).
 - Chưa thử lại `npm run build` / Docker build thật (môi trường Windows local gặp lỗi EPERM scandir không liên quan khi chạy `next build` toàn cục — không phải do fix này, không tái hiện được trên Linux CI).
 
 ## 5. Việc còn mở (chưa làm, để quyết định sau)
 
-- [ ] `force-stream-config.test.js` — mock `headroom.js` thiếu `formatHeadroomSizeLog`. Không liên quan tới hôm nay, để riêng.
-- [ ] `rtk.test.js` — 2 test `compressMessages` cho Claude tool_result đang fail thật trong `open-sse/rtk/index.js` (không phải do 2 file mình sửa). Cần điều tra riêng nếu người dùng muốn.
+- [x] `force-stream-config.test.js` — mock `headroom.js` thiếu export `formatHeadroomSizeLog` (đã được `chatCore.js` gọi từ commit `fb543a1f3`, 2026-06-26). Fix: thêm `formatHeadroomSizeLog: vi.fn(() => "")` vào `vi.mock("../../open-sse/rtk/headroom.js", ...)` ở [tests/unit/force-stream-config.test.js](../tests/unit/force-stream-config.test.js). Chỉ sửa file test, không đổi code production. → **3/3 pass**.
+- [x] `rtk.test.js` × 2 — điều tra ra đây là **bug thật trong code production**, không phải lỗi test: [open-sse/rtk/index.js](../open-sse/rtk/index.js) nhánh "User messages" (dòng ~90, từ commit `5e0f48194`, 2026-06-10) chỉ quét `content` string/`{type:"text"}`, rồi `continue` — không bao giờ chạm tới đoạn quét block `tool_result` thật (Shape 2/3, dòng ~139+) khi message có `role:"user"`. Vì Claude Messages API **không có role "tool" riêng** — mọi `tool_result` đều nằm trong message `role:"user"` — nên RTK compression cho tool_result của Claude đã là dead code từ tháng 6/2026, ảnh hưởng thật tới tiết kiệm token trên traffic Claude-format. Hỏi lại người dùng trước khi sửa (đây là thay đổi hành vi filter đang chạy production, không phải lỗi build) — người dùng chọn **sửa luôn**. Fix: nhánh `role === "user"` giờ quét thêm `part.type === "tool_result"` (bỏ qua khi `is_error === true`, giống Shape 2/3), compress `part.content` string hoặc mảng `{type:"text"}` con, giữ nguyên tên shape `"claude-string"`/`"claude-array"` để tương thích ngược. Không xoá đoạn Shape 2/3 cũ (vẫn có thể cần cho message role khác gửi tool_result theo cách khác). → **45/45 pass** (`rtk.test.js`), full sweep 18 file liên quan `chatCore`/RTK → **246/246 pass**.
 - [ ] Chưa verify lại bằng CI/Docker thật — nên push và xem GitHub Actions build lại trước khi coi là "chắc chắn xanh".
 
 ## 6. Bài học rút ra
