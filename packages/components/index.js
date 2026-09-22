@@ -17,4 +17,4 @@ export { ObservationList } from "./cmem/ObservationList.js";
 
 export { SwaggerUIEmbed } from "./swagger/SwaggerUIEmbed.js";
 
-export { ErrorFrequencyChart } from "./error-stats/ErrorFrequencyChart.js";
+export { default as ErrorFrequencyChart } from "./error-stats/ErrorFrequencyChart.js";
