@@ -135,7 +135,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // shapes 1:1 — keep the post-translate pass there so those providers are
   // untouched (and a retry never re-compresses an already-compressed body).
   const preTranslateRtk = provider === "cursor"
-    ? compressMessages(body, tokenSaverEnabled && rtkEnabled)
+    ? compressMessages(body, tokenSaverEnabled && rtkEnabled, rtkConfig)
     : null;
   const preTranslateRtkLine = formatRtkLog(preTranslateRtk);
   if (preTranslateRtkLine) console.log(preTranslateRtkLine);
@@ -276,24 +276,28 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     translatedBody.tools = defaultClaudeToolType(translatedBody.tools);
   }
 
-  // RTK: compress tool_result content. Skipped when already done pre-translate.
-  const rtkStats = preTranslateRtk || compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled);
+  // Token-saver flags accumulator for the single "⚙" log line below. Declared
+  // before RTK/Caveman since both push into it.
+  const xf = [];
 
-  // Caveman: inject terse-style system prompt (before RTK so RTK can compress added text)
-  if (cavemanEnabled && cavemanLevel) {
+  // Caveman: inject terse-style system prompt (before RTK so RTK can compress
+  // the added text too). Gated by tokenSaverEnabled here (not just below) so
+  // the client's opt-out header actually suppresses the injection, not just
+  // its "⚙" log entry.
+  if (tokenSaverEnabled && cavemanEnabled && cavemanLevel) {
     injectCaveman(translatedBody, finalFormat, cavemanLevel);
     log?.debug?.("CAVEMAN", `${cavemanLevel} | ${finalFormat}`);
+    xf.push(`CAVEMAN:${cavemanLevel}`);
   }
 
-  // RTK: compress tool_result content
-  const rtkStats = compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled, rtkConfig);
-  const rtkLine = formatRtkLog(rtkStats);
-  if (rtkLine) console.log(rtkLine);
-  if (rtkStats?.hits?.length) {
-    const saved = rtkStats.bytesBefore - rtkStats.bytesAfter;
-    const pct = rtkStats.bytesBefore > 0 ? ((saved / rtkStats.bytesBefore) * 100).toFixed(0) : "0";
-    xf.push(`RTK −${saved}B(${pct}%)`);
+  // RTK: compress tool_result content. Skipped (reuses preTranslateRtk, already
+  // logged above) when already compressed pre-translate (cursor).
+  const rtkStats = preTranslateRtk || compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled, rtkConfig);
+  if (!preTranslateRtk) {
+    const rtkLine = formatRtkLog(rtkStats);
+    if (rtkLine) console.log(rtkLine);
   }
+  if (rtkStats?.hits?.length) xf.push(`RTK:${rtkStats.hits.length}`);
 
   // Headroom: optional external proxy compression; fail open if proxy is absent.
   const headroomDiagnostics = {};
@@ -306,17 +310,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       log?.warn?.("HEADROOM", `reported token delta, but outbound JSON shrank <5%; provider may bill near-original payload | ${formatHeadroomSizeLog(headroomDiagnostics)}`);
     }
   } else if (tokenSaverEnabled && headroomEnabled) log?.warn?.("HEADROOM", `skipped: ${headroomDiagnostics.reason || "compression unavailable"}${headroomDiagnostics.endpoint ? ` (${headroomDiagnostics.endpoint})` : ""}`);
-
-  // Token-saver flags accumulator for the single "⚙" log line below.
-  const xf = [];
-
-  if (rtkStats?.hits?.length) xf.push(`RTK:${rtkStats.hits.length}`);
-
-  // Caveman: inject terse-style system prompt
-  if (tokenSaverEnabled && cavemanEnabled && cavemanLevel) {
-    injectCaveman(translatedBody, finalFormat, cavemanLevel);
-    xf.push(`CAVEMAN:${cavemanLevel}`);
-  }
 
   // Privacy: mask sensitive data before dispatch to provider
   const privacyEngine = new PrivacyEngine({
