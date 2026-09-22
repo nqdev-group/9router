@@ -80,6 +80,13 @@ function appendLine(line) {
   }
 }
 
+// Pushes a pre-formatted line straight into the dashboard's live Console Log
+// buffer/SSE stream without going through console[level] — so it never reaches
+// the real stdout (docker logs), only the in-app viewer.
+export function logToBufferOnly(line) {
+  appendLine(stripAnsi(line));
+}
+
 export function initConsoleLogCapture() {
   if (state.patched) return;
 
