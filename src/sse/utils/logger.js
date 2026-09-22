@@ -1,21 +1,5 @@
 // Logger utility for cloud
 
-import { logToBufferOnly } from "@/lib/consoleLogBuffer.js";
-
-// Tags whose chatter is expected/noisy (e.g. proactive background token refresh
-// runs every few minutes per connection, including already-known-dead accounts)
-// — kept visible in the dashboard's live Console Log page, but not printed to
-// the real stdout (docker logs) where it drowns out request-path errors.
-const QUIET_TAGS = new Set(["TOKEN_REFRESH", "BG_TOKEN_REFRESH"]);
-
-function emit(tag, line, method = console.log) {
-  if (QUIET_TAGS.has(tag)) {
-    logToBufferOnly(line);
-  } else {
-    method(line);
-  }
-}
-
 const LOG_LEVELS = {
   DEBUG: 0,
   INFO: 1,
@@ -85,28 +69,28 @@ function formatData(data) {
 export function debug(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.DEBUG) {
     const dataStr = data ? ` ${formatData(data)}` : "";
-    emit(tag, `[${formatTime()}] 🔍 [${tag}] ${message}${dataStr}`);
+    console.log(`[${formatTime()}] 🔍 [${tag}] ${message}${dataStr}`);
   }
 }
 
 export function info(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.INFO) {
     const dataStr = data ? ` ${formatData(data)}` : "";
-    emit(tag, `[${formatTime()}] ℹ️  [${tag}] ${message}${dataStr}`);
+    console.log(`[${formatTime()}] ℹ️  [${tag}] ${message}${dataStr}`);
   }
 }
 
 export function warn(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.WARN) {
     const dataStr = data ? ` ${formatData(data)}` : "";
-    emit(tag, `[${formatTime()}] ⚠️  [${tag}] ${message}${dataStr}`, console.warn);
+    console.warn(`[${formatTime()}] ⚠️  [${tag}] ${message}${dataStr}`);
   }
 }
 
 export function error(tag, message, data) {
   if (LEVEL <= LOG_LEVELS.ERROR) {
     const dataStr = data ? ` ${formatData(data)}` : "";
-    emit(tag, `[${formatTime()}] ❌ [${tag}] ${message}${dataStr}`);
+    console.log(`[${formatTime()}] ❌ [${tag}] ${message}${dataStr}`);
   }
 }
 

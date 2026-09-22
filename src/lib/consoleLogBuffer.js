@@ -80,13 +80,6 @@ function appendLine(line) {
   }
 }
 
-// Pushes a pre-formatted line straight into the dashboard's live Console Log
-// buffer/SSE stream without going through console[level] — so it never reaches
-// the real stdout (docker logs), only the in-app viewer.
-export function logToBufferOnly(line) {
-  appendLine(stripAnsi(line));
-}
-
 export function initConsoleLogCapture() {
   if (state.patched) return;
 
@@ -94,7 +87,11 @@ export function initConsoleLogCapture() {
     state.originals[level] = console[level];
     console[level] = (...args) => {
       appendLine(toLogLine(level, args));
-      state.originals[level](...args);
+      // Only console.debug reaches the real stdout (docker logs) — everything
+      // else (log/info/warn/error) stays in the dashboard's live Console Log
+      // buffer/SSE stream only, so routine request/provider noise doesn't
+      // drown out docker logs.
+      if (level === "debug") state.originals[level](...args);
     };
   }
 
