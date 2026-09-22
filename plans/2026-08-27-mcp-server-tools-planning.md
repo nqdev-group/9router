@@ -37,7 +37,7 @@ estimated_hours: ~24
 
 ### 2.1 Quyết định transport: HTTP (Streamable HTTP) thay vì stdio
 
-**Chọn:** Mount MCP server dưới dạng 1 Next.js route (`src/app/api/mcp/route.js`, thin — chỉ gọi vào `@9router/mcpServer`), dùng transport **Streamable HTTP** (1 POST endpoint cho request/response, tuỳ chọn SSE cho streaming — đúng theo MCP spec bản 2025-03-26 trở lên).
+**Chọn:** Mount MCP server dưới dạng 1 Next.js route (thin — chỉ gọi vào `@9router/mcpServer`; path cụ thể `/v1/mcp`, không phải `/api/mcp` — xem quyết định path ở callout đầu mục 2), dùng transport **Streamable HTTP** (1 POST endpoint cho request/response, tuỳ chọn SSE cho streaming — đúng theo MCP spec bản 2025-03-26 trở lên).
 
 **Vì sao không chọn stdio (cách phổ biến nhất cho local MCP server):**
 - stdio yêu cầu client (Claude Desktop, v.v.) tự spawn 1 process con — nhưng 9Router **đã chạy sẵn** như HTTP server dài hạn (production dùng `custom-server.js`, dev dùng `next dev`). Spawn thêm 1 process riêng cho MCP nghĩa là **2 process trùng lặp state** (DB connections, provider registry, credential cache) — rủi ro lệch dữ liệu, tốn RAM double.
@@ -112,13 +112,13 @@ tests/unit/mcpServer/
 
 1. **Phase 0 — Hygiene fix** (không phụ thuộc gì, làm trước): sửa `package.json` name + `private: true`.
 2. **Phase 1 — Protocol core**: JSON-RPC framing, `initialize`/`tools/list`/`tools/call`, error handling theo MCP spec. Chưa có tool thật nào, chỉ có registry rỗng — verify bằng 1 tool "ping" giả lập.
-3. **Phase 2 — Transport HTTP**: `src/app/api/mcp/route.js` + `lib/transport/httpHandler.js`, xác nhận qua auth middleware hiện có, test bằng 1 MCP client thật (Claude Code/Claude Desktop trỏ vào `http://localhost:20128/api/mcp`).
+3. **Phase 2 — Transport HTTP**: `src/app/api/v1/mcp/route.js` (không phải `/api/mcp` — xem quyết định path ở đầu mục 2) + `lib/transport/httpHandler.js`, xác nhận qua auth middleware hiện có, test bằng 1 MCP client thật (Claude Code/Claude Desktop trỏ vào `http://localhost:20128/v1/mcp`).
 4. **Phase 3 — Tool nhóm lõi**: `chat_completion`, `list_models` (giá trị cao nhất, ít rủi ro nhất vì `list_models` là hàm thuần).
 5. **Phase 4 — Tool nhóm media**: `generate_image`, `generate_video`, `text_to_speech`, `speech_to_text`, `create_embeddings`.
 6. **Phase 5 — Tool nhóm web**: `web_search`, `web_fetch`.
 7. **Phase 6 — Tool mới (chưa có ở skills/)**: `get_usage_stats`, `check_provider_health`.
 8. **Phase 7 — Test**: unit test JSON-RPC framing + mỗi tool ở `tests/unit/mcpServer/`.
-9. **Phase 8 — Docs**: `skills/9router-mcp/SKILL.md` (hướng dẫn agent MCP-native connect vào `/api/mcp` thay vì tự curl), cập nhật `AGENTS.md` bảng `packages/`.
+9. **Phase 8 — Docs**: `skills/9router-mcp/SKILL.md` (hướng dẫn agent MCP-native connect vào `/v1/mcp` thay vì tự curl), cập nhật `AGENTS.md` bảng `packages/`.
 
 ## 3. Công việc cần thực hiện (Todo)
 

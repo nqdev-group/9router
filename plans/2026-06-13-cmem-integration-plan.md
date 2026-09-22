@@ -311,22 +311,22 @@ CMEM tables live in `$DATA_DIR/db/data.sqlite` (same DB file):
 ### Phase 3: Pipeline Integration ✓
 - [x] Integrate `cmemEngine.injectContext()` in chatCore.js:155-170 (pre-dispatch, after PrivacyEngine)
 - [x] Integrate `cmemEngine.captureObservation()` in chatCore.js:295-330 (post-dispatch, all 3 paths)
-- [ ] Add CMEM stats to token-saver API endpoint (pending)
+- [x] Add CMEM stats to token-saver API endpoint — done, see status block above (`cmem` stats section)
 - [x] Verify no conflicts with RTK/Caveman/Privacy in pipeline
 
 ### Phase 4: Dashboard UI ✓
 - [x] Create `packages/components/cmem/` (6 components)
 - [x] Create `/dashboard/settings/cmem-engine/page.js`
 - [x] Add "CMEM Engine" to Sidebar compressionContextItems
-- [ ] Extend `packages/components/token-saver/` with CMEM savings card (pending)
+- [x] CMEM savings shown in token-saver report — via `CmemContextStats.js`, actual location `packages/components/token-saver-report/` (see [token-saver-report.md](token-saver-report.md)), not `packages/components/token-saver/` as originally planned here
 - [x] Add CMEM observation list to dashboard
 
 ### Phase 5: Testing & Polish ✓
 - [x] E2E: test capture → store → inject cycle (cmem-e2e.test.js)
 - [x] Token budget boundary tests
 - [x] Multi-format injection tests (OpenAI, Claude, Gemini)
-- [ ] Performance: measure injection overhead (<5ms target)
-- [ ] Update `packages/validation/index.js` with cmem exports (not a directory — just create if needed)
+- [ ] Performance: measure injection overhead (<5ms target) — not re-verified, genuinely open
+- [x] `packages/validation/index.js` exports `cmemSchemas.js` — done, see status block above
 
 ---
 
