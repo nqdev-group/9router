@@ -39,47 +39,58 @@ export async function logModelError({ provider, model, comboName, errorCode }) {
   }
 }
 
-/** Hourly error-frequency buckets for account-level errors, last 7 days. */
-export async function getAccountErrorFrequency() {
+// Clamps an optional {since, until} filter to sane defaults (last 7 days) —
+// shared by every query below so "no filter" always means the same window
+// the dashboard shows by default.
+function resolveRange({ since, until } = {}) {
+  const now = Date.now();
+  return {
+    fromMs: Number.isFinite(since) ? since : now - RETENTION_MS,
+    toMs: Number.isFinite(until) ? until : now,
+  };
+}
+
+/** Hourly error-frequency buckets for account-level errors within [since, until] (default: last 7 days). */
+export async function getAccountErrorFrequency(range) {
   const db = await getErrorLogAdapter();
-  const since = Date.now() - RETENTION_MS;
+  const { fromMs, toMs } = resolveRange(range);
   return db.all(
     `SELECT strftime('%Y-%m-%dT%H:00:00Z', created_at_epoch / 1000, 'unixepoch') as bucket,
             provider, connection_id as connectionId, COUNT(*) as count
      FROM error_log
-     WHERE connection_id IS NOT NULL AND created_at_epoch >= ?
+     WHERE connection_id IS NOT NULL AND created_at_epoch >= ? AND created_at_epoch <= ?
      GROUP BY bucket, provider, connection_id
      ORDER BY bucket ASC`,
-    [since]
+    [fromMs, toMs]
   );
 }
 
-/** Hourly error-frequency buckets for model-level errors (per combo), last 7 days. */
-export async function getModelErrorFrequency() {
+/** Hourly error-frequency buckets for model-level errors (per combo) within [since, until] (default: last 7 days). */
+export async function getModelErrorFrequency(range) {
   const db = await getErrorLogAdapter();
-  const since = Date.now() - RETENTION_MS;
+  const { fromMs, toMs } = resolveRange(range);
   return db.all(
     `SELECT strftime('%Y-%m-%dT%H:00:00Z', created_at_epoch / 1000, 'unixepoch') as bucket,
             provider, model, combo_name as comboName, COUNT(*) as count
      FROM error_log
-     WHERE combo_name IS NOT NULL AND created_at_epoch >= ?
+     WHERE combo_name IS NOT NULL AND created_at_epoch >= ? AND created_at_epoch <= ?
      GROUP BY bucket, provider, model, combo_name
      ORDER BY bucket ASC`,
-    [since]
+    [fromMs, toMs]
   );
 }
 
-/** Distinct (provider, model, comboName) triples currently failing within the retention window — for the model-error list + "which combos use this model" UI. */
-export async function getFailingModels() {
+/** Distinct (provider, model, comboName) triples failing within [since, until] (default: last 7 days) — for the model-error list + "which combos use this model" UI. */
+export async function getFailingModels(range) {
   const db = await getErrorLogAdapter();
-  const since = Date.now() - RETENTION_MS;
+  const { fromMs, toMs } = resolveRange(range);
   return db.all(
     `SELECT provider, model, combo_name as comboName, COUNT(*) as count, MAX(created_at_epoch) as lastErrorAt
      FROM error_log
-     WHERE combo_name IS NOT NULL AND created_at_epoch >= ?
+     WHERE combo_name IS NOT NULL AND created_at_epoch >= ? AND created_at_epoch <= ?
      GROUP BY provider, model, combo_name
      ORDER BY count DESC`,
-    [since]
+    [fromMs, toMs]
   );
 }
 
@@ -118,8 +129,8 @@ function pivotToChartSeries(rows, keyFn, labelFn) {
 }
 
 /** Chart-ready {buckets, series} for the account-error chart — one series per (provider, connectionId), capped to the top offenders. */
-export async function getAccountErrorChartData() {
-  const rows = await getAccountErrorFrequency();
+export async function getAccountErrorChartData(range) {
+  const rows = await getAccountErrorFrequency(range);
   return pivotToChartSeries(
     rows,
     (r) => `${r.provider}::${r.connectionId}`,
@@ -128,8 +139,8 @@ export async function getAccountErrorChartData() {
 }
 
 /** Chart-ready {buckets, series} for the model-error chart — one series per (comboName, provider, model), capped to the top offenders. */
-export async function getModelErrorChartData() {
-  const rows = await getModelErrorFrequency();
+export async function getModelErrorChartData(range) {
+  const rows = await getModelErrorFrequency(range);
   return pivotToChartSeries(
     rows,
     (r) => `${r.comboName}::${r.provider}/${r.model}`,
