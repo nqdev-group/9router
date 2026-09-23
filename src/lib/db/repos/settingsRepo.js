@@ -128,6 +128,10 @@ const DEFAULT_SETTINGS = {
   tierRoutingDailyBudgetCapUsd: null, // null = no cap
   tierRoutingFreeTierThresholdUsd: 0.01, // blended $/1M tokens considered "free tier"
   tokenLimitRoutingEnabled: false, // opt-in; bypass combo models whose max-input-token limit can't fit the prompt
+  comboAutoReorderEnabled: false, // opt-in; demote fail-prone combo models to the end of their model list
+  comboAutoReorderFailThreshold: 10, // fails within the rolling window that trigger a demote
+  comboAutoReorderWindowMs: 60 * 60 * 1000, // rolling window the fail count is measured over (1h)
+  comboAutoReorderIntervalMs: 5 * 60 * 1000, // background sweep cadence (5min); takes effect on next restart
 };
 
 async function readRaw() {

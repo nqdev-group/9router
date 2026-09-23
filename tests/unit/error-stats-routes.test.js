@@ -34,7 +34,7 @@ describe("GET /api/error-stats/accounts", () => {
     await logAccountError({ provider: "kiro", connectionId: "conn-1", model: "kiro-mini", errorCode: 401 });
 
     const { GET } = await import("@/app/api/error-stats/accounts/route.js");
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/error-stats/accounts"));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.series.some((s) => s.key.startsWith("kiro::"))).toBe(true);
@@ -47,7 +47,7 @@ describe("GET /api/error-stats/models", () => {
     await logModelError({ provider: "opencode", model: "deepseek-v4-flash-free", comboName: "9r-combo-opencode", errorCode: 400 });
 
     const { GET } = await import("@/app/api/error-stats/models/route.js");
-    const res = await GET();
+    const res = await GET(new Request("http://localhost/api/error-stats/models"));
     const json = await res.json();
     expect(json.failingModels[0]).toMatchObject({ provider: "opencode", model: "deepseek-v4-flash-free", comboName: "9r-combo-opencode" });
   });
