@@ -66,6 +66,11 @@ export const ERROR_RULES = [
   { text: "quota exceeded",           backoff: true },
   { text: "capacity",                 backoff: true },
   { text: "overloaded",               backoff: true },
+  // Some upstreams (e.g. OpenCode Zen) report a dead/unsupported model as a 400
+  // instead of 404/406 — without this, the generic 4xx default below treats it as
+  // a request-scoped error (no fallback, no cooldown), so a combo repeats the same
+  // dead model on every request forever instead of moving on.
+  { text: "model is unavailable",     cooldownMs: COOLDOWN.long },
 
   // --- Status-based rules (fallback when text doesn't match) ---
   { status: 401, cooldownMs: COOLDOWN.long },

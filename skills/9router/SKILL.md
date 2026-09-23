@@ -53,6 +53,7 @@ When the user needs a specific capability, fetch that skill's `SKILL.md` from it
 | Embeddings | https://raw.githubusercontent.com/decolua/9router/refs/heads/master/skills/9router-embeddings/SKILL.md |
 | Web search | https://raw.githubusercontent.com/decolua/9router/refs/heads/master/skills/9router-web-search/SKILL.md |
 | Web fetch (URL → markdown) | https://raw.githubusercontent.com/decolua/9router/refs/heads/master/skills/9router-web-fetch/SKILL.md |
+| MCP server (native tool calls, no curl) | https://raw.githubusercontent.com/decolua/9router/refs/heads/master/skills/9router-mcp/SKILL.md |
 
 ## Errors
 

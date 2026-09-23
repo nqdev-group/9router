@@ -40,7 +40,8 @@ Content-Type: application/json
 | `POST /v1/messages` | Claude |
 | `POST /v1/responses` | OpenAI Responses |
 | `POST /v1/responses/compact` | OpenAI Responses + `_compact: true` |
-| `POST /v1/api/chat` | Ollama-compatible |
+| `POST /v1/api/chat` | Legacy — không đúng chuẩn Ollama thật (path sai, luôn NDJSON dù `stream:false`). Giữ nguyên để tương thích ngược, không dùng cho tích hợp mới. |
+| `POST /v1/ollama/api/chat` | **Ollama-compatible thật** (đúng path/timing fields theo `docs.ollama.com/openapi.yaml`). Xem `plans/2026-09-10-ollama-api-swagger-planning.md`. |
 | `POST /v1beta/models/{model}:generateContent` | Gemini |
 | `POST /v1beta/models/{model}:streamGenerateContent` | Gemini (SSE) |
 
