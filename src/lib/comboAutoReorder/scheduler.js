@@ -23,7 +23,7 @@ async function tick() {
   if (tickRunning) return;
   tickRunning = true;
   try {
-    await runComboAutoReorderSweep({
+    const result = await runComboAutoReorderSweep({
       getSettings,
       getRecentModelFailCounts,
       getCombos,
@@ -32,6 +32,9 @@ async function tick() {
       isSuppressed: isComboModelReorderSuppressed,
       onWarn: (msg) => console.warn(msg),
     });
+    if (result?.reordered?.length) {
+      console.log(`[ComboAutoReorder] demoted fail-prone models in: ${result.reordered.join(", ")}`);
+    }
   } catch (err) {
     console.warn(`[ComboAutoReorder] sweep tick failed (swallowed): ${err?.message || err}`);
   } finally {
