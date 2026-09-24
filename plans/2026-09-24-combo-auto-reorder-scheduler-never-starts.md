@@ -63,13 +63,13 @@ Ngay cả khi scheduler chạy đúng, phát hiện thêm: `tick()` trong `sched
 
 ## 4. Trạng thái hiện tại
 
-Chưa commit. Chỉ verify được qua đọc code + test unit của package thuần (không đổi) — **chưa test bằng cách thực sự restart server và quan sát log `[ComboAutoReorder]` xuất hiện** (cần môi trường chạy thật, không làm được từ phiên code này). Cần user tự verify sau khi deploy: restart container, **không** mở dashboard, để 1 model fail đủ ngưỡng (mặc định 10 fail/1h), đợi > 15s (initial delay) rồi > 1 chu kỳ sweep (mặc định 5 phút), kiểm tra log `[ComboAutoReorder] demoted fail-prone models in: ...` xuất hiện và bảng "Currently demoted models" trong Settings có dữ liệu.
+✅ Đã commit (`da182762`, "feat: fix combo auto-reorder scheduler not starting in API-only deployments"). ✅ User xác nhận đã build và deploy lên server thật. **Chưa verify hành vi thực tế** — cần quan sát log `[ComboAutoReorder] demoted fail-prone models in: ...` xuất hiện sau khi 1 model fail đủ ngưỡng (mặc định 10 fail/1h) qua ít nhất 1 chu kỳ sweep (mặc định 5 phút, sau initial delay 15s kể từ lúc process khởi động), và bảng "Currently demoted models" trong Settings có dữ liệu.
 
 ## 5. Việc còn mở
 
+- [ ] **Verify trên server thật sau deploy:** chưa có xác nhận log `[ComboAutoReorder]` đã thực sự xuất hiện hay model đã thực sự bị demote — cần user quan sát thêm sau khi có đủ điều kiện trigger (model fail ≥ ngưỡng trong cửa sổ rolling).
 - [ ] **Cùng 1 gap kiến trúc rất có thể ảnh hưởng các job khác cũng chỉ khởi động qua `runHeavyStartup()`/`layout.js`:** tunnel/tailscale auto-resume, mitm auto-start, `quotaAutoPing` — tất cả đều phụ thuộc dashboard UI được mở ít nhất 1 lần sau restart, giống hệt bug vừa sửa. Chưa sửa các job này trong phiên này (ngoài phạm vi báo cáo gốc của user, mỗi job có mức độ ưu tiên/rủi ro khác nhau khi thêm redundant-start). Nên hỏi user có deploy kiểu API-only (không mở dashboard) cho các tính năng đó không — nếu có, cần áp dụng đúng pattern này cho từng job.
 - [ ] **Ngưỡng mặc định 10 fail / 1 giờ có thể vẫn chưa đạt** dù scheduler giờ chạy đúng — cần user tự quan sát thêm sau khi deploy fix này; nếu vẫn không demote dù chắc chắn 1 model đã fail ≥ 10 lần/1h, quay lại điều tra tiếp (không loại trừ hoàn toàn khả năng có bug thứ 2).
-- [ ] Deploy bản build có 2 fix này (cùng nhóm 3 fix khác trong ngày — 413 fallback, headroom tool_call_id, Mistral promptCacheKey) lên server thật.
 
 ## 6. Bài học rút ra
 
@@ -85,4 +85,4 @@ Cập nhật vào issue gốc của tính năng (không tạo issue mới — đ
 |---|---|
 | Key | [QUYIT-737](https://nhquydev.atlassian.net/browse/QUYIT-737) |
 | Hành động | Thêm comment tóm tắt root cause + fix (2026-09-24), chuyển trạng thái `To Do` → `In Progress` |
-| Lý do chưa chuyển `Done` | Code đã xong + test package pass, nhưng chưa commit và chưa verify bằng cách restart server thật (mục 4) — để `In Progress` cho tới khi user xác nhận log `[ComboAutoReorder]` xuất hiện sau deploy |
+| Lý do chưa chuyển `Done` | Đã commit (`da182762`) + user xác nhận đã build và deploy, nhưng chưa có xác nhận log `[ComboAutoReorder]` thực sự xuất hiện trên server thật (mục 4/5) — để `In Progress` cho tới khi verify xong |

@@ -53,7 +53,7 @@ Thêm vào `STRIP_RULES`, không có `match` (áp dụng mọi model Mistral, v�
 
 ## 4. Trạng thái hiện tại
 
-Chưa commit. Test pass. Chưa deploy (cùng tình trạng với 2 fix khác trong ngày — image thật kéo từ registry `decolua/9router`, tách biệt repo local).
+✅ Đã commit (`7f130605`, gộp cùng 2 fix khác trong ngày — Groq 413 fallback, headroom tool_call_id). Test pass. ✅ User xác nhận đã build và deploy lên server thật. Chưa có log thật xác nhận Mistral hết báo lỗi 422 `promptCacheKey` — theo dõi thêm.
 
 ## 5. Việc còn mở
 

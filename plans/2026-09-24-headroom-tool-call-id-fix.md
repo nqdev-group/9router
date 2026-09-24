@@ -60,7 +60,7 @@ Thêm `hasIntactToolCallLinkage(messages)`: duyệt toàn bộ mảng message Op
 
 ## 4. Trạng thái hiện tại
 
-Chưa commit. Test liên quan pass (trừ 1 fail có sẵn không liên quan, đã xác nhận). Chưa deploy — cần build+push image mới hoặc build local rồi restart container thật (giống lưu ý ở các plan trước, image chạy thật kéo từ registry `decolua/9router`, tách biệt khỏi repo local).
+✅ Đã commit (`7f130605`, gộp cùng 2 fix khác trong ngày — Groq 413 fallback, Mistral promptCacheKey). Test liên quan pass (trừ 1 fail có sẵn không liên quan, đã xác nhận). ✅ User xác nhận đã build và deploy lên server thật. Chưa có log thật xác nhận `diagnostics.reason = "proxy response broke tool_call_id linkage..."` có xuất hiện trên production hay không — theo dõi thêm.
 
 ## 5. Việc còn mở
 

@@ -59,7 +59,7 @@ Lưu ý môi trường: chạy `npx vitest` **không kèm `--config tests/vitest
 
 ## 4. Trạng thái hiện tại
 
-Chưa commit. Test liên quan pass (6/6). Chưa deploy — cần build+push image mới hoặc build local rồi restart container thật để fix có hiệu lực (tương tự lưu ý ở plan 2026-09-21, image chạy thật kéo từ registry `decolua/9router`, không build từ repo local).
+✅ Đã commit (`7f130605`, gộp cùng 2 fix khác trong ngày — headroom tool_call_id, Mistral promptCacheKey). Test liên quan pass (6/6). ✅ User xác nhận đã build và deploy lên server thật. Chưa có log thật xác nhận fallback 413 hoạt động đúng trên production (cần theo dõi thêm khi Groq TPM cap lại xảy ra).
 
 ## 5. Việc còn mở (4 đề xuất còn lại của user — không phải bug code, cần hành động khác)
 
