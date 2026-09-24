@@ -78,6 +78,13 @@ export const ERROR_RULES = [
   { status: 403, cooldownMs: COOLDOWN.long },
   { status: 404, cooldownMs: COOLDOWN.long },
   { status: 429, backoff: true },
+  // 413 (payload too large) on providers with a strict per-minute token cap (e.g.
+  // Groq free tier, ~8000 TPM) means this account/model combo can't fit the
+  // request's tool-calling payload right now — capacity-scoped like 429, not a
+  // malformed request. Without this it hit the generic 4xx default below
+  // (no fallback, no cooldown) and failed the whole parent combo instead of
+  // trying the next model.
+  { status: 413, backoff: true },
 ];
 
 // Backward compat: COOLDOWN_MS object (used by index.js re-export)
