@@ -4,10 +4,30 @@
 //   1. PROVIDER_PRICING[provider][model]       — provider-specific override
 //   1b. EXTRA_PROVIDER_PRICING[provider][model] — same, for providers registered in
 //       packages/providers/registry/ (not upstream) — see packages/providers/pricing.js
-//   2. MODEL_PRICING[model]               — canonical model price (provider-agnostic)
-//   3. PATTERN_PRICING                    — glob pattern match (e.g. "codex-*")
+//   2. FREE_MODEL_NAMESPACES               — upstream bills these at $0
+//   3. MODEL_PRICING[model]               — canonical model price (provider-agnostic)
+//   4. PATTERN_PRICING                    — glob pattern match (e.g. "codex-*")
 
 import { PROVIDER_PRICING as EXTRA_PROVIDER_PRICING } from "@9router/providers/pricing.js";
+
+/**
+ * Namespaces upstream meters at $0. A free model must never inherit a paid
+ * rate: the vendor-prefix strip in getPricingForModel() would turn
+ * "cline-free/deepseek-v4.1-flash" into "deepseek-v4.1-flash" and match
+ * MODEL_PRICING, so the namespace is checked before both fallbacks.
+ */
+export const FREE_MODEL_NAMESPACES = ["cline-free/"];
+
+export const ZERO_PRICING = {
+  input: 0, output: 0, cached: 0, reasoning: 0, cache_creation: 0,
+};
+
+/** True when the model id sits in a namespace upstream bills at $0. */
+export function isFreeModel(model) {
+  if (!model) return false;
+  const lower = String(model).toLowerCase();
+  return FREE_MODEL_NAMESPACES.some((ns) => lower.startsWith(ns));
+}
 
 /**
  * Canonical model pricing — provider-agnostic.
@@ -35,59 +55,59 @@ export const MODEL_PRICING = {
   "claude-fable-5": { input: 10.00, output: 50.00, cached: 1.00, reasoning: 50.00, cache_creation: 12.50 },
 
   // === OpenAI / GPT ===
-  "gpt-3.5-turbo":                { input: 0.50,  output: 1.50,  cached: 0.25,  reasoning: 2.25,   cache_creation: 0.50  },
-  "gpt-4":                        { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  },
-  "gpt-4-turbo":                  { input: 10.00, output: 30.00, cached: 5.00,  reasoning: 45.00,  cache_creation: 10.00 },
-  "gpt-4o":                       { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  },
-  "gpt-4o-mini":                  { input: 0.15,  output: 0.60,  cached: 0.075, reasoning: 0.90,   cache_creation: 0.15  },
-  "gpt-4.1":                      { input: 2.50,  output: 10.00, cached: 1.25,  reasoning: 15.00,  cache_creation: 2.50  },
-  "gpt-5":                        { input: 1.25,  output: 10.00, cached: 0.625, reasoning: 10.00,  cache_creation: 1.25  },
-  "gpt-5-mini":                   { input: 0.25,  output: 2.00,  cached: 0.125, reasoning: 2.00,   cache_creation: 0.25  },
-  "gpt-5-codex":                  { input: 1.25,  output: 10.00, cached: 0.625, reasoning: 10.00,  cache_creation: 1.25  },
-  "gpt-5.1":                      { input: 1.25,  output: 10.00, cached: 0.625, reasoning: 10.00,  cache_creation: 1.25  },
-  "gpt-5.1-codex":                { input: 1.25,  output: 10.00, cached: 0.625, reasoning: 10.00,  cache_creation: 1.25  },
-  "gpt-5.1-codex-mini":           { input: 1.50,  output: 6.00,  cached: 0.75,  reasoning: 9.00,   cache_creation: 1.50  },
-  "gpt-5.1-codex-mini-high":      { input: 2.00,  output: 8.00,  cached: 1.00,  reasoning: 12.00,  cache_creation: 2.00  },
-  "gpt-5.1-codex-max":            { input: 8.00,  output: 32.00, cached: 4.00,  reasoning: 48.00,  cache_creation: 8.00  },
-  "gpt-5.2":                      { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  },
-  "gpt-5.2-codex":                { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  },
-  "gpt-5.3-codex":                { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  },
-  "gpt-5.3-codex-spark":         { input: 3.00,  output: 12.00, cached: 0.30,  reasoning: 12.00,  cache_creation: 3.00  },
-  "gpt-5.6":                      { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  },
-  "gpt-5.6-luna":                 { input: 1.00,  output: 6.00,  cached: 0.10,  reasoning: 6.00,   cache_creation: 1.00  },
-  "gpt-5.6-terra":                { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  },
-  "gpt-5.6-sol":                  { input: 5.00,  output: 30.00, cached: 0.50,  reasoning: 30.00,  cache_creation: 5.00  },
-  "gpt-6-astra":                  { input: 5.00,  output: 30.00, cached: 0.50,  reasoning: 30.00,  cache_creation: 5.00  },
-  "o1":                           { input: 15.00, output: 60.00, cached: 7.50,  reasoning: 90.00,  cache_creation: 15.00 },
-  "o1-mini":                      { input: 3.00,  output: 12.00, cached: 1.50,  reasoning: 18.00,  cache_creation: 3.00  },
+  "gpt-3.5-turbo": { input: 0.50, output: 1.50, cached: 0.25, reasoning: 2.25, cache_creation: 0.50 },
+  "gpt-4": { input: 2.50, output: 10.00, cached: 1.25, reasoning: 15.00, cache_creation: 2.50 },
+  "gpt-4-turbo": { input: 10.00, output: 30.00, cached: 5.00, reasoning: 45.00, cache_creation: 10.00 },
+  "gpt-4o": { input: 2.50, output: 10.00, cached: 1.25, reasoning: 15.00, cache_creation: 2.50 },
+  "gpt-4o-mini": { input: 0.15, output: 0.60, cached: 0.075, reasoning: 0.90, cache_creation: 0.15 },
+  "gpt-4.1": { input: 2.50, output: 10.00, cached: 1.25, reasoning: 15.00, cache_creation: 2.50 },
+  "gpt-5": { input: 1.25, output: 10.00, cached: 0.625, reasoning: 10.00, cache_creation: 1.25 },
+  "gpt-5-mini": { input: 0.25, output: 2.00, cached: 0.125, reasoning: 2.00, cache_creation: 0.25 },
+  "gpt-5-codex": { input: 1.25, output: 10.00, cached: 0.625, reasoning: 10.00, cache_creation: 1.25 },
+  "gpt-5.1": { input: 1.25, output: 10.00, cached: 0.625, reasoning: 10.00, cache_creation: 1.25 },
+  "gpt-5.1-codex": { input: 1.25, output: 10.00, cached: 0.625, reasoning: 10.00, cache_creation: 1.25 },
+  "gpt-5.1-codex-mini": { input: 1.50, output: 6.00, cached: 0.75, reasoning: 9.00, cache_creation: 1.50 },
+  "gpt-5.1-codex-mini-high": { input: 2.00, output: 8.00, cached: 1.00, reasoning: 12.00, cache_creation: 2.00 },
+  "gpt-5.1-codex-max": { input: 8.00, output: 32.00, cached: 4.00, reasoning: 48.00, cache_creation: 8.00 },
+  "gpt-5.2": { input: 1.75, output: 14.00, cached: 0.175, reasoning: 14.00, cache_creation: 1.75 },
+  "gpt-5.2-codex": { input: 1.75, output: 14.00, cached: 0.175, reasoning: 14.00, cache_creation: 1.75 },
+  "gpt-5.3-codex": { input: 1.75, output: 14.00, cached: 0.175, reasoning: 14.00, cache_creation: 1.75 },
+  "gpt-5.3-codex-spark": { input: 3.00, output: 12.00, cached: 0.30, reasoning: 12.00, cache_creation: 3.00 },
+  "gpt-5.6": { input: 2.50, output: 15.00, cached: 0.25, reasoning: 15.00, cache_creation: 2.50 },
+  "gpt-5.6-luna": { input: 1.00, output: 6.00, cached: 0.10, reasoning: 6.00, cache_creation: 1.00 },
+  "gpt-5.6-terra": { input: 2.50, output: 15.00, cached: 0.25, reasoning: 15.00, cache_creation: 2.50 },
+  "gpt-5.6-sol": { input: 5.00, output: 30.00, cached: 0.50, reasoning: 30.00, cache_creation: 5.00 },
+  "gpt-6-astra": { input: 5.00, output: 30.00, cached: 0.50, reasoning: 30.00, cache_creation: 5.00 },
+  "o1": { input: 15.00, output: 60.00, cached: 7.50, reasoning: 90.00, cache_creation: 15.00 },
+  "o1-mini": { input: 3.00, output: 12.00, cached: 1.50, reasoning: 18.00, cache_creation: 3.00 },
 
   // === Gemini ===
-  "gemini-3.8-flash":              { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.8-flash-high":         { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.8-flash-medium":       { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.8-flash-low":          { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.7-flash":              { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.7-flash-high":         { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.7-flash-medium":       { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.7-flash-low":          { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.6-flash":              { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.6-flash-high":         { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.6-flash-medium":       { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.6-flash-low":          { input: 1.50,  output: 7.50,  cached: 0.15,  reasoning: 11.25,  cache_creation: 1.875 },
-  "gemini-3.5-flash-lite":         { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.375 },
-  "gemini-3.5-flash-high":         { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3-flash-preview":        { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3-pro-preview":         { input: 2.00,  output: 12.00, cached: 0.25,  reasoning: 18.00,  cache_creation: 2.00  },
-  "gemini-3.1-pro-low":           { input: 2.00,  output: 12.00, cached: 0.25,  reasoning: 18.00,  cache_creation: 2.00  },
-  "gemini-3.1-pro-high":          { input: 4.00,  output: 18.00, cached: 0.50,  reasoning: 27.00,  cache_creation: 4.00  },
-  "gemini-pro-agent":             { input: 4.00,  output: 18.00, cached: 0.50,  reasoning: 27.00,  cache_creation: 4.00  },
-  "gemini-3-flash-agent":         { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3.5-flash-low":         { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3.5-flash-extra-low":   { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-3-flash":               { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  },
-  "gemini-2.5-pro":               { input: 2.00,  output: 12.00, cached: 0.25,  reasoning: 18.00,  cache_creation: 2.00  },
-  "gemini-2.5-flash":             { input: 0.30,  output: 2.50,  cached: 0.03,  reasoning: 3.75,   cache_creation: 0.30  },
-  "gemini-2.5-flash-lite":        { input: 0.15,  output: 1.25,  cached: 0.015, reasoning: 1.875,  cache_creation: 0.15  },
+  "gemini-3.8-flash": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.8-flash-high": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.8-flash-medium": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.8-flash-low": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.7-flash": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.7-flash-high": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.7-flash-medium": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.7-flash-low": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.6-flash": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.6-flash-high": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.6-flash-medium": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.6-flash-low": { input: 1.50, output: 7.50, cached: 0.15, reasoning: 11.25, cache_creation: 1.875 },
+  "gemini-3.5-flash-lite": { input: 0.30, output: 2.50, cached: 0.03, reasoning: 3.75, cache_creation: 0.375 },
+  "gemini-3.5-flash-high": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-3-flash-preview": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-3-pro-preview": { input: 2.00, output: 12.00, cached: 0.25, reasoning: 18.00, cache_creation: 2.00 },
+  "gemini-3.1-pro-low": { input: 2.00, output: 12.00, cached: 0.25, reasoning: 18.00, cache_creation: 2.00 },
+  "gemini-3.1-pro-high": { input: 4.00, output: 18.00, cached: 0.50, reasoning: 27.00, cache_creation: 4.00 },
+  "gemini-pro-agent": { input: 4.00, output: 18.00, cached: 0.50, reasoning: 27.00, cache_creation: 4.00 },
+  "gemini-3-flash-agent": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-3.5-flash-low": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-3.5-flash-extra-low": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-3-flash": { input: 0.50, output: 3.00, cached: 0.03, reasoning: 4.50, cache_creation: 0.50 },
+  "gemini-2.5-pro": { input: 2.00, output: 12.00, cached: 0.25, reasoning: 18.00, cache_creation: 2.00 },
+  "gemini-2.5-flash": { input: 0.30, output: 2.50, cached: 0.03, reasoning: 3.75, cache_creation: 0.30 },
+  "gemini-2.5-flash-lite": { input: 0.15, output: 1.25, cached: 0.015, reasoning: 1.875, cache_creation: 0.15 },
 
   // === Qwen ===
   "qwen3-coder-plus": { input: 1.00, output: 4.00, cached: 0.50, reasoning: 6.00, cache_creation: 1.00 },
@@ -109,15 +129,15 @@ export const MODEL_PRICING = {
   "kimi-latest": { input: 1.00, output: 4.00, cached: 0.50, reasoning: 6.00, cache_creation: 1.00 },
 
   // === DeepSeek ===
-  "deepseek-chat":                { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-reasoner":            { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-r1":                  { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-v3.2-chat":           { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-v3.2-reasoner":       { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-v4-flash":            { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-v4.1-flash":          { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-flash":               { input: 0.14,  output: 0.28,  cached: 0.0028, reasoning: 0.28,   cache_creation: 0.14  },
-  "deepseek-v4-pro":              { input: 0.435, output: 0.87,  cached: 0.003625, reasoning: 0.87,  cache_creation: 0.435 },
+  "deepseek-chat": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-reasoner": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-r1": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-v3.2-chat": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-v3.2-reasoner": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-v4-flash": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-v4.1-flash": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-flash": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
+  "deepseek-v4-pro": { input: 0.435, output: 0.87, cached: 0.003625, reasoning: 0.87, cache_creation: 0.435 },
 
   // === GLM ===
   "glm-4.6": { input: 0.50, output: 2.00, cached: 0.25, reasoning: 3.00, cache_creation: 0.50 },
@@ -365,11 +385,11 @@ export function matchPattern(pattern, model) {
 }
 
 /**
- * Resolve pricing for a model using the fallback chain:
+ * Resolve pricing for a model using the 4-step fallback chain:
  *   1. PROVIDER_PRICING[provider][model]
- *   1b. EXTRA_PROVIDER_PRICING[provider][model] (packages/providers/pricing.js)
- *   2. MODEL_PRICING[model]
- *   3. PATTERN_PRICING (glob match)
+ *   2. free namespace (upstream bills $0)
+ *   3. MODEL_PRICING[model]
+ *   4. PATTERN_PRICING (glob match)
  *
  * @param {string} provider
  * @param {string} model
@@ -388,12 +408,15 @@ export function getPricingForModel(provider, model) {
     return EXTRA_PROVIDER_PRICING[provider][model];
   }
 
-  // 2. Canonical model pricing (strip vendor prefix if needed: "deepseek/deepseek-chat" → "deepseek-chat")
+  // 2. Free namespaces bill $0 regardless of the model name behind them.
+  if (isFreeModel(model)) return ZERO_PRICING;
+
+  // 3. Canonical model pricing (strip vendor prefix if needed: "deepseek/deepseek-chat" → "deepseek-chat")
   const baseModel = model.includes("/") ? model.split("/").pop() : model;
   if (MODEL_PRICING[baseModel]) return MODEL_PRICING[baseModel];
   if (MODEL_PRICING[model]) return MODEL_PRICING[model];
 
-  // 3. Pattern match
+  // 4. Pattern match
   for (const { pattern, pricing } of PATTERN_PRICING) {
     if (matchPattern(pattern, baseModel) || matchPattern(pattern, model)) {
       return pricing;
