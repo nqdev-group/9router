@@ -88,7 +88,7 @@ const DEFAULT_SETTINGS = {
     autoDetectEnabled: true,                 // auto-detect filter from content
     commandDetectionEnabled: false,          // detect command type (git, test, build, etc.)
     
-    // Per-provider overrides (optional, phase 2)
+    // Per-provider user header overrides applied at dispatch: { [providerId]: { headers: {..} } }
     providerOverrides: {},                   // { "claude": { intensity: "aggressive" }, ... }
   },
   cavemanEnabled: false,
