@@ -87,7 +87,11 @@ export function initConsoleLogCapture() {
     state.originals[level] = console[level];
     console[level] = (...args) => {
       appendLine(toLogLine(level, args));
-      state.originals[level](...args);
+      // Only console.debug reaches the real stdout (docker logs) — everything
+      // else (log/info/warn/error) stays in the dashboard's live Console Log
+      // buffer/SSE stream only, so routine request/provider noise doesn't
+      // drown out docker logs.
+      if (level === "debug") state.originals[level](...args);
     };
   }
 

@@ -17,6 +17,8 @@ export {
   getCustomModels, addCustomModel, deleteCustomModel,
   getMitmAlias, setMitmAliasAll,
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
+  getModelTokenLimits, getModelTokenLimitForModel,
+  updateModelTokenLimits, resetModelTokenLimit, resetAllModelTokenLimits,
   getModelsDevSnapshot, saveModelsDevSnapshot,
   getModelsDevModelMap, saveModelsDevModelMap,
   getModelsDevManualMap, saveModelsDevManualMap,

@@ -1,23 +1,17 @@
-/**
- * Creates an MCP server instance
- * @param {Object} options
- * @param {string} options.name - Server name
- * @param {Function} options.handler - Request handler
- * @returns {Object} Server instance
- */
-export function createMCPServer({ name, handler }) {
-  if (!name || typeof name !== "string") {
-    throw new Error("Server name is required");
-  }
-  if (typeof handler !== "function") {
-    throw new Error("Handler function is required");
-  }
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerAllTools } from "./tools/index.js";
 
-  return {
-    name,
-    handler,
-    async processRequest(request) {
-      return handler(request);
-    },
-  };
+const SERVER_INFO = { name: "9router", version: "0.2.0" };
+
+/**
+ * Builds a 9Router MCP server instance with every tool registered.
+ * Callers must `connect()` it to a transport (see lib/transport/httpHandler.js).
+ * A fresh instance is expected per request in stateless HTTP mode — see httpHandler.js
+ * for why (no cross-request state needed by any of the current tools).
+ * @returns {McpServer}
+ */
+export function createMcpServer() {
+  const server = new McpServer(SERVER_INFO);
+  registerAllTools(server);
+  return server;
 }
