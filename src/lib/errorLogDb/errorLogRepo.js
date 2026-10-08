@@ -94,6 +94,24 @@ export async function getFailingModels(range) {
   );
 }
 
+/**
+ * Rolling fail counts per (comboName, provider, model) within the last `windowMs` —
+ * feeds packages/combo-auto-reorder's sweep (a live "is this model failing right now"
+ * check), distinct from getModelErrorFrequency/getFailingModels above which serve the
+ * error-stats dashboard charts and default to a 7-day window.
+ */
+export async function getRecentModelFailCounts(windowMs) {
+  const db = await getErrorLogAdapter();
+  const since = Date.now() - windowMs;
+  return db.all(
+    `SELECT combo_name as comboName, provider, model, COUNT(*) as count
+     FROM error_log
+     WHERE combo_name IS NOT NULL AND created_at_epoch >= ?
+     GROUP BY combo_name, provider, model`,
+    [since]
+  );
+}
+
 export async function cleanupOldErrorLogs() {
   const db = await getErrorLogAdapter();
   const cutoff = Date.now() - RETENTION_MS;

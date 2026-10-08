@@ -30,6 +30,12 @@ const STRIP_RULES = [
   { provider: "groq", dropMessageFields: ["reasoning_content", "reasoning", "reasoning_details"] },
   { provider: "mistral", dropMessageFields: ["reasoning_content", "reasoning", "reasoning_details"] },
   { provider: "cerebras", dropMessageFields: ["reasoning_content", "reasoning", "reasoning_details"] },
+  // Same strict-schema story at the root level: a client (session id prefix
+  // "ses_" points at GitHub Copilot Chat) sends its own `promptCacheKey`
+  // alongside an OpenAI-shaped body. Mistral has no such param and 422s
+  // ("extra_forbidden", loc: body.promptCacheKey) with no fallback, knocking
+  // Mistral out of every combo that receives this client's requests.
+  { provider: "mistral", drop: ["promptCacheKey"] },
 ];
 
 // Test a rule's match (regex or predicate) against the model id.

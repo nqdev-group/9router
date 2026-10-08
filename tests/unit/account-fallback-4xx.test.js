@@ -48,4 +48,16 @@ describe("checkFallbackError — request-scoped vs account-scoped failures", () 
     expect(result.shouldFallback).toBe(true);
     expect(result.cooldownMs).toBeGreaterThan(0);
   });
+
+  it("falls back with backoff for a 413 payload-too-large (e.g. Groq TPM cap)", () => {
+    // Regression: a large tool-calling request tripped Groq's free-tier TPM limit
+    // (413), which used to hit the request-scoped 4xx default (no fallback, no
+    // cooldown) and failed the whole parent combo instead of trying the next model.
+    const result = checkFallbackError(413, JSON.stringify({
+      error: { message: "Request too large for model on tokens per minute (TPM)" },
+    }));
+
+    expect(result.shouldFallback).toBe(true);
+    expect(result.cooldownMs).toBeGreaterThan(0);
+  });
 });

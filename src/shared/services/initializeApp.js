@@ -118,6 +118,12 @@ async function runHeavyStartup() {
   import("@/sse/services/backgroundTokenRefresh.mjs")
     .then(({ startBackgroundTokenRefresh }) => startBackgroundTokenRefresh())
     .catch((e) => console.log("[BackgroundTokenRefresh] scheduler start failed:", e.message));
+
+  // Combo auto-reorder sweep: demotes fail-prone combo models (opt-in via Settings →
+  // Combo Auto-Reorder). Always started — the tick itself no-ops when disabled.
+  import("@/lib/comboAutoReorder/scheduler.js")
+    .then(({ startComboAutoReorderSweep }) => startComboAutoReorderSweep())
+    .catch((e) => console.log("[ComboAutoReorder] scheduler start failed:", e.message));
 }
 
 function hasQuotaAutoPingEnabled(settings) {
