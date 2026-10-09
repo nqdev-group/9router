@@ -1,0 +1,60 @@
+sequenceDiagram
+    autonumber
+    participant Client as CLI/SDK Client
+    participant Route as /api/v1/chat/completions
+    participant Chat as src/sse/handlers/chat.js
+    participant Combo as open-sse/services/combo.js
+    participant Auth as src/sse/services/auth.js
+    participant Core as open-sse/handlers/chatCore.js
+    participant Hooks as RTK/Headroom/Caveman/Ponytail/CMEM
+    participant Trans as translator/index.js
+    participant Exec as Provider Executor
+    participant Prov as Upstream Provider
+    participant Usage as usageDb (SQLite)
+
+    Client->>Route: POST /v1/chat/completions (model = combo or provider/model)
+    Route->>Chat: handleChat(request)
+    Chat->>Chat: parseModel / getComboModels
+
+    alt Combo model
+        Chat->>Combo: handleComboChat(models, handleSingleModel, ...)
+        Combo->>Combo: reorder pipeline (token-limit -> cooldown -> tier -> capability)
+    end
+
+    loop for each candidate model until success or exhausted
+        Combo->>Chat: handleSingleModelChat(body, modelStr)
+        Chat->>Auth: getProviderCredentials(provider, excludeConnectionIds)
+        Auth-->>Chat: active account + tokens/api key
+
+        Chat->>Core: handleChatCore(body, modelInfo, credentials)
+        Core->>Hooks: pre-translate hooks (fail-open)
+        Hooks-->>Core: possibly-modified body
+        Core->>Trans: translateRequest(source, target, body)
+        Trans-->>Core: provider-shaped body
+        Core->>Exec: execute(provider, transformedBody)
+        Exec->>Prov: upstream API call
+
+        alt 401/403 (refreshable)
+            Core->>Exec: refreshCredentials()
+            Exec-->>Core: updated tokens
+            Core->>Exec: retry request
+        end
+
+        Prov-->>Exec: SSE/JSON response
+        Exec-->>Core: response + metadata
+        Core->>Trans: translateResponse(target, source, chunks)
+        Trans-->>Core: client-shaped chunks
+        Core-->>Chat: result
+
+        alt result.ok
+            Chat-->>Combo: success, return
+        else fallback-eligible failure
+            Chat->>Auth: markAccountUnavailable (cooldown/backoff)
+            Auth-->>Chat: shouldFallback?
+        end
+    end
+
+    Combo-->>Chat: final Response (success or 503 + Retry-After)
+    Chat-->>Route: Response
+    Route-->>Client: SSE chunks / JSON response
+    Core->>Usage: log usage (tokens, cost, provider, model)

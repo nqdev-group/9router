@@ -86,6 +86,25 @@ describe("stripUnsupportedParams", () => {
     }
   });
 
+  it("drops client-leaked promptCacheKey before it reaches Mistral", () => {
+    // Regression: a client (session id prefix "ses_" points at GitHub Copilot
+    // Chat) sends its own promptCacheKey alongside an OpenAI-shaped body.
+    // Mistral has no such param and 422s with "extra_forbidden".
+    const body = { model: "codestral-latest", promptCacheKey: "ses_f2f08b82fffeKzDQ2eVeD7Z04n", temperature: 0.5 };
+
+    stripUnsupportedParams("mistral", "codestral-latest", body);
+
+    expect(body).toEqual({ model: "codestral-latest", temperature: 0.5 });
+  });
+
+  it("leaves promptCacheKey alone for other providers", () => {
+    const body = { promptCacheKey: "ses_abc" };
+
+    stripUnsupportedParams("openai", "gpt-4o", body);
+
+    expect(body.promptCacheKey).toBe("ses_abc");
+  });
+
   it("leaves reasoning fields alone for providers that accept or require them", () => {
     const body = {
       messages: [{ role: "assistant", content: "hello", reasoning_content: "thinking..." }],

@@ -38,6 +38,7 @@ export {
 export {
   getCombos, getComboById, getComboByName,
   createCombo, updateCombo, deleteCombo,
+  ComboUpdateConflictError,
 } from "./repos/combosRepo.js";
 
 // Aliases (model + custom + mitm)
@@ -51,6 +52,12 @@ export {
 export {
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
 } from "./repos/pricingRepo.js";
+
+// Model token limits
+export {
+  getModelTokenLimits, getModelTokenLimitForModel,
+  updateModelTokenLimits, resetModelTokenLimit, resetAllModelTokenLimits,
+} from "./repos/modelTokenLimitsRepo.js";
 
 // Models.dev pricing
 export {

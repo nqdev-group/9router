@@ -1,0 +1,53 @@
+flowchart TD
+    A["Incoming request: model = string"] --> B{"Is combo name?"}
+    B -- Yes --> C["Load combo models + resolve strategy<br/>(per-combo override -> settings.comboStrategy -> 'fallback')"]
+    B -- No --> D["Single model path<br/>(may still get capacity-adapter augmented)"]
+
+    C --> E{"Strategy = fusion?"}
+    E -- Yes --> F["handleFusionChat:<br/>fan out to panel in parallel"]
+    E -- No --> G["handleComboChat reorder pipeline:<br/>round-robin -> token-limit bypass -><br/>cooldown filter -> tier-routing -> capability auto-switch"]
+
+    G --> H["Try model N in order"]
+    D --> H
+
+    H --> I["Resolve provider/model"]
+    I --> J["Select account credentials<br/>(fill-first or round-robin)"]
+    J --> K{"Credentials available?"}
+    K -- No --> L["Return 404 / 503 provider unavailable"]
+    K -- Yes --> M["checkAndRefreshToken (proactive OAuth refresh)"]
+    M --> N["handleChatCore: hooks -> translate -> execute"]
+
+    N --> O{"Success?"}
+    O -- Yes --> P["Return response to client"]
+    O -- No, 401/403 refreshable --> M2["refreshCredentials + retry once"]
+    M2 --> O
+    O -- No, other error --> Q{"Fallback-eligible error?<br/>(checkFallbackError)"}
+
+    Q -- No --> R["Return error as-is (no retry)"]
+    Q -- Yes --> S["markAccountUnavailable (cooldown/backoff)<br/>+ markComboModelFailed if combo cooldown enabled"]
+    S --> T{"Another account for this provider?"}
+    T -- Yes --> J
+    T -- No --> U{"Another model left in combo?"}
+    U -- Yes --> H
+    U -- No --> V["Return 503 + Retry-After<br/>(all combo models/accounts exhausted)"]
+
+    F --> W["Collect panel answers with quorum-grace<br/>(minPanel, stragglerGraceMs, panelHardTimeoutMs)"]
+    W --> X{"How many panel answers?"}
+    X -- "0" --> Y["Return 503: all panel models failed"]
+    X -- "1" --> Z["Return that answer directly (no fusion)"]
+    X -- ">=2" --> AA["Judge model synthesizes one final answer<br/>from anonymized panel responses"]
+    AA --> P
+
+    style A fill:#c8e6c9
+    style P fill:#a5d6a7
+    style L fill:#ef9a9a
+    style R fill:#ef9a9a
+    style V fill:#ef9a9a
+    style Y fill:#ef9a9a
+    style Q fill:#fff9c4
+    style E fill:#fff9c4
+    style K fill:#fff9c4
+    style O fill:#fff9c4
+    style T fill:#fff9c4
+    style U fill:#fff9c4
+    style X fill:#fff9c4
