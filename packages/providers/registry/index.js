@@ -14,6 +14,7 @@ import pc10 from "./meta-llm.js";
 import pc11 from "./gurouter.js";
 import pc12 from "./hhtechapi.js";
 import pc13 from "./xai247.js";
+import pc14 from "./experiential.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -30,4 +31,5 @@ export default [
   pc11,
   pc12,
   pc13,
+  pc14,
 ];

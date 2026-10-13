@@ -25,6 +25,31 @@
 //     tier — flagged "estimated".
 
 export const PROVIDER_PRICING = {
+  // === Experiential Labs (experientiallabs.ai) ===
+  // Source: https://platform.experientiallabs.ai/models (checked 2026-10-13). jev-latest is
+  // listed at $0 (list price $0.042/M input, 100% discounted); other ids come in through
+  // passthroughModels and fall back to the default estimate. clef/clef-flash are promo-free
+  // ($0.24 / $0.09 per 1M input list price); gpt-6-luna-decisions lists $0.10 input / $0 output
+  // — input kept at the list price, output is free.
+  experiential: {
+    "clef-flash": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+    "clef": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+    "gpt-6-luna-decisions": { input: 0.10, output: 0, cached: 0, cache_creation: 0 },
+    "jev-latest": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+  },
+  // === XAI247 (xai247.xyz) ===
+  // Source: public GET https://xai247.xyz/api/models (no auth, verified 2026-10-13) —
+  // the *PerMillionMicro fields divided by 1e6 = $/1M tokens. "plan" billingKind models
+  // are drawn from a subscription plan on the site, but the per-token rates are still
+  // what the catalog lists, so they're used for cost estimates here.
+  xai247: {
+    "gpt-5.6-terra":    { input: 0.50, output: 3.00,  cached: 0.01, cache_creation: 0.05 },
+    "gpt-6-luna":       { input: 0.20, output: 0.80,  cached: 0.05, cache_creation: 0.20 },
+    "gpt-6.1-sol":      { input: 2.50, output: 5.00,  cached: 0.05, cache_creation: 1.50 },
+    "claude-haiku-5-5": { input: 0.20, output: 0.80,  cached: 0.08, cache_creation: 0.40 },
+    "claude-opus-5":    { input: 2.50, output: 12.50, cached: 0.25, cache_creation: 3.00 },
+    "claude-sonnet-5-5": { input: 1.50, output: 8.00, cached: 0.10, cache_creation: 2.00 },
+  },
   // === Kira AI (kiraai.vn) ===
   // Pulled live from https://kiraai.vn/api/v1/models (kira.js sets modelsFetcher to this
   // endpoint, so runtime model ids come from here, not from the static seed list in
