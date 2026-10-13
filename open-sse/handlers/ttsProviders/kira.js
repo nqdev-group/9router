@@ -2,13 +2,15 @@ import { Buffer } from "node:buffer";
 
 const KIRA_TTS_URL = "https://kiraai.vn/api/v1/audio/speech";
 
-const VOICE_MAP = { alloy: "Kore", echo: "Fenrir", fable: "Puck", onyx: "Charon", nova: "Aoede" };
+// Per GET https://kiraai.vn/api/v1/audio/voices (verified live, 2026-09-17) —
+// "shimmer" was previously missing here despite being a real, documented voice id.
+const VOICE_MAP = { alloy: "Kore", echo: "Fenrir", fable: "Puck", onyx: "Charon", nova: "Aoede", shimmer: "Kore" };
 
 export default {
   async synthesize(text, model, credentials) {
     if (!credentials?.apiKey) throw new Error("No Kira AI API key configured");
 
-    let ttsModel = "kira-2.5-flash";
+    let ttsModel = "kira-3.0-flash-tts";
     let voice = "Kore";
     if (model && model.includes("/")) {
       const parts = model.split("/");

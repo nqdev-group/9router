@@ -193,6 +193,73 @@ describe("compressWithHeadroom", () => {
     expect(body.messages[0].content).toBe("long");
   });
 
+  it("fails open when compression leaves an orphan tool result (missing tool_call_id link)", async () => {
+    // Regression: Headroom compressed away the assistant message declaring
+    // tool_calls id "call_1" but kept the tool-result message referencing it,
+    // producing a payload OpenAI-compatible providers reject (e.g. Mistral:
+    // "Tool call id has to be defined.").
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+      messages: [
+        { role: "user", content: "compressed history" },
+        { role: "tool", content: "tool output", tool_call_id: "call_1" },
+      ],
+      tokens_saved: 500,
+    }), { status: 200 }));
+    const body = {
+      messages: [
+        { role: "user", content: "long history" },
+        { role: "assistant", content: null, tool_calls: [{ id: "call_1", type: "function", function: { name: "read_file", arguments: "{}" } }] },
+        { role: "tool", content: "tool output", tool_call_id: "call_1" },
+      ],
+    };
+    const original = structuredClone(body);
+    const diagnostics = {};
+
+    const stats = await compressWithHeadroom(body, { enabled: true, url: "http://localhost:8787", diagnostics });
+
+    expect(stats).toBeNull();
+    expect(body).toEqual(original);
+    expect(diagnostics.reason).toBe("proxy response broke tool_call_id linkage — skipping compression");
+  });
+
+  it("fails open when compression leaves a dangling tool_calls with no result", async () => {
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+      messages: [
+        { role: "user", content: "compressed history" },
+        { role: "assistant", content: null, tool_calls: [{ id: "call_1", type: "function", function: { name: "read_file", arguments: "{}" } }] },
+      ],
+      tokens_saved: 500,
+    }), { status: 200 }));
+    const body = { messages: [{ role: "user", content: "long history" }] };
+    const diagnostics = {};
+
+    const stats = await compressWithHeadroom(body, { enabled: true, url: "http://localhost:8787", diagnostics });
+
+    expect(stats).toBeNull();
+    expect(diagnostics.reason).toBe("proxy response broke tool_call_id linkage — skipping compression");
+  });
+
+  it("still compresses when tool_calls/tool_call_id pairs stay intact", async () => {
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+      messages: [
+        { role: "assistant", content: null, tool_calls: [{ id: "call_1", type: "function", function: { name: "read_file", arguments: "{}" } }] },
+        { role: "tool", content: "short output", tool_call_id: "call_1" },
+      ],
+      tokens_saved: 500,
+    }), { status: 200 }));
+    const body = {
+      messages: [
+        { role: "assistant", content: null, tool_calls: [{ id: "call_1", type: "function", function: { name: "read_file", arguments: "{}" } }] },
+        { role: "tool", content: "very long output", tool_call_id: "call_1" },
+      ],
+    };
+
+    const stats = await compressWithHeadroom(body, { enabled: true, url: "http://localhost:8787" });
+
+    expect(stats.tokens_saved).toBe(500);
+    expect(body.messages[1].content).toBe("short output");
+  });
+
   it("skips unknown shapes", async () => {
     global.fetch = vi.fn();
     const body = { contents: [{ parts: [{ text: "long" }] }] };

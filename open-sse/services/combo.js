@@ -6,6 +6,9 @@ import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
 import { unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
+import { classifyTask, reorderByCost, reorderFreeTierFirst } from "@9router/tier-routing";
+import { filterModelsByTokenLimit } from "@9router/token-limit-routing";
+import { filterSkippedComboModels, markComboModelFailed } from "@9router/model-combo-cooldown";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -275,11 +278,74 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {string} [options.comboName] - Name of the combo (for round-robin tracking)
  * @param {string} [options.comboStrategy] - Strategy: "fallback" or "round-robin"
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
+ * @param {Object} [options.tierRouting] - Cost/tier-aware reorder (Phase 5 of input-tokens-optimization.md)
+ * @param {boolean} [options.tierRouting.enabled]
+ * @param {"cheapest-first"|"task-aware"} [options.tierRouting.mode]
+ * @param {(modelStr: string) => {input:number,output:number}|null} [options.tierRouting.getPricing]
+ * @param {boolean} [options.tierRouting.overBudget] - Daily budget cap already exceeded — force free-tier-first
+ * @param {number} [options.tierRouting.freeTierThreshold] - Blended $/1M tokens considered "free tier"
+ * @param {Object} [options.tokenLimitRouting] - Bypass models whose configured max-input-token limit can't fit the prompt
+ * @param {boolean} [options.tokenLimitRouting.enabled]
+ * @param {number} [options.tokenLimitRouting.promptTokens] - Estimated prompt token count (computed once by caller)
+ * @param {(modelStr: string) => number|null} [options.tokenLimitRouting.getMaxInputTokens]
+ * @param {Object} [options.modelCooldown] - Skip models that recently failed inside this same combo
+ * @param {boolean} [options.modelCooldown.enabled]
+ * @param {number} [options.modelCooldown.ttlMs] - Cooldown duration; defaults to 5 minutes (see packages/model-combo-cooldown)
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, tierRouting = null, tokenLimitRouting = null, modelCooldown = null, onModelError = null }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
+
+  // Token-limit bypass — runs FIRST, before tier-routing/capability reorder below.
+  // Unlike those two (which only ever reorder), this is a hard drop: a model that
+  // can't fit the prompt will near-certainly fail immediately, so narrowing the
+  // candidate pool here means the reorders that follow only work with viable
+  // models. Fail-open inside filterModelsByTokenLimit (never returns an empty list).
+  if (tokenLimitRouting?.enabled && typeof tokenLimitRouting.getMaxInputTokens === "function") {
+    const filtered = filterModelsByTokenLimit(rotatedModels, tokenLimitRouting.promptTokens, tokenLimitRouting.getMaxInputTokens);
+    if (filtered.length !== rotatedModels.length) {
+      const bypassed = rotatedModels.filter((m) => !filtered.includes(m));
+      log.info("COMBO", `token-limit: bypass [${bypassed.join(", ")}] (prompt=${tokenLimitRouting.promptTokens} tokens)`);
+    }
+    rotatedModels = filtered;
+  }
+
+  // Model cooldown — skip models that failed inside THIS combo within the last TTL
+  // (default 5 min). Scope is per-combo (see packages/model-combo-cooldown), so the
+  // same model can still be tried normally in a different combo. Fail-open: never
+  // empties the candidate pool if every model happens to be cooling down.
+  if (modelCooldown?.enabled) {
+    const filtered = filterSkippedComboModels(comboName, rotatedModels);
+    if (filtered.length !== rotatedModels.length) {
+      const skipped = rotatedModels.filter((m) => !filtered.includes(m));
+      log.info("COMBO", `cooldown: skip [${skipped.join(", ")}] (recent failure in combo "${comboName}")`);
+    }
+    rotatedModels = filtered;
+  }
+
+  // Cost/tier-aware reorder — runs BEFORE the capability auto-switch below so hard
+  // capability requirements (vision/pdf/audio) always win; cost only breaks ties
+  // within whatever capability tier the models land in.
+  if (tierRouting?.enabled && typeof tierRouting.getPricing === "function") {
+    const task = classifyTask(body);
+    let costOrdered;
+    if (tierRouting.overBudget) {
+      costOrdered = reorderFreeTierFirst(rotatedModels, tierRouting.getPricing, tierRouting.freeTierThreshold);
+    } else if (tierRouting.mode === "task-aware") {
+      // Agentic/code requests keep their original (quality-first) order; only
+      // non-critical requests get pushed toward free/cheap models.
+      costOrdered = task.critical
+        ? rotatedModels
+        : reorderFreeTierFirst(rotatedModels, tierRouting.getPricing, tierRouting.freeTierThreshold);
+    } else {
+      costOrdered = reorderByCost(rotatedModels, tierRouting.getPricing);
+    }
+    if (costOrdered[0] !== rotatedModels[0]) {
+      log.info("COMBO", `tier-routing (${tierRouting.mode}${tierRouting.overBudget ? ", budget-exceeded" : ""}, task=${task.critical ? "critical" : "non-critical"}) → ${costOrdered[0]}`);
+    }
+    rotatedModels = costOrdered;
+  }
 
   // Auto-switch: float models that satisfy the request's required capabilities to the front.
   if (autoSwitch) {
@@ -297,16 +363,22 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   let earliestRetryAfter = null;
   let lastStatus = null;
 
+  // Short id shared by every log line below, so concurrent requests hitting the
+  // same combo (log.info/log.warn here carry no request context of their own —
+  // see open-sse/AGENTS.md) don't look like a single desynced sequence when their
+  // lines interleave on a shared console/log stream.
+  const reqId = Math.random().toString(36).slice(2, 8);
+
   for (let i = 0; i < rotatedModels.length; i++) {
     const modelStr = rotatedModels[i];
-    log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
+    log.info("COMBO", `[${reqId}] Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
     try {
       const result = await handleSingleModel(body, modelStr);
-      
+
       // Success (2xx) - return response
       if (result.ok) {
-        log.info("COMBO", `Model ${modelStr} succeeded`);
+        log.info("COMBO", `[${reqId}] Model ${modelStr} succeeded`);
         return result;
       }
 
@@ -335,7 +407,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       const { shouldFallback, cooldownMs } = checkFallbackError(result.status, errorText);
 
       if (!shouldFallback) {
-        log.warn("COMBO", `Model ${modelStr} failed (no fallback)`, { status: result.status });
+        log.warn("COMBO", `[${reqId}] Model ${modelStr} failed (no fallback)`, { status: result.status });
         return result;
       }
 
@@ -344,19 +416,26 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       // skipped immediately (fixes: combo falls through on transient 503)
       if (cooldownMs && cooldownMs > 0 && cooldownMs <= 5000 &&
           (result.status === 503 || result.status === 502 || result.status === 504)) {
-        log.info("COMBO", `Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
+        log.info("COMBO", `[${reqId}] Model ${modelStr} transient ${result.status}, waiting ${cooldownMs}ms before next`);
         await new Promise(r => setTimeout(r, cooldownMs));
       }
 
       // Fallback to next model
       lastError = errorText || String(result.status);
       if (!lastStatus) lastStatus = result.status;
-      log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
+      log.warn("COMBO", `[${reqId}] Model ${modelStr} failed, trying next`, { status: result.status });
+      if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
+      // Independent of modelCooldown — error-stats logging shouldn't depend on
+      // whether the cooldown-skip feature happens to be toggled on. Injected by
+      // the caller (src/sse/handlers/chat.js) so this file never imports src/.
+      onModelError?.({ comboName, modelStr, status: result.status });
     } catch (error) {
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;
-      log.warn("COMBO", `Model ${modelStr} threw error, trying next`, { error: lastError });
+      log.warn("COMBO", `[${reqId}] Model ${modelStr} threw error, trying next`, { error: lastError });
+      if (modelCooldown?.enabled) markComboModelFailed(comboName, modelStr, modelCooldown.ttlMs);
+      onModelError?.({ comboName, modelStr, status: lastStatus });
     }
   }
 

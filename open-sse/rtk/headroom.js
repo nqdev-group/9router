@@ -212,6 +212,39 @@ function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) 
   return true;
 }
 
+// A compressed message array is only safe to forward if every tool-result
+// message's tool_call_id matches an assistant tool_calls id present in the
+// array, and every assistant tool_calls id has a matching tool result.
+// Headroom's compression has been observed to drop/rearrange just one side of
+// a tool_calls <-> tool pair when shortening old tool history, leaving a tool
+// message with a missing/dangling tool_call_id — OpenAI-compatible providers
+// (e.g. Mistral: "Tool call id has to be defined.") reject that with a 400
+// that has no fallback, failing the whole parent combo. (#QUYIT — Headroom
+// tool_call_id loss)
+function hasIntactToolCallLinkage(messages) {
+  if (!Array.isArray(messages)) return false;
+  const declaredIds = new Set();
+  const resolvedIds = new Set();
+  for (const message of messages) {
+    if (Array.isArray(message?.tool_calls)) {
+      for (const call of message.tool_calls) {
+        if (call?.id) declaredIds.add(call.id);
+      }
+    }
+    if (message?.role === "tool" || message?.role === "function") {
+      if (!message.tool_call_id) return false;
+      resolvedIds.add(message.tool_call_id);
+    }
+  }
+  for (const id of resolvedIds) {
+    if (!declaredIds.has(id)) return false;
+  }
+  for (const id of declaredIds) {
+    if (!resolvedIds.has(id)) return false;
+  }
+  return true;
+}
+
 // POST messages to Headroom /v1/compress; returns compressed messages + stats or null.
 async function callCompress(url, messages, model, timeoutMs, compressUserMessages, diagnostics) {
   const endpoint = buildCompressEndpoint(url);
@@ -237,6 +270,10 @@ async function callCompress(url, messages, model, timeoutMs, compressUserMessage
   const data = await res.json();
   if (!Array.isArray(data?.messages)) {
     setDiagnostic(diagnostics, "proxy response missing messages[]");
+    return null;
+  }
+  if (!hasIntactToolCallLinkage(data.messages)) {
+    setDiagnostic(diagnostics, "proxy response broke tool_call_id linkage — skipping compression");
     return null;
   }
   return data;

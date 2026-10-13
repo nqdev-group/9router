@@ -9,14 +9,6 @@ import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, AI_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, getProviderAlias } from "@/shared/constants/providers";
 
-// Provider order: OAuth first, then Free Tier, then API Key (matches dashboard/providers)
-const PROVIDER_ORDER = [
-  ...Object.keys(OAUTH_PROVIDERS),
-  ...Object.keys(FREE_PROVIDERS),
-  ...Object.keys(FREE_TIER_PROVIDERS),
-  ...Object.keys(APIKEY_PROVIDERS),
-];
-
 // Providers that need no auth — always show in model selector
 const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth);
 
@@ -150,11 +142,11 @@ export default function ModelSelectModal({
       ...noAuthIds,            // No-auth providers (kind-filtered)
     ]);
 
-    // Sort by PROVIDER_ORDER
+    // Sort providers alphabetically by display name
     const sortedProviderIds = [...providerIdsToShow].sort((a, b) => {
-      const indexA = PROVIDER_ORDER.indexOf(a);
-      const indexB = PROVIDER_ORDER.indexOf(b);
-      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+      const nameA = allProviders[a]?.name || a;
+      const nameB = allProviders[b]?.name || b;
+      return nameA.localeCompare(nameB);
     });
 
     sortedProviderIds.forEach((providerId) => {
