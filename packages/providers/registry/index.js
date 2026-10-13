@@ -13,6 +13,7 @@ import pc09 from "./aimlapi.js";
 import pc10 from "./meta-llm.js";
 import pc11 from "./gurouter.js";
 import pc12 from "./hhtechapi.js";
+import pc13 from "./xai247.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -28,4 +29,5 @@ export default [
   pc10,
   pc11,
   pc12,
+  pc13,
 ];
