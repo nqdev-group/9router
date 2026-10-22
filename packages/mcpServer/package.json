@@ -1,13 +1,16 @@
 {
-  "name": "@9router/mcp-server",
-  "version": "0.1.0",
-  "description": "MCP Server package for 9Router",
+  "name": "@9router/mcpServer",
+  "version": "0.2.0",
+  "private": true,
+  "description": "MCP (Model Context Protocol) server exposing 9Router capabilities as typed tools",
   "type": "module",
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
-    "./server": "./lib/server.js"
+    "./server": "./lib/server.js",
+    "./http": "./lib/transport/httpHandler.js"
   },
   "keywords": ["9router", "mcp"],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }

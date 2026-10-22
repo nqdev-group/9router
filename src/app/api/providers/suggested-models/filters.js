@@ -1,4 +1,5 @@
 import { normalizeNousFreeModels } from "open-sse/services/nous.js";
+import { FILTERS as EXTRA_FILTERS } from "@9router/providers/suggested-models/filters.js";
 
 // Free OpenCode models that don't use the "-free" id suffix
 const KNOWN_FREE_OPENCODE_MODELS = ["big-pickle"];
@@ -57,4 +58,11 @@ export const FILTERS = {
       .sort((a, b) => String(a.id).localeCompare(String(b.id))),
 
   "nous-free": normalizeNousFreeModels,
+
+  // Extra filters for custom (non-upstream) providers — see
+  // packages/providers/suggested-models/filters.js. Spread last so a custom provider
+  // could in principle override a key above, though today they're disjoint (above =
+  // "-free" suffixed types for upstream open-sse providers, extra = "openai" for the
+  // generic full-catalog shape).
+  ...EXTRA_FILTERS,
 };
