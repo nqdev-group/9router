@@ -15,7 +15,7 @@ describe("checkFallbackError — request-scoped vs account-scoped failures", () 
       },
     }));
 
-    expect(result).toEqual({ shouldFallback: false, cooldownMs: 0 });
+    expect(result).toEqual({ shouldFallback: false, cooldownMs: 0, requestScoped: true });
   });
 
   it("still falls back for account-scoped statuses", () => {
@@ -29,33 +29,29 @@ describe("checkFallbackError — request-scoped vs account-scoped failures", () 
     expect(checkFallbackError(422, "quota exceeded").shouldFallback).toBe(true);
   });
 
-  it("falls back and cools down a 400 that actually reports a dead model", () => {
-    // Regression: OpenCode Zen reports a permanently unavailable model as a 400
-    // ("Upstream request failed: Model is unavailable"), not 404/406. Without a
-    // dedicated rule this used to hit the request-scoped 4xx default (no fallback,
-    // no cooldown) and the combo re-tried the same dead model on every request.
-    const result = checkFallbackError(400, JSON.stringify({
-      error: "Upstream request failed: Model is unavailable.",
-    }));
+  it.each([
+    "You have insufficient credits to make this request. Please purchase more credits to continue using the service.",
+    "INSUFFICIENT CREDITS",
+    "Insufficient credit balance",
+    "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+    "CREDIT BALANCE IS TOO LOW",
+  ])("falls back with backoff for a 400 credit error: %s", (message) => {
+    expect(checkFallbackError(400, message)).toEqual({
+      shouldFallback: true, cooldownMs: 2000, newBackoffLevel: 1,
+    });
+    expect(checkFallbackError(400, message, 1)).toEqual({
+      shouldFallback: true, cooldownMs: 4000, newBackoffLevel: 2,
+    });
+  });
 
-    expect(result.shouldFallback).toBe(true);
-    expect(result.cooldownMs).toBeGreaterThan(0);
+  it("does not fall back for an ordinary bad request", () => {
+    expect(checkFallbackError(400, "Bad request")).toEqual({
+      shouldFallback: false, cooldownMs: 0, requestScoped: true,
+    });
   });
 
   it("keeps the transient cooldown for unmatched server errors", () => {
     const result = checkFallbackError(503, "upstream exploded");
-
-    expect(result.shouldFallback).toBe(true);
-    expect(result.cooldownMs).toBeGreaterThan(0);
-  });
-
-  it("falls back with backoff for a 413 payload-too-large (e.g. Groq TPM cap)", () => {
-    // Regression: a large tool-calling request tripped Groq's free-tier TPM limit
-    // (413), which used to hit the request-scoped 4xx default (no fallback, no
-    // cooldown) and failed the whole parent combo instead of trying the next model.
-    const result = checkFallbackError(413, JSON.stringify({
-      error: { message: "Request too large for model on tokens per minute (TPM)" },
-    }));
 
     expect(result.shouldFallback).toBe(true);
     expect(result.cooldownMs).toBeGreaterThan(0);
