@@ -105,6 +105,7 @@ graphify-out/*
 .start-dev.ps1
 start-dev-silent.cjs
 debug.log
+.scratch/
 
 # ===== Ignore claude ai files =====
 .claude/*.local.json
