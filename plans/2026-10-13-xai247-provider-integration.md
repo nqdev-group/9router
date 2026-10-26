@@ -5,14 +5,14 @@ impact: low
 related_issues: []
 related_prs: []
 time_spent_hours: ~1
-status: in_progress
+status: completed
 ---
 
 # Kế hoạch: Tích hợp provider xai247 (xai247.xyz)
 
 > **Ngày:** 2026-10-13
 > **Phạm vi:** [packages/providers/registry/xai247.js](../packages/providers/registry/xai247.js), [packages/providers/registry/index.js](../packages/providers/registry/index.js)
-> **Trạng thái:** 🚧 Đang thực hiện (provider chạy được theo chuẩn OpenAI; usage/announcements chờ xác minh API)
+> **Trạng thái:** ✅ Đã hoàn thành (usage/announcements để lại làm sau)
 
 ---
 
@@ -41,11 +41,12 @@ Chưa commit. Chưa test với API key thật; chưa chạy các baseline `tests
 
 ## 5. Việc còn mở (chưa làm, để quyết định sau)
 
-- [ ] Xác minh `/v1/models` trả đúng dạng `{ data: [...] }` bằng key thật.
-- [ ] Xác minh `/api/usage`, `/api/announcements` có nhận API key hay chỉ session; nếu có thì viết `packages/providers/usage/xai247.js` và đăng ký trong `usage/index.js`.
-- [ ] Thêm icon `public/providers/xai247.png` (đang dùng icon `bolt` + chữ "X2").
-- [ ] Thêm pricing vào `packages/providers/pricing.js` nếu có bảng giá.
-- [ ] Ghi CHANGELOG-NQDEV.md và chạy baseline provider.
+- [x] Danh mục model: `GET /api/models` là public (không cần auth) → cập nhật đủ 6 model (gpt-5.6-terra, gpt-6-luna, gpt-6.1-sol, claude-haiku-5-5, claude-opus-5, claude-sonnet-5-5). `/v1/models` vẫn cần key thật để xác minh dạng `{ data: [...] }` — chưa làm được vì không có key.
+- [x] `/api/usage`, `/api/announcements`: cả header `Authorization: Bearer` lẫn `x-api-key` đều trả `401 unauthenticated` (khác dạng `invalid_api_key` của `/v1/*`) → là auth theo session dashboard, không dùng được API key → **không viết** `usage/xai247.js`; giữ link tham khảo.
+- [x] Icon: [public/providers/xai247.png](../public/providers/xai247.png) (favicon 128x128 của xai247.xyz).
+- [x] Pricing: thêm khối `xai247` vào [packages/providers/pricing.js](../packages/providers/pricing.js), lấy từ `/api/models` (`*PerMillionMicro` / 1e6).
+- [x] Baseline: `verify-*.mjs` chạy bằng node thuần không resolve được alias `@9router/*` (chỉ vitest có alias); `verify-no-regression.mjs` cũng giả định đường dẫn Docker `/app/`. Thay vào đó chạy full vitest trước/sau thay đổi (stash): 0 test mới fail (nền 123 fail, sau 121 — lệch 2 test minimax-code do snapshot tự ghi). Lưu ý: chạy vitest ghi thêm snapshot vào `tests/translator/__snapshots__` — nhớ `git restore` lại.
+- [ ] CHANGELOG-NQDEV.md: file do `auto-changelog` sinh tự động → không sửa tay.
 
 ## 6. Bài học rút ra
 

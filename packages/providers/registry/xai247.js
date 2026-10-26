@@ -37,10 +37,11 @@ export default {
     },
     retry: { 429: { attempts: 3 }, 503: { attempts: 3 } },
     // Reference links for humans (same status as kira.js's usage block) — not fetched
-    // programmatically. The dashboard's data lives under /api/* (e.g. /api/usage,
-    // /api/announcements), which answers 401 "unauthenticated" without a dashboard
-    // session; whether an API key is accepted there is unverified, so no usage handler
-    // is wired up yet.
+    // programmatically. The dashboard's account data lives under /api/* (/api/usage,
+    // /api/announcements): both answer 401 {"error":"unauthenticated"} for a missing
+    // key AND for a bearer/x-api-key header, while /v1/* answers a different shape
+    // ("invalid_api_key") — so /api/* is dashboard-session auth, not API-key auth, and
+    // no usage handler can be wired up with a connection's API key.
     usage: {
       url: "https://xai247.xyz/dashboard/usage",
       announcementsUrl: "https://xai247.xyz/dashboard/announcements",
@@ -48,8 +49,14 @@ export default {
     modelsFetcher: { url: "https://xai247.xyz/v1/models", type: "openai" },
   },
   models: [
-    // Only model listed on https://xai247.xyz/dashboard/models (2026-10-13).
-    { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+    // Full catalog from the public GET https://xai247.xyz/api/models (no auth, 2026-10-13).
+    // gpt-5.6-terra is billingKind "free"; the rest are "plan" (need a plan on the site).
+    { id: "gpt-5.6-terra", name: "GPT 5.6 Terra" },
+    { id: "gpt-6-luna", name: "GPT 6 Luna" },
+    { id: "gpt-6.1-sol", name: "GPT 6.1 Sol" },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
+    { id: "claude-opus-5", name: "Claude Opus 5" },
+    { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5" },
   ],
   // Let users add any other id the gateway exposes later without a code change.
   passthroughModels: true,
