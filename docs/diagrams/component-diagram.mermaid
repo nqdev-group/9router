@@ -1,0 +1,72 @@
+graph TB
+    subgraph API["src/app/api — Route Layer (thin routes only)"]
+        V1["v1/*, v1beta/*<br/>(OpenAI/Claude/Gemini/Codex compat)"]
+        CRUD["combos, keys, providers, settings,<br/>usage, pricing, oauth (dashboard CRUD)"]
+    end
+
+    subgraph Guard["src/dashboardGuard.js"]
+        AUTHGATE["Centralized auth gate<br/>(JWT / CLI token / API key / public prefixes)"]
+    end
+
+    subgraph Bridge["src/sse — Bridge Layer"]
+        CHAT["handlers/chat.js<br/>combo resolution + account fallback loop"]
+        AUTHSVC["services/auth.js<br/>credential selection, cooldown, Discord alerts"]
+        MODELSVC["services/model.js<br/>parseModel / getModelInfo"]
+        REFRESH["services/tokenRefresh.js<br/>+ backgroundTokenRefresh.mjs"]
+    end
+
+    subgraph Engine["open-sse — Provider-Agnostic Engine"]
+        CORE["handlers/chatCore.js<br/>hooks -> translate -> dispatch"]
+        COMBOSVC["services/combo.js<br/>handleComboChat / handleFusionChat"]
+        TRANS["translator/*<br/>OpenAI-pivot format conversion"]
+        EXEC["executors/*<br/>per-provider upstream calls"]
+        RTK["rtk/*<br/>RTK / Headroom / Caveman / Ponytail"]
+        REG["providers/*<br/>registry + capabilities + pricing"]
+    end
+
+    subgraph Packages["packages/@9router — Feature Engines"]
+        COOLDOWN["model-combo-cooldown"]
+        TIER["tier-routing"]
+        TOKLIM["token-limit-routing"]
+        CMEM["cmem (context memory)"]
+        ALERT["provider-alert (Discord)"]
+        PROVEXT["providers/registry (fork extensions)"]
+    end
+
+    subgraph Data["src/lib/db — Persistence"]
+        DRIVER["driver.js (4-tier SQLite fallback chain)"]
+        REPOS["repos/* (12 repo files)"]
+        SQLITE[("data.sqlite")]
+    end
+
+    V1 --> AUTHGATE --> CHAT
+    CRUD --> AUTHGATE
+
+    CHAT --> AUTHSVC
+    CHAT --> MODELSVC
+    CHAT --> COMBOSVC
+    CHAT --> REFRESH
+    CHAT --> CORE
+
+    COMBOSVC --> COOLDOWN
+    COMBOSVC --> TIER
+    COMBOSVC --> TOKLIM
+
+    CORE --> TRANS
+    CORE --> EXEC
+    CORE --> RTK
+    CORE --> CMEM
+    EXEC --> REG
+    REG --> PROVEXT
+
+    AUTHSVC --> ALERT
+    AUTHSVC --> REPOS
+    CRUD --> REPOS
+    REPOS --> DRIVER --> SQLITE
+
+    style API fill:#e1f5fe
+    style Guard fill:#fce4ec
+    style Bridge fill:#f3e5f5
+    style Engine fill:#e8f5e9
+    style Packages fill:#fff3e0
+    style Data fill:#ede7f6

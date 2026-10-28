@@ -1,0 +1,57 @@
+flowchart LR
+    subgraph Clients["Developer Clients"]
+        C1["Claude Code"]
+        C2["Codex CLI"]
+        C3["OpenClaw / Droid / Cline / Continue / Roo"]
+        C4["Custom OpenAI-compatible clients"]
+        BROWSER["Browser Dashboard"]
+    end
+
+    subgraph Router["9Router Local Process (Next.js)"]
+        API["V1 Compatibility API<br/>/v1/*, /v1beta/*"]
+        DASH["Dashboard + Management API<br/>/api/*"]
+        GUARD["dashboardGuard.js<br/>(centralized auth gate)"]
+        CORE["SSE + Translation Core<br/>open-sse/ + src/sse/"]
+        PKGS["packages/ feature engines<br/>(combo-cooldown, tier-routing,<br/>token-limit-routing, cmem, provider-alert)"]
+        DB[("SQLite<br/>data.sqlite")]
+    end
+
+    subgraph Upstreams["Upstream Providers (100+ registry entries)"]
+        P1["OAuth Providers<br/>Claude/Codex/Gemini/Qwen/iFlow/GitHub/Kiro/Cursor/Antigravity"]
+        P2["API Key Providers<br/>OpenAI/Anthropic/OpenRouter/GLM/Kimi/MiniMax/DeepSeek/..."]
+        P3["Compatible Nodes<br/>OpenAI-compatible / Anthropic-compatible custom endpoints"]
+    end
+
+    subgraph External["Optional External Services"]
+        CLOUD["Cloud Sync Endpoint<br/>CLOUD_URL"]
+        DISCORD["Discord Webhook<br/>provider-down alerts"]
+        TUNNEL["Cloudflare / Tailscale Tunnel"]
+    end
+
+    C1 --> GUARD
+    C2 --> GUARD
+    C3 --> GUARD
+    C4 --> GUARD
+    BROWSER --> GUARD
+
+    GUARD --> API
+    GUARD --> DASH
+
+    API --> CORE
+    DASH --> DB
+    CORE --> DB
+    CORE --> PKGS
+    PKGS --> CORE
+
+    CORE --> P1
+    CORE --> P2
+    CORE --> P3
+
+    DASH --> CLOUD
+    CORE --> DISCORD
+    GUARD --> TUNNEL
+
+    style Clients fill:#e3f2fd
+    style Router fill:#f3e5f5
+    style Upstreams fill:#e8f5e9
+    style External fill:#fff3e0
