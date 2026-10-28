@@ -131,18 +131,19 @@ export const MODEL_PRICING = {
 
   // === Kimi ===
   // Official platform.kimi.ai: cache-hit / cache-miss / output per 1M tokens
-  "kimi-k3": { input: 3.00, output: 15.00, cached: 0.30, reasoning: 15.00, cache_creation: 3.00 },
-  "k3": { input: 3.00, output: 15.00, cached: 0.30, reasoning: 15.00, cache_creation: 3.00 },
-  "kimi-k2.7-code": { input: 0.95, output: 4.00, cached: 0.19, reasoning: 4.00, cache_creation: 0.95 },
-  "kimi-k2.7-code-highspeed": { input: 1.90, output: 8.00, cached: 0.38, reasoning: 8.00, cache_creation: 1.90 },
-  "kimi-for-coding": { input: 0.95, output: 4.00, cached: 0.19, reasoning: 4.00, cache_creation: 0.95 },
-  "kimi-for-coding-highspeed": { input: 1.90, output: 8.00, cached: 0.38, reasoning: 8.00, cache_creation: 1.90 },
-  "kimi-k2": { input: 1.00, output: 4.00, cached: 0.50, reasoning: 6.00, cache_creation: 1.00 },
-  "kimi-k2-thinking": { input: 1.50, output: 6.00, cached: 0.75, reasoning: 9.00, cache_creation: 1.50 },
-  "kimi-k2.5": { input: 1.20, output: 4.80, cached: 0.60, reasoning: 7.20, cache_creation: 1.20 },
-  "kimi-k2.5-thinking": { input: 1.80, output: 7.20, cached: 0.90, reasoning: 10.80, cache_creation: 1.80 },
-  "kimi-k2.6": { input: 1.00, output: 4.00, cached: 0.50, reasoning: 6.00, cache_creation: 1.00 },
-  "kimi-latest": { input: 1.00, output: 4.00, cached: 0.50, reasoning: 6.00, cache_creation: 1.00 },
+  "kimi-k3":                      { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.00  },
+  "k3":                           { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.00  },
+  "kimi-k3.1-pro":                { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.00  },
+  "kimi-k2.7-code":               { input: 0.95,  output: 4.00,  cached: 0.19,  reasoning: 4.00,   cache_creation: 0.95  },
+  "kimi-k2.7-code-highspeed":     { input: 1.90,  output: 8.00,  cached: 0.38,  reasoning: 8.00,   cache_creation: 1.90  },
+  "kimi-for-coding":              { input: 0.95,  output: 4.00,  cached: 0.19,  reasoning: 4.00,   cache_creation: 0.95  },
+  "kimi-for-coding-highspeed":    { input: 1.90,  output: 8.00,  cached: 0.38,  reasoning: 8.00,   cache_creation: 1.90  },
+  "kimi-k2":                      { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
+  "kimi-k2-thinking":             { input: 1.50,  output: 6.00,  cached: 0.75,  reasoning: 9.00,   cache_creation: 1.50  },
+  "kimi-k2.5":                    { input: 1.20,  output: 4.80,  cached: 0.60,  reasoning: 7.20,   cache_creation: 1.20  },
+  "kimi-k2.5-thinking":           { input: 1.80,  output: 7.20,  cached: 0.90,  reasoning: 10.80,  cache_creation: 1.80  },
+  "kimi-k2.6":                    { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
+  "kimi-latest":                  { input: 1.00,  output: 4.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 1.00  },
 
   // === DeepSeek ===
   "deepseek-chat": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 },
