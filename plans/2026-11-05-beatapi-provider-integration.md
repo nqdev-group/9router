@@ -67,16 +67,20 @@ Quyết định và đánh đổi:
 - [x] Baseline: chạy qua vitest, kết quả ở mục 4.
 - [x] Unit test cho filter `beatapi` (+ registry, pricing, usage handler).
 - [x] Usage handler [packages/providers/usage/beatapi.js](../packages/providers/usage/beatapi.js): hiển thị `credit_balance` (USD) từ `GET /v1/usage`; bật `features.usage/usageApikey` trong registry. **Dựng theo docs, chưa kiểm chứng với key thật.**
-- [x] Block giá `beatapi` trong [pricing.js](../packages/providers/pricing.js): 42 model từ catalog public; 3 model free = 0; `cached` / `cache_creation` đặt bằng giá input (ước lượng cận trên, catalog không công bố giá cache); không cộng thêm trường `discount`.
+- [x] Block giá `beatapi` trong [pricing.js](../packages/providers/pricing.js): 42 model từ catalog public; 3 model free = 0; `cached` / `cache_creation` lấy từ trang https://beatapi.io/pricing (cập nhật lượt 3); không cộng thêm trường `discount`.
 - [x] Model `gpt-*`: catalog liệt kê endpoint `openai` cho cả 8 model, chỉ `gpt-6.1-sol` / `gpt-6.1-terra` thêm `openai-response` → về lý thuyết chạy được qua chat/completions. Chưa xác nhận bằng gọi thật.
 - [x] CLAUDE.md: thêm dòng nêu `packages/providers/registry/index.js` là file viết tay (dòng cũ nói về `open-sse/providers/registry/`, giữ nguyên).
 - [x] Commit.
 
+Lượt 3 (2026-11-05):
+- [x] Xác nhận `discount`: trang pricing cho `glm-5.3-flash` `beatapiUsd` 0.06 = `input_usd_per_million` của catalog, giá chính hãng 0.15 → giá catalog **đã là giá net**, không nhân thêm. Đối chiếu input/output của mọi model giữa trang pricing và catalog: khớp hoàn toàn (trừ `MiniMax-M3`, `MiniMax-M3.1-Flash` không có trên trang pricing, dùng giá catalog).
+- [x] Giá cache thật: 41 dòng trong block `beatapi` của [pricing.js](../packages/providers/pricing.js) đã thay `cached` / `cache_creation` bằng "Cached input" / "Cache write" (5 phút) từ trang pricing. Chưa mô hình hoá: cache write 1h, các bậc long-context (200k+/272k+/512k+), hệ số giờ cao điểm (2 model DeepSeek `-hc` nhân đôi giờ cao điểm các ngày trong tuần, `hy3` có khung riêng).
+- [x] Kiểm tra với key giả `sk-invalid-test`: `GET /v1/usage` và `GET /v1/models` đều trả `401 invalid_api_key` → khớp nhánh 401 của usage handler và `validateUrl`. `GET /v1/free-tier` trả 200 không cần key.
+
 Còn mở:
-- [ ] Gọi thử `glm-5.3-flash-free` qua gateway bằng API key thật (lưu ý `hy4-free` cần `max_tokens` ≥ 2000 vì reasoning tính vào output budget); thử luôn `GET /v1/usage` để đối chiếu shape với handler.
-- [ ] Icon `public/providers/beatapi.png`: trang chủ không có thẻ favicon lấy được; không tự vẽ logo. Hiện dùng `textIcon: "BA"`. Cần user cung cấp file logo.
-- [ ] Cập nhật snapshot `tests/__baseline__/providers-baseline.json` / alias baseline nếu muốn gate sạch (đang lệch từ trước, ngoài phạm vi BeatAPI).
-- [ ] Xác nhận pricing: `discount` trong catalog đã được áp vào giá niêm yết hay chưa.
+- [ ] Gọi thử `glm-5.3-flash-free` qua gateway bằng API key thật (lưu ý `hy4-free` cần `max_tokens` ≥ 2000 vì reasoning tính vào output budget); thử luôn `GET /v1/usage` với key hợp lệ để đối chiếu shape `credit_balance` với handler. **Cần API key, chưa có.**
+- [ ] Icon `public/providers/beatapi.png`: trang chủ không có thẻ favicon lấy được; không tự vẽ logo. Hiện dùng `textIcon: "BA"`. **Cần user cung cấp file logo.**
+- [ ] Snapshot `tests/__baseline__/providers-baseline.json` / `alias-baseline.json`: **cố ý chưa cập nhật.** Hai file này do upstream sửa (lịch sử commit toàn là commit upstream) nên regenerate ở fork dễ gây conflict khi merge; và `verify-alias` đang lệch `qw → qwen` không phải do BeatAPI, regenerate sẽ nuốt luôn thay đổi đó. Nên cập nhật cùng lúc với lần sync upstream tiếp theo.
 
 ## 6. Bài học rút ra
 
