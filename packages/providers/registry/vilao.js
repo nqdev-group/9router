@@ -12,7 +12,7 @@ export default {
     website: "https://vilao.ai",
     notice: {
       text: "AI Models Marketplace — 300+ model qua 1 API duy nhất tương thích OpenAI. Cần subscribe model trong Marketplace trước khi gọi.",
-      apiKeyUrl: "https://vilao.ai/console/llm/keys",
+      apiKeyUrl: "https://vilao.ai/console/keys",
     },
   },
   // ── transport (HTTP runtime) → PROVIDERS[id]
