@@ -513,6 +513,115 @@ describe("MemoryStore", () => {
     expect(result.total).toBe(1);
   });
 
+  describe("search against a real SQLite FTS5 index", () => {
+    // The hand-rolled createMockDb() above never parses SQL, so it can't catch a
+    // real "fts5: syntax error" — use better-sqlite3 (:memory:) here instead.
+    let realStore;
+
+    beforeEach(async () => {
+      const { createBetterSqliteAdapter } = await import("../../src/lib/db/adapters/betterSqliteAdapter.js");
+      realStore = new MemoryStore(createBetterSqliteAdapter(":memory:"), { retentionDays: 90 });
+      await realStore.init();
+    });
+
+    it("does not throw on a query containing FTS5-special punctuation", async () => {
+      await realStore.saveObservation({ id: "r1", type: "note", content: "fixed the bug, added tests", createdAt: Date.now() });
+      await expect(realStore.search("bug, tests")).resolves.not.toThrow();
+    });
+
+    it("finds a saved observation via the AFTER INSERT trigger", async () => {
+      await realStore.saveObservation({ id: "r2", type: "note", content: "refactored the auth module", createdAt: Date.now() });
+      const result = await realStore.search("auth");
+      expect(result.observations.length).toBe(1);
+      expect(result.observations[0].id).toBe("r2");
+    });
+
+    it("stops matching a deleted observation via the AFTER DELETE trigger", async () => {
+      await realStore.saveObservation({ id: "r3", type: "note", content: "flaky payment gateway retry", createdAt: Date.now() });
+      expect((await realStore.search("payment")).observations.length).toBe(1);
+
+      await realStore.deleteObservation("r3");
+      expect((await realStore.search("payment")).observations.length).toBe(0);
+    });
+
+    it("re-saving the same id (INSERT OR REPLACE) still matches on the new content only", async () => {
+      await realStore.saveObservation({ id: "r4", type: "note", content: "old wording about caching", createdAt: Date.now() });
+      await realStore.saveObservation({ id: "r4", type: "note", content: "new wording about retries", createdAt: Date.now() });
+
+      expect((await realStore.search("caching")).observations.length).toBe(0);
+      const result = await realStore.search("retries");
+      expect(result.observations.length).toBe(1);
+      expect(result.observations[0].id).toBe("r4");
+    });
+
+    it("self-heals: backfills FTS entries for rows written before init() (pre-fix data)", async () => {
+      const { createBetterSqliteAdapter } = await import("../../src/lib/db/adapters/betterSqliteAdapter.js");
+      const rawDb = createBetterSqliteAdapter(":memory:");
+      // Simulate data saved by an older version of this code, before the FTS table
+      // and sync triggers existed: create only the content table, insert directly.
+      await rawDb.run(`CREATE TABLE cmem_observations (
+        id TEXT PRIMARY KEY, session_id TEXT, type TEXT NOT NULL DEFAULT 'note',
+        title TEXT, content TEXT NOT NULL, summary TEXT, facts TEXT DEFAULT '[]',
+        concepts TEXT DEFAULT '[]', files_read TEXT DEFAULT '[]', files_modified TEXT DEFAULT '[]',
+        tokens INTEGER DEFAULT 0, provider TEXT, created_at_epoch INTEGER NOT NULL
+      )`);
+      await rawDb.run(
+        `INSERT INTO cmem_observations (id, type, title, content, summary, facts, concepts, created_at_epoch) VALUES (?,?,?,?,?,?,?,?)`,
+        ["legacy-1", "note", "", "pre-existing migration data", null, "[]", "[]", Date.now()]
+      );
+
+      const upgradedStore = new MemoryStore(rawDb, { retentionDays: 90 });
+      await upgradedStore.init(); // creates the FTS table + triggers now, on top of existing data
+
+      const result = await upgradedStore.search("migration");
+      expect(result.observations.length).toBe(1);
+      expect(result.observations[0].id).toBe("legacy-1");
+    });
+  });
+
+  describe("code-first schema self-heal (ensureColumns)", () => {
+    it("adds a column that code expects but a pre-existing table is missing", async () => {
+      const { createBetterSqliteAdapter } = await import("../../src/lib/db/adapters/betterSqliteAdapter.js");
+      const rawDb = createBetterSqliteAdapter(":memory:");
+      // Simulate a table created by an older schema version, missing "provider"
+      // (one of the columns ensureColumns() knows how to add).
+      await rawDb.run(`CREATE TABLE cmem_observations (
+        id TEXT PRIMARY KEY, session_id TEXT, type TEXT NOT NULL DEFAULT 'note',
+        title TEXT, content TEXT NOT NULL, summary TEXT, facts TEXT DEFAULT '[]',
+        concepts TEXT DEFAULT '[]', files_read TEXT DEFAULT '[]', files_modified TEXT DEFAULT '[]',
+        tokens INTEGER DEFAULT 0, created_at_epoch INTEGER NOT NULL
+      )`);
+      await rawDb.run(
+        `INSERT INTO cmem_observations (id, type, content, created_at_epoch) VALUES (?,?,?,?)`,
+        ["pre-1", "note", "row saved before the provider column existed", Date.now()]
+      );
+
+      const upgradedStore = new MemoryStore(rawDb, { retentionDays: 90 });
+      await expect(upgradedStore.init()).resolves.not.toThrow();
+
+      const columns = rawDb.all(`PRAGMA table_info(cmem_observations)`).map((c) => c.name);
+      expect(columns).toContain("provider");
+
+      // Existing row survives the ALTER TABLE, new column reads back as NULL.
+      const rows = await upgradedStore.getObservations(["pre-1"]);
+      expect(rows.length).toBe(1);
+      expect(rows[0].provider).toBeNull();
+
+      // The column is now actually usable for new writes, not just present.
+      await upgradedStore.saveObservation({ id: "post-1", type: "note", content: "new row", provider: "openai", createdAt: Date.now() });
+      const postRows = await upgradedStore.getObservations(["post-1"]);
+      expect(postRows[0].provider).toBe("openai");
+    });
+
+    it("is idempotent — running init() twice on an already-current schema is a no-op", async () => {
+      const { createBetterSqliteAdapter } = await import("../../src/lib/db/adapters/betterSqliteAdapter.js");
+      const rawDb = createBetterSqliteAdapter(":memory:");
+      const s = new MemoryStore(rawDb, { retentionDays: 90 });
+      await s.init();
+      await expect(s.init()).resolves.not.toThrow();
+    });
+  });
+
   it("deleteObservation removes obs", async () => {
     await store.init();
     await store.saveObservation({ id: "del-1", type: "note", content: "delete me", createdAt: Date.now() });
