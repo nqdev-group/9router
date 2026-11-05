@@ -16,10 +16,8 @@ export default {
     textIcon: "BA",
     website: "https://beatapi.io",
     notice: {
-      // Per https://docs.beatapi.io/free-models (checked 2026-11-05): any valid key can call
-      // the 3 "-free" text models, even with a zero balance. Limit is 1 successful request/min
-      // per account before the first top-up, up to 10/min after. Free models can be withdrawn
-      // at any time.
+      // Per docs.beatapi.io/free-models (2026-11-05): free models work with a zero balance;
+      // 1 req/min before first top-up, up to 10/min after; may be withdrawn anytime.
       text: "3 model text miễn phí (đuôi -free), gọi được kể cả khi số dư bằng 0: 1 request/phút trước lần nạp đầu, tối đa 10 request/phút sau khi nạp. Model miễn phí có thể bị gỡ bất cứ lúc nào.",
       apiKeyUrl: "https://beatapi.io/dashboard/apikeys",
       signupUrl: "https://beatapi.io/sign-in",
@@ -27,46 +25,37 @@ export default {
   },
   // ── transport (HTTP runtime) → PROVIDERS[id] ─────────────────────────────
   transport: {
-    // [nqdev] Chat Completions chuẩn OpenAI (xem docs.beatapi.io/free-models, mục "Try one").
     baseUrl: "https://api.beatapi.io/v1/chat/completions",
     format: "openai",
-    // [nqdev] /v1/models cần API key (401 missing_api_key khi không gửi key, đã kiểm tra live
-    // 2026-11-05) nên dùng làm validateUrl để xác thực key.
+    // [nqdev] /v1/models requires a key (401 without one, verified 2026-11-05) → usable to validate keys.
     validateUrl: "https://api.beatapi.io/v1/models",
     headers: {
       "Content-Type": "application/json",
       "Accept": "*/*",
     },
-    // [nqdev] Free model giới hạn 1 request/phút (429 kèm Retry-After ~60s) nên retry 429
-    // dày đặc không có ích — giữ ít lần hơn các provider khác.
+    // [nqdev] Free models allow 1 req/min (429 + Retry-After ~60s), so aggressive 429 retries are pointless.
     retry: { 429: { attempts: 2 }, 503: { attempts: 3 } },
-    // Reference link for humans; the programmatic fetch lives in packages/providers/usage/beatapi.js.
+    // Human link only; the programmatic fetch is packages/providers/usage/beatapi.js.
     usage: {
       url: "https://beatapi.io/dashboard/text-usage",
     },
-    // [nqdev] /v1/text/models là catalog công khai (không cần key) nhưng bọc 2 lớp
-    // { data: { object, data: [...] } } — chuẩn "openai" không bóc được, dùng filter "beatapi"
-    // (packages/providers/suggested-models/filters.js).
+    // [nqdev] Public catalog (no key) but double-wrapped { data: { data: [...] } } → custom
+    // "beatapi" filter in packages/providers/suggested-models/filters.js.
     modelsFetcher: { url: "https://api.beatapi.io/v1/text/models", type: "beatapi" },
   },
-  // Seed = 3 free text models from https://docs.beatapi.io/free-models (family "free" in the live
-  // catalog, verified 2026-11-05). Each is a separate id from its paid sibling — send the exact
-  // "-free" id. Note: hy4-free reasons before answering and the reasoning counts toward
-  // max_tokens; docs recommend max_tokens >= 2000.
+  // Free text models (family "free", docs.beatapi.io/free-models). Send the exact "-free" id —
+  // it's separate from the paid sibling. hy4-free's reasoning counts toward max_tokens (docs: use >= 2000).
   models: [
     { id: "glm-5.3-flash-free", name: "GLM 5.3 Flash (Miễn phí)" },
     { id: "deepseek-v4.1-flash-free", name: "DeepSeek V4.1 Flash (Miễn phí)" },
     { id: "hy4-free", name: "Hunyuan 4 (Miễn phí)" },
   ],
-  // [nqdev] Cho phép chọn các model trả phí (glm-5.3-flash, deepseek-v4.1-flash, hy4-preview, ...)
-  // qua modelsFetcher mà không phải liệt kê hết ở đây.
+  // [nqdev] Paid models come in via modelsFetcher without being listed here.
   passthroughModels: true,
   // ── Service kinds ────────────────────────────────────────────────────────
-  // Only text/chat is wired. BeatAPI also has image/video/realtime task APIs, but they use an
-  // async task flow (POST .../tasks + GET /v1/tasks/{id}) that needs dedicated handlers.
+  // Text/chat only. BeatAPI's image/video/realtime use an async task flow (needs dedicated handlers).
   serviceKinds: ["llm"],
-  // [nqdev] Bật usage cho apikey connection (USAGE_APIKEY_PROVIDERS) — xem
-  // packages/providers/usage/beatapi.js (GET /v1/usage → credit_balance).
+  // [nqdev] Enables usage for apikey connections — see packages/providers/usage/beatapi.js.
   features: {
     usage: true,
     usageApikey: true,
