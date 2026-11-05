@@ -72,6 +72,7 @@ Two authoritative docs already exist — read them before working in these areas
 ### Provider registry (`open-sse/providers/registry/*`)
 - One file per provider. `providers/registry/index.js` is an **auto-generated** static import list — regenerate it with `scripts/migrate-registry.mjs` / `injectDisplayToRegistry.mjs`, don't hand-edit.
 - Add a provider: copy `providers/REGISTRY_TEMPLATE.js`, add models to `config/providerModels.js`. Only add an executor for non-OpenAI-compatible upstreams.
+- **Exception — custom providers live in `packages/providers/registry/`** (kira, gurouter, beatapi, …), whose `index.js` is **hand-maintained** (header says "NOT auto-generated"): add one `import pcNN` + one array entry there by hand, never run the migrate scripts for it. Companion files for a custom provider: `packages/providers/usage/<id>.js` (+ entry in `usage/index.js`), `packages/providers/pricing.js` block, `packages/providers/suggested-models/filters.js` for a non-standard `/models` shape.
 
 ### Persistence — IMPORTANT (ARCHITECTURE.md is stale here)
 State is **no longer `db.json`**. It's a SQLite layer under `src/lib/db/` with an adapter fallback chain (`driver.js`): `bun:sqlite` → `better-sqlite3` (optional native dep) → `node:sqlite` (Node ≥22.5) → `sql.js` (pure-JS fallback, always works). `better-sqlite3` is deliberately in `optionalDependencies` so install never fails without build tools.

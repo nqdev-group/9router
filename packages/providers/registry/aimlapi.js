@@ -50,8 +50,8 @@ export default {
   models: [
     { id: "google/gemma-3-27b-it", name: "Gemma 3 27B (Miễn phí)" },
     { id: "inclusionai/ling-3.0-tiny", name: "Ling 3.0 Tiny (Miễn phí)" },
-    { id: "mistral/leanstral-1-5", name: "Leanstral 1.5 (Miễn phí)" },
-    { id: "stealth/ox-alpha", name: "Stealth Ox Alpha (Miễn phí)" },
+    // [nqdev] 2026-11-05: mistral/leanstral-1-5 and stealth/ox-alpha dropped (gone from /v1/models).
+    // The catalog carries no price, so "(Miễn phí)" here still rests on aimlapi.com/models pages.
     { id: "google/gemini-3-pro-image-preview", name: "Gemini 3 Pro Image Preview (Miễn phí)", type: "image", params: ["n", "size"] },
   ],
   // Live catalog (https://api.aimlapi.com/v1/models) has 1000+ more models beyond this

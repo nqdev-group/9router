@@ -8,7 +8,10 @@
 // pricing.js (EXTRA_PROVIDER_PRICING), suggested-models/filters.js (EXTRA_FILTERS),
 // and test/testUtils.js (TESTERS).
 import { getKiraUsage } from "./kira.js";
+import { getBeatApiUsage } from "./beatapi.js";
 
 export const USAGE_HANDLERS = {
   kira: (c) => getKiraUsage(c.apiKey, c.proxyOptions),
+  // [nqdev] BeatAPI: số dư credit USD từ GET /v1/usage
+  beatapi: (c) => getBeatApiUsage(c.apiKey, c.proxyOptions),
 };

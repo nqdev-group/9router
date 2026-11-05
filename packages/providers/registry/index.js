@@ -15,6 +15,7 @@ import pc11 from "./gurouter.js";
 import pc12 from "./hhtechapi.js";
 import pc13 from "./xai247.js";
 import pc14 from "./experiential.js";
+import pc15 from "./beatapi.js";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -32,4 +33,5 @@ export default [
   pc12,
   pc13,
   pc14,
+  pc15,
 ];
