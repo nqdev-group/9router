@@ -42,11 +42,15 @@ export default {
     { id: "qwen/qwen3.8-max", name: "Qwen3.8 Max" },
     { id: "qwen/qwen3.7-flash", name: "Qwen3.7 Flash" },
     { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
-    { id: "deepseek/deepseek-v4-flash-free", name: "DeepSeek V4 Flash (Miễn phí)" },
     { id: "moonshotai/kimi-k3", name: "Kimi K3" },
     { id: "x-ai/grok-4.5", name: "Grok 4.5" },
+    // Free = text models with prompt AND completion price 0 in /api/v1/models (2026-11-05).
+    // deepseek/deepseek-v4-flash-free was dropped (no longer listed). Image-output $0 models skipped.
     { id: "z-ai/glm-4.6v-flash-free", name: "Z.AI GLM 4.6V Flash (Miễn phí)" },
     { id: "z-ai/glm-4.7-flash-free", name: "Z.AI GLM 4.7 Flash (Miễn phí)" },
+    { id: "atria-asi/atria-dawn", name: "Atria Dawn (Miễn phí)" },
+    { id: "dots-studio/dots3-note-prev", name: "Dots3-Note Preview (Miễn phí)" },
+    { id: "sapiens-ai/agnes-2.5-flash", name: "Agnes 2.5 Flash (Miễn phí)" },
   ],
   // ── Service kinds ────────────────────────────────────────────────────────
   serviceKinds: ["llm"],

@@ -102,13 +102,11 @@ export const PROVIDER_PRICING = {
   // the *PerMillionMicro fields divided by 1e6 = $/1M tokens. "plan" billingKind models
   // are drawn from a subscription plan on the site, but the per-token rates are still
   // what the catalog lists, so they're used for cost estimates here.
+  // 2026-11-05: gpt-5.6-terra, gpt-6-luna, gpt-6.1-sol, claude-haiku-5-5, claude-sonnet-5-5 removed
+  // (gone from the catalog; all 17 current models are billingKind "pack"). The 16 other current ids
+  // have no rate here yet and fall back to the default estimate.
   xai247: {
-    "gpt-5.6-terra":    { input: 0.50, output: 3.00,  cached: 0.01, cache_creation: 0.05 },
-    "gpt-6-luna":       { input: 0.20, output: 0.80,  cached: 0.05, cache_creation: 0.20 },
-    "gpt-6.1-sol":      { input: 2.50, output: 5.00,  cached: 0.05, cache_creation: 1.50 },
-    "claude-haiku-5-5": { input: 0.20, output: 0.80,  cached: 0.08, cache_creation: 0.40 },
     "claude-opus-5":    { input: 2.50, output: 12.50, cached: 0.25, cache_creation: 3.00 },
-    "claude-sonnet-5-5": { input: 1.50, output: 8.00, cached: 0.1, cache_creation: 1.25 },
   },
   // === Kira AI (kiraai.vn) ===
   // Pulled live from https://kiraai.vn/api/v1/models (kira.js sets modelsFetcher to this
@@ -135,12 +133,15 @@ export const PROVIDER_PRICING = {
     "kira-3.5-flash-pdf":           { input: 1.80,   output: 11.00   },
     "kira-2.5-pro":                 { input: 1.30,   output: 9.00    },
     "kira-2.5-flash":               { input: 1.16,   output: 3.00    },
-    "kira-mini-1.0":                { input: 0,      output: 0       },
+    // 2026-11-05: is_free:false now — ₫4,500 / ₫120,000 per 1M at 90% discount → $0.09 / $2.40
+    "kira-mini-1.0":                { input: 0.09,   output: 2.40    },
+    // is_free:true in the catalog (2026-11-05); listed prices are 99% discounted, treated as $0
+    "stealth/crouton-alpha":        { input: 0,      output: 0       },
+    "longcat-2.5-free":             { input: 0,      output: 0       },
     "deepseek-v4-pro":              { input: 6.1776, output: 18.5328 },
     "deepseek-v4-flash":            { input: 1.326,  output: 5.304   },
     "deepseek-v4-flash-0731":       { input: 1.404,  output: 5.616   },
     "deepseek-v4.1-flash":          { input: 1.092,  output: 4.368   },
-    "deepseek-v4-flash-vision-exp": { input: 1.56,   output: 6.24    },
     "qwen3.8-max":                  { input: 10.00,  output: 30.00   },
     // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
     "qwen3.8-flash":                { input: 0.0848, output: 0.2491  },
@@ -283,11 +284,14 @@ export const PROVIDER_PRICING = {
     // Tiered: 0-32k shown; rises to $0.1/$0.4 (32-256k) then $0.2/$0.8 (256k+)
     "qwen/qwen3.7-flash":             { input: 0.03, output: 0.13 },
     "deepseek/deepseek-v4-flash":     { input: 0.22, output: 0.66,  cached: 0.007 },
-    "deepseek/deepseek-v4-flash-free":{ input: 0,    output: 0     },
     "moonshotai/kimi-k3":             { input: 2.70, output: 13.50, cached: 0.27  },
     "x-ai/grok-4.5":                  { input: 2.00, output: 6.00,  cached: 0.50  },
+    // prompt + completion = $0 in /api/v1/models (2026-11-05)
     "z-ai/glm-4.6v-flash-free":       { input: 0,    output: 0     },
     "z-ai/glm-4.7-flash-free":        { input: 0,    output: 0     },
+    "atria-asi/atria-dawn":           { input: 0,    output: 0     },
+    "dots-studio/dots3-note-prev":    { input: 0,    output: 0     },
+    "sapiens-ai/agnes-2.5-flash":     { input: 0,    output: 0     },
   },
 
   // === OpenCode Zen (opencode.ai/zen) — pay-as-you-go, zero markup ===
@@ -360,28 +364,27 @@ export const PROVIDER_PRICING = {
     "kimi-k2.5":                      { input: 0.60,  output: 3.00,   cached: 0.10  },
     "qwen3.6-plus":                   { input: 0.50,  output: 3.00,   cached: 0.05,  cache_creation: 0.625 },
     "qwen3.5-plus":                   { input: 0.20,  output: 1.20,   cached: 0.02,  cache_creation: 0.25  },
-    // "-free" ids: limited-time free tier, $0 per opencode-zen.js registry notes
+    // Free tier: cost.text input/output price = 0 in the live catalog (2026-11-05), limited-time
     "big-pickle":                     { input: 0,     output: 0     },
-    "deepseek-v4-flash-free":         { input: 0,     output: 0     },
-    "x-preview-f-free":               { input: 0,     output: 0     },
-    "muse-spark-1.2-contributor-free":{ input: 0,     output: 0     },
-    "mimo-v2.5-free":                 { input: 0,     output: 0     },
-    "hy3-free":                       { input: 0,     output: 0     },
-    "nemotron-3-ultra-free":          { input: 0,     output: 0     },
+    "beam-free":                      { input: 0,     output: 0     },
+    "flint-40b-free":                 { input: 0,     output: 0     },
+    "mimo-v2.6-flash-free":           { input: 0,     output: 0     },
+    "nemotron-3.5-super-vl-free":     { input: 0,     output: 0     },
     "nemotron-3.5-lightning-free":    { input: 0,     output: 0     },
-    "laguna-s-2.1-free":              { input: 0,     output: 0     },
+    "deepseek-v4.1-flash-free":       { input: 0,     output: 0     },
+    "glm-5.3-flash-free":             { input: 0,     output: 0     },
+    "pulse-alpha-free":               { input: 0,     output: 0     },
+    "crouton-alpha-free":             { input: 0,     output: 0     },
   },
 
   // === AI/ML API (aimlapi.com) ===
   // Pulled from each model's page on https://aimlapi.com/models/ — the 4 chat models
-  // seeded in packages/providers/registry/aimlapi.js are all listed at $0/1M tokens.
-  // "stealth/ox-alpha" is explicitly temporary ("served via the OpenRouter stealth slot")
-  // and may start billing once formally released — re-verify if it shows up priced later.
+  // seeded in packages/providers/registry/aimlapi.js are listed at $0/1M tokens. 2026-11-05:
+  // mistral/leanstral-1-5 and stealth/ox-alpha dropped (gone from /v1/models). The catalog itself
+  // has no price field, so $0 here still rests on those model pages.
   aimlapi: {
     "google/gemma-3-27b-it":     { input: 0, output: 0 },
     "inclusionai/ling-3.0-tiny": { input: 0, output: 0 },
-    "mistral/leanstral-1-5":     { input: 0, output: 0 },
-    "stealth/ox-alpha":          { input: 0, output: 0 },
   },
 
   // === GuRouter (gurouter.gulagi.com) — self-hosted "New API" gateway ===

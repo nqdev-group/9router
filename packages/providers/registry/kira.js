@@ -47,19 +47,22 @@ export default {
     modelsFetcher: { url: "https://kiraai.vn/api/v1/models", type: "openai" },
   },
   models: [
-    // Free chat model (is_free:true in /api/v1/models, 2026-09-18). qwen3.8-flash, hy3, glm-5.3-flash
-    // and mimo-v2.5 lost is_free:true (now 80-90% off, not $0) so lost the "(Miễn phí)" tag; a
-    // discount is not the same guarantee, and either status can flip.
-    { id: "kira-mini-1.0", name: "Kira Mini 1.0 (Miễn phí)" },
-    // Paid highlights. Dead ids removed (2026-09-18): the "-free" DeepSeek/Qwen ids, kira-auto,
-    // kira-2.0, claude-sonnet-5 — still reachable via passthroughModels if they return.
+    // Free chat models = is_free:true in /api/v1/models (2026-11-05). kira-mini-1.0 flipped to
+    // is_free:false (priced, 90% off; the catalog tag still says "Hoàn toàn miễn phí" but the flag
+    // and prices disagree) and qwen3.8-flash, hy3, glm-5.3-flash, mimo-v2.5 are discounted, not $0
+    // — none of these carry the "(Miễn phí)" tag; a discount is not the same guarantee.
+    { id: "stealth/crouton-alpha", name: "Crouton Alpha (Miễn phí)" },
+    { id: "longcat-2.5-free", name: "Meituan LongCat 2.5 (Miễn phí)" },
+    { id: "kira-mini-1.0", name: "Kira Mini 1.0" },
+    // Paid highlights. Dead ids removed: the "-free" DeepSeek/Qwen ids, kira-auto, kira-2.0,
+    // claude-sonnet-5 (2026-09-18), deepseek-v4-flash-vision-exp (2026-11-05) — still reachable via
+    // passthroughModels if they return.
     { id: "qwen3.8-flash", name: "Qwen3.8 Flash" },
     { id: "hy3", name: "Tencent: Hy3" },
     { id: "glm-5.3-flash", name: "GLM 5.3 Flash" },
     { id: "mimo-v2.5", name: "MiMo V2.5" },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
-    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp" },
     { id: "qwen3.8-max", name: "Qwen3.8 Max" },
     { id: "kira-3.0-image", name: "Kira 3.0 Image", type: "image", params: ["n", "size"] },
     { id: "kira-2.0-image", name: "Kira 2.0 Image", type: "image", params: ["n", "size"] },
