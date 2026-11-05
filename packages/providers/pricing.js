@@ -37,6 +37,61 @@ export const PROVIDER_PRICING = {
     "gpt-6-luna-decisions": { input: 0.10, output: 0, cached: 0, cache_creation: 0 },
     "jev-latest": { input: 0, output: 0, cached: 0, cache_creation: 0 },
   },
+  // === BeatAPI (beatapi.io) ===
+  // [nqdev] Source: public GET https://api.beatapi.io/v1/text/models (no auth, checked 2026-11-05) —
+  // input_usd_per_million / output_usd_per_million are used as listed ($/1M tokens; the catalog's
+  // separate `discount` field is NOT applied on top, since it isn't documented whether the listed
+  // price is already net). The catalog publishes no cached-input / cache-write rate, so `cached` and
+  // `cache_creation` are set to the plain input rate — an upper-bound estimate, not a real price.
+  // "-free" ids (deepseek-v4.1-flash-free, glm-5.3-flash-free, hy4-free) carry no price: $0.
+  // Catalog churns — re-sync from the endpoint rather than trusting this snapshot.
+  beatapi: {
+    "deepseek-v4.1-flash-free": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+    "glm-5.3-flash-free": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+    "hy4-free": { input: 0, output: 0, cached: 0, cache_creation: 0 },
+    "claude-fable-5-1": { input: 5, output: 25, cached: 5, cache_creation: 5 },
+    "claude-haiku-4-5-20251001": { input: 0.5, output: 2.5, cached: 0.5, cache_creation: 0.5 },
+    "claude-haiku-5-5": { input: 0.05, output: 0.25, cached: 0.05, cache_creation: 0.05 },
+    "claude-opus-5": { input: 2.5, output: 12.5, cached: 2.5, cache_creation: 2.5 },
+    "claude-opus-5-5": { input: 2, output: 10, cached: 2, cache_creation: 2 },
+    "claude-sonnet-5": { input: 1, output: 5, cached: 1, cache_creation: 1 },
+    "claude-sonnet-5-5": { input: 1, output: 5, cached: 1, cache_creation: 1 },
+    "gpt-5.6-luna": { input: 0.08, output: 0.48, cached: 0.08, cache_creation: 0.08 },
+    "gpt-5.6-sol": { input: 2, output: 12, cached: 2, cache_creation: 2 },
+    "gpt-5.6-terra": { input: 1, output: 6, cached: 1, cache_creation: 1 },
+    "gpt-6-astra": { input: 4, output: 20, cached: 4, cache_creation: 4 },
+    "gpt-6-luna": { input: 0.04, output: 0.2, cached: 0.04, cache_creation: 0.04 },
+    "gpt-6-sol": { input: 0.8, output: 4, cached: 0.8, cache_creation: 0.8 },
+    "gpt-6.1-sol": { input: 0.8, output: 4, cached: 0.8, cache_creation: 0.8 },
+    "gpt-6.1-terra": { input: 0.4, output: 2, cached: 0.4, cache_creation: 0.4 },
+    "deepseek-v4-flash-0731": { input: 0.11, output: 0.33, cached: 0.11, cache_creation: 0.11 },
+    "deepseek-v4-pro-0813": { input: 0.33, output: 0.99, cached: 0.33, cache_creation: 0.33 },
+    "deepseek-v4.1-flash": { input: 0.075, output: 0.3, cached: 0.075, cache_creation: 0.075 },
+    "deepseek-v4-pro-0813-hc": { input: 0.462, output: 1.386, cached: 0.462, cache_creation: 0.462 },
+    "deepseek-v4.1-flash-hc": { input: 0.105, output: 0.42, cached: 0.105, cache_creation: 0.105 },
+    "gemini-3.1-pro-preview": { input: 1, output: 6, cached: 1, cache_creation: 1 },
+    "gemini-3.6-flash": { input: 0.375, output: 1.875, cached: 0.375, cache_creation: 0.375 },
+    "gemini-3.7-flash": { input: 0.375, output: 1.875, cached: 0.375, cache_creation: 0.375 },
+    "gemini-3.8-flash": { input: 0.375, output: 1.875, cached: 0.375, cache_creation: 0.375 },
+    "gemini-4-argon": { input: 1, output: 5, cached: 1, cache_creation: 1 },
+    "glm-5.3": { input: 0.56, output: 1.76, cached: 0.56, cache_creation: 0.56 },
+    "glm-5.3-flash": { input: 0.06, output: 0.2, cached: 0.06, cache_creation: 0.06 },
+    "glm-5.3-flashx": { input: 0.148, output: 0.5, cached: 0.148, cache_creation: 0.148 },
+    "grok-4.5": { input: 0.7, output: 2.1, cached: 0.7, cache_creation: 0.7 },
+    "grok-4.6": { input: 0.7, output: 2.1, cached: 0.7, cache_creation: 0.7 },
+    "grok-4.7": { input: 0.7, output: 2.1, cached: 0.7, cache_creation: 0.7 },
+    "hy3": { input: 0.033, output: 0.132, cached: 0.033, cache_creation: 0.033 },
+    "hy4-preview": { input: 0.3336, output: 1.0004, cached: 0.3336, cache_creation: 0.3336 },
+    "kimi-k3": { input: 1.2, output: 6, cached: 1.2, cache_creation: 1.2 },
+    "kimi-k3.1-pro": { input: 0.8, output: 4, cached: 0.8, cache_creation: 0.8 },
+    "mimo-v2.5": { input: 0.056, output: 0.112, cached: 0.056, cache_creation: 0.056 },
+    "mimo-v2.6-flash": { input: 0.056, output: 0.112, cached: 0.056, cache_creation: 0.056 },
+    "MiniMax-M3": { input: 0.12, output: 0.48, cached: 0.12, cache_creation: 0.12 },
+    "MiniMax-M3.1-Flash": { input: 0.06, output: 0.24, cached: 0.06, cache_creation: 0.06 },
+    "muse-wonder": { input: 4, output: 20, cached: 4, cache_creation: 4 },
+    "qwen3.8-flash": { input: 0.06, output: 0.188, cached: 0.06, cache_creation: 0.06 },
+    "qwen3.8-max": { input: 0.8, output: 2.4, cached: 0.8, cache_creation: 0.8 },
+  },
   // === XAI247 (xai247.xyz) ===
   // Source: public GET https://xai247.xyz/api/models (no auth, verified 2026-10-13) —
   // the *PerMillionMicro fields divided by 1e6 = $/1M tokens. "plan" billingKind models

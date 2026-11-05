@@ -29,4 +29,20 @@ export const FILTERS = {
       .filter((m) => !m.type || m.type === "chat" || m.type === "text")
       .map((m) => ({ id: m.id, name: m.name || m.id, contextLength: m.context_length }))
       .sort((a, b) => String(a.id).localeCompare(String(b.id))),
+
+  // [nqdev] BeatAPI public catalog (GET https://api.beatapi.io/v1/text/models, no key needed).
+  // Shape is double-wrapped: { data: { object: "list", data: [...] } }. The suggested-models route
+  // does `json.data ?? ...` and then wraps a non-array object into a single-element array, so this
+  // filter receives either the inner array or [ { object, data: [...] } ] — unwrap both.
+  // Only keeps entries that expose the OpenAI chat endpoint ("endpoints" includes "openai"):
+  // Claude-only ("anthropic") ids can't be served through the chat/completions baseUrl.
+  // Free ids ("-free") carry no context_length, so contextLength may be undefined.
+  beatapi: (models) => {
+    const list = Array.isArray(models) ? models : [];
+    const items = list.length === 1 && Array.isArray(list[0]?.data) ? list[0].data : list;
+    return items
+      .filter((m) => m && m.id && (!Array.isArray(m.endpoints) || m.endpoints.includes("openai")))
+      .map((m) => ({ id: m.id, name: m.name || m.id, contextLength: m.context_length }))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  },
 };
