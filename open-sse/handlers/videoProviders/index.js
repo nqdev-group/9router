@@ -7,7 +7,7 @@ import openrouter from "./openrouter.js";
 import vertex from "./vertex.js";
 import kira from "./kira.js";
 
-const ADAPTERS = { openrouter, vertex, kira };
+const ADAPTERS = { openrouter, vertex, kiraai: kira };
 
 export function getVideoAdapter(provider) {
   return ADAPTERS[provider] || null;

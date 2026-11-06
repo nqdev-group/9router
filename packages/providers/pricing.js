@@ -109,72 +109,108 @@ export const PROVIDER_PRICING = {
     "claude-opus-5":    { input: 2.50, output: 12.50, cached: 0.25, cache_creation: 3.00 },
   },
   // === Kira AI (kiraai.vn) ===
-  // Pulled live from https://kiraai.vn/api/v1/models (kira.js sets modelsFetcher to this
-  // endpoint, so runtime model ids come from here, not from the static seed list in
-  // packages/providers/registry/kira.js). Re-synced 2026-09-18 against the full live
-  // catalog (37 chat models — down from 49 on 2026-09-03, then 43 a day later; this
-  // catalog churns fast, treat any snapshot as stale within days, not months). Every
-  // key below matches a live id, and every live chat id has an entry here. Dropped
-  // entirely: all Gemini/Claude/GPT-*/Kira-legacy passthrough ids from the previous
-  // snapshot (gemini-*, claude-sonnet-5, gpt-5.*, gpt-4o-mini, kira-flash, kira-auto,
-  // kira-2.0, minimax-m3-free) — none of them exist in today's live catalog. Several
-  // formerly-free models are now paid at a steep discount instead (qwen3.8-flash, hy3,
-  // glm-5.3-flash, mimo-v2.5 all lost is_free:true; only kira-mini-1.0 and the new
-  // glm-4.7-flash-free are actually free today) — a discount badge is not the same
-  // guarantee as is_free:true, and both can flip either direction between syncs.
-  // Kira quotes VND at an internal ₫5,000 = $1.00 token-credit rate (unchanged).
-  // discount_percent from the live API is applied here BEFORE conversion. cached/
-  // reasoning/cache_creation intentionally omitted — Kira's API exposes only
-  // input/output, and calculateCostFromTokens() already falls back to those when
-  // absent.
-  kira: {
-    "kira-3.5-pro":                 { input: 5.00,   output: 34.00   },
-    "kira-3.5-flash":               { input: 1.80,   output: 11.00   },
-    "kira-3.5-flash-pdf":           { input: 1.80,   output: 11.00   },
-    "kira-2.5-pro":                 { input: 1.30,   output: 9.00    },
-    "kira-2.5-flash":               { input: 1.16,   output: 3.00    },
-    // 2026-11-05: is_free:false now — ₫4,500 / ₫120,000 per 1M at 90% discount → $0.09 / $2.40
-    "kira-mini-1.0":                { input: 0.09,   output: 2.40    },
-    // is_free:true in the catalog (2026-11-05); listed prices are 99% discounted, treated as $0
-    "stealth/crouton-alpha":        { input: 0,      output: 0       },
-    "longcat-2.5-free":             { input: 0,      output: 0       },
-    "deepseek-v4-pro":              { input: 6.1776, output: 18.5328 },
-    "deepseek-v4-flash":            { input: 1.326,  output: 5.304   },
-    "deepseek-v4-flash-0731":       { input: 1.404,  output: 5.616   },
-    "deepseek-v4.1-flash":          { input: 1.092,  output: 4.368   },
-    "qwen3.8-max":                  { input: 10.00,  output: 30.00   },
-    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
-    "qwen3.8-flash":                { input: 0.0848, output: 0.2491  },
-    "qwen3.8-27b":                  { input: 0.152,  output: 1.912   },
-    "qwen3.7-max":                  { input: 6.20,   output: 18.00   },
-    "qwen3.7-plus":                 { input: 1.80,   output: 8.00    },
-    "qwen3.6-flash":                { input: 1.12,   output: 4.40    },
-    "qwen3.5-flash":                { input: 1.12,   output: 2.00    },
-    "qwen3.5-omni-plus":            { input: 4.40,   output: 28.00   },
-    "glm-5.3":                      { input: 1.456,  output: 4.576   },
-    // discount 80% today — no longer is_free:true (was free as of 2026-09-17)
-    "glm-5.3-flash":                { input: 0.1564, output: 0.5216  },
-    "glm-5.2":                      { input: 6.552,  output: 20.592  },
-    // new id (2026-09-18) — actually is_free:true, unlike the discounted-but-paid
-    // glm-5.3-flash above
-    "glm-4.7-flash-free":           { input: 0,      output: 0       },
-    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
-    "mimo-v2.5":                    { input: 0.204,  output: 1.02    },
-    "mimo-v2.5-pro":                { input: 4.40,   output: 13.80   },
-    "mercury-2.5":                  { input: 0.048,  output: 0.16    },
-    "mercury-2":                    { input: 0.044,  output: 0.156   },
-    "kimi-k3":                      { input: 13.50,  output: 68.40   },
-    "grok-4.5":                     { input: 8.00,   output: 24.00   },
-    "grok-4.6":                     { input: 8.00,   output: 24.00   },
-    "minimax-m3":                   { input: 1.60,   output: 6.24    },
-    "minimax-m2.7":                 { input: 1.52,   output: 5.928   },
-    // discount 90% today — no longer is_free:true (was free as of 2026-09-17)
-    "hy3":                          { input: 0.06,   output: 0.24    },
-    "hy4":                          { input: 4.40,   output: 13.20   },
-    "ox-alpha":                     { input: 0.7822, output: 2.6078  },
-    // tags include "Free" but is_free:false in the live API — trusting the flag, not the tag
-    "dots-3-note-preview":          { input: 1.60,   output: 6.24    },
-    "gpt-oss-120b":                 { input: 0.98,   output: 2.00    },
+  // [nqdev] Re-synced 2026-11-06 from the public https://kiraai.vn/api/v1/models (kira.js sets
+  // modelsFetcher to it, so runtime ids come from there, not from the registry seed). All 91
+  // chat models of that snapshot are listed; image/video/TTS models are excluded (no token pricing).
+  // Rule: $/1M = price_*_vnd × (1 − discount_percent/100) ÷ 5,000 (Kira's internal ₫5,000 = $1).
+  // Net of the CURRENT discount, which can expire (see promo_end_at in the catalog) — list prices
+  // are higher once a promo ends. cached / cache_creation come from price_cache_read_vnd /
+  // price_cache_write_vnd where > 0 (the catalog exposes them now); otherwise they fall back to input.
+  // Free = is_free:true only (a discount badge or a "Free" tag is not the same guarantee).
+  // time_pricing / active_time_window (time-of-day rates) are not modelled.
+  // The catalog churns within days — re-sync rather than trusting this snapshot.
+  kiraai: {
+    "kira-3.5-pro": { input: 4.5, output: 30.6, cached: 0.72, cache_creation: 4.5 },
+    "kira-3.5-flash": { input: 1.62, output: 9.9, cached: 0.36, cache_creation: 1.485 },
+    "kira-3.5-flash-pdf": { input: 1.62, output: 9.9, cached: 0.36, cache_creation: 1.485 },
+    "kira-2.5-pro": { input: 1.584, output: 4.5, cached: 0.216 },
+    "kira-2.5-flash": { input: 0.232, output: 0.6, cached: 0.1008, cache_creation: 0.13 },
+    "jev-1.14": { input: 1.5, output: 0 },
+    "claude-haiku-5-5": { input: 0.416, output: 2.08, cached: 0.0832, cache_creation: 0.52 },
+    "claude-sonnet-5-5": { input: 9.36, output: 46.8, cached: 1.872, cache_creation: 11.7 },
+    "claude-opus-5-5": { input: 18.72, output: 93.6, cached: 3.744, cache_creation: 23.4 },
+    "glm-5.3-flashx": { input: 1.7316, output: 5.85, cached: 0.3463, cache_creation: 2.1645 },
+    "glm-5.3-flash": { input: 0.624, output: 2.08, cached: 0.1248, cache_creation: 0.78 },
+    "glm-5.3": { input: 6.552, output: 20.592, cached: 1.3104, cache_creation: 8.19 },
+    "glm-5.2": { input: 2.548, output: 8.008, cached: 0.5096, cache_creation: 3.185 },
+    "glm-5.1": { input: 6.552, output: 20.592, cached: 1.3104, cache_creation: 8.19 },
+    "glm-4.7-flash": { input: 0.092, output: 0.48, cached: 0.0002, cache_creation: 0.0012 },
+    "glm-4.5-air": { input: 0.2028, output: 1.326, cached: 0.0406, cache_creation: 0.2535 },
+    "deepseek-v4.1-flash-1017": { input: 1.4499, output: 5.7994, cached: 0.036 },
+    "deepseek-v4.1-flash": { input: 1.1277, output: 4.5107, cached: 0.028, cache_creation: 0.6825 },
+    "deepseek-v4-flash": { input: 1.248, output: 4.992, cached: 0.1248, cache_creation: 0.78 },
+    "deepseek-v4-pro": { input: 5.4912, output: 16.4736, cached: 0.3432, cache_creation: 2.1445 },
+    "minimax-m3.1-flash-coding": { input: 0.7722, output: 3.0888, cached: 0.0772 },
+    "minimax-m3.1-flash": { input: 0.7722, output: 3.0888, cached: 0.0772 },
+    "minimax-m3": { input: 1.248, output: 4.992, cached: 0.2496, cache_creation: 1.56 },
+    "minimax-m2.7": { input: 0.546, output: 2.184, cached: 0.1092, cache_creation: 0.6825 },
+    "mercury-3": { input: 0.416, output: 1.56, cached: 0.0416 },
+    "mercury-2.5": { input: 0.416, output: 1.56, cached: 0.0832 },
+    "mercury-2": { input: 0.336, output: 1.28, cached: 0.0336 },
+    "kimi-k3.1-pro": { input: 9.36, output: 46.8, cached: 0.936, cache_creation: 9.36 },
+    "kimi-k2.8-preview": { input: 4.68, output: 18.72, cached: 0.936, cache_creation: 5.85 },
+    "kimi-k3": { input: 14.04, output: 70.2, cached: 1.404, cache_creation: 14.04 },
+    "grok-4.7": { input: 9.36, output: 28.08, cached: 1.872, cache_creation: 11.7 },
+    "grok-4.6": { input: 8.32, output: 24.96, cached: 1.664, cache_creation: 10.4 },
+    "grok-4.5": { input: 8.32, output: 24.96, cached: 1.664, cache_creation: 10.4 },
+    "qwen3.8-max": { input: 9.36, output: 28.08, cached: 1.872, cache_creation: 11.7 },
+    "qwen3.8-27b": { input: 1.989, output: 11.934, cached: 0.3978, cache_creation: 2.4863 },
+    "qwen3.8-flash": { input: 0.6656, output: 1.9552, cached: 0.1331, cache_creation: 0.832 },
+    "qwen3.7-max": { input: 12.636, output: 37.674, cached: 2.5272, cache_creation: 15.795 },
+    "qwen3.7-plus": { input: 1.53, output: 6.8, cached: 0.306, cache_creation: 1.9125 },
+    "qwen3.6-27b": { input: 2.106, output: 12.636, cached: 0.4212, cache_creation: 2.6325 },
+    "qwen3.6-flash": { input: 1.008, output: 3.96, cached: 0.1404, cache_creation: 0.8775 },
+    "qwen3.5-flash-sale": { input: 0.56, output: 1, cached: 0.052, cache_creation: 0.325 },
+    "coding-mimo-v2.6-flash": { input: 0.5824, output: 1.1648, cached: 0.0582, cache_creation: 0.5824 },
+    "mimo-v2.6-flash": { input: 0.6552, output: 1.3104, cached: 0.131, cache_creation: 0.819 },
+    "mimo-v2.6-pro": { input: 2.0358, output: 4.0716, cached: 0.4072, cache_creation: 2.5448 },
+    "mimo-v2.5-pro": { input: 1.4251, output: 2.8501, cached: 0.2851, cache_creation: 1.7815 },
+    "mimo-v2.5": { input: 0.6552, output: 1.3104, cached: 0.131, cache_creation: 0.819 },
+    "gemini-4-argon": { input: 9.36, output: 46.8, cached: 0.468 },
+    "gemini-3.8-flash": { input: 3.42, output: 17.64, cached: 0.342, cache_creation: 0.1962 },
+    "gemini-3.5-flash-lite": { input: 1.44, output: 9, cached: 0.18, cache_creation: 0.54 },
+    "gemini-2.5-flash-lite": { input: 0.378, output: 1.8, cached: 0.2178 },
+    "gpt-6.1-terra": { input: 8.32, output: 41.6, cached: 0.832, cache_creation: 10.4 },
+    "gpt-6-sol": { input: 9.36, output: 46.8, cached: 0.936, cache_creation: 11.7 },
+    "gpt-6-luna": { input: 0.936, output: 5.616, cached: 0.1872, cache_creation: 1.17 },
+    "gpt-6-astra": { input: 46.8, output: 234, cached: 9.36, cache_creation: 58.5 },
+    "gpt-5.6-luna": { input: 0.936, output: 5.616, cached: 0.1872, cache_creation: 1.17 },
+    "gpt-5.6-terra": { input: 9.36, output: 56.16, cached: 1.872, cache_creation: 11.7 },
+    "gpt-5.6-sol": { input: 18.72, output: 93.6, cached: 3.744, cache_creation: 23.4 },
+    "gpt-5.4-nano": { input: 0.468, output: 2.925, cached: 0.0936, cache_creation: 0.585 },
+    "gpt-oss-120b": { input: 0.098, output: 0.2, cached: 0.004 },
+    "hy4": { input: 3.9031, output: 11.7047, cached: 0.1951, cache_creation: 3.9031 },
+    "hy3": { input: 0.6178, output: 2.471, cached: 0.1544, cache_creation: 0.6178 },
+    "agnes-3.0-flash": { input: 0.104, output: 0.312, cached: 0.0104 },
+    "agnes-2.5-flash": { input: 0.104, output: 0.312, cached: 0.0104 },
+    "kira-flash": { input: 0.65, output: 1.95, cached: 0.065 },
+    "kira-coding": { input: 1.4, output: 2.8, cached: 0.14 },
+    "kira-chatbox": { input: 0.3, output: 0.72, cached: 0.03 },
+    "kira-translate": { input: 0.28, output: 0.84, cached: 0.035 },
+    "kira-content-safety": { input: 0.322, output: 0.84, cached: 0.0322 },
+    "mistral-large-4-0": { input: 6.3648, output: 19.5624, cached: 1.273, cache_creation: 7.956 },
+    "mistral-nemo": { input: 0.702, output: 0.702, cached: 0.1404, cache_creation: 0.8775 },
+    "muse-wonder": { input: 18.72, output: 93.6, cached: 3.744, cache_creation: 23.4 },
+    "muse-glimmer": { input: 0.2, output: 1, cached: 0.04, cache_creation: 0.2 },
+    "minimax-m3.1-flash-sale": { input: 0.1716, output: 0.6864, cached: 0.0172 },
+    "glm-5.3-flash-sale": { input: 0.156, output: 0.52, cached: 0.0392, cache_creation: 0.195 },
+    "deepseek-v4.1-flash-sale": { input: 0.32, output: 1.28, cached: 0.01 },
+    "nemotron-3.5-super-vl-sale": { input: 0.2, output: 4, cached: 0.02 },
+    "step-5-preview-sale": { input: 0.52, output: 1.404, cached: 0.052 },
+    "beam-sale": { input: 0.1, output: 0.26, cached: 0.01 },
+    "kira-mini-1.0": { input: 0.09, output: 2.4, cached: 0.0092 },
+    "apodex-1.1-mini-sale": { input: 0.09, output: 2.4, cached: 0.0092 },
+    "gpt-oss-120b-sale": { input: 0.098, output: 0.2, cached: 0.004 },
+    "gpt-oss-20b": { input: 0.078, output: 0.18, cached: 0.004 },
+    "nemotron-3.5-lightning-sale": { input: 0.1, output: 2, cached: 0.01 },
+    "nemotron-3.5-bolt-sale": { input: 0.08, output: 2, cached: 0.008 },
+    "nemotron-3-ultra-sale": { input: 0.1, output: 2, cached: 0.01 },
+    "qwen3.8-27b-sale": { input: 0.221, output: 1.326, cached: 0.0442, cache_creation: 0.2763 },
+    "qwen3.8-flash-next-sale": { input: 0.0728, output: 0.1456, cached: 0.0146, cache_creation: 0.091 },
+    "mimo-v2.6-flash-sale": { input: 0.0728, output: 0.144, cached: 0.0072 },
+    "deepseek-v4-flash-sale": { input: 0.156, output: 0.624, cached: 0.0156, cache_creation: 0.0975 },
+    "stealth/crouton-alpha": { input: 0, output: 0, cached: 0, cache_creation: 0 }, // is_free:true — listed 99% discounted price treated as $0
+    "longcat-2.5-free": { input: 0, output: 0, cached: 0, cache_creation: 0 }, // is_free:true — listed 99% discounted price treated as $0
   },
 
   // === LLM7 (llm7.io) ===

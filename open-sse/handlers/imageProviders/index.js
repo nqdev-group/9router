@@ -46,7 +46,7 @@ const ADAPTERS = {
   "grok-web": grokWeb,
   "veoaifree-web": veoAiFreeWeb,
   "uc-web": ucWeb,
-  kira,
+  kiraai: kira,
 };
 
 export function getImageAdapter(provider) {

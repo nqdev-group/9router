@@ -16,7 +16,7 @@
 // starts out untested this way, since the base switch only covers providers that
 // existed when it was written.
 export const TESTERS = {
-  async kira(connection, effectiveProxy, fetchWithConnectionProxy) {
+  async kiraai(connection, effectiveProxy, fetchWithConnectionProxy) {
     // NOT /api/v1/models — verified live that it returns 200 even with a garbage
     // Bearer token (it's a public endpoint), so it can't distinguish a valid key.
     // /api/v1/user/profile does require auth (verified live: 401 "no_token_provided"

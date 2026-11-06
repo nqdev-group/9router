@@ -725,7 +725,7 @@ export function parseQuotaData(provider, data) {
         }
         break;
 
-      case "kira":
+      case "kiraai":
         // Mix of a resetting token quota ("Tokens (this cycle)") and a
         // non-resetting credit balance ("Wallet balance (VND)", unlimited:true
         // while positive) — see packages/providers/usage/kira.js. Forward

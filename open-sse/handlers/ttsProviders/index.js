@@ -26,7 +26,7 @@ const SPECIAL_ADAPTERS = {
   "xiaomi-mimo": xiaomiMimo,
   "selfhosted-tts": selfhostedTts,
   "ollama-local": ollamaLocal,
-  kira,
+  kiraai: kira,
   revidapi,
 };
 
