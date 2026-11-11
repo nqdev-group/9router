@@ -1,5 +1,5 @@
 // Re-export from open-sse with localDb integration
-import { getModelAliases, getComboByName, getProviderNodes } from "@/lib/localDb";
+import { getModelAliases, getComboByName, getProviderNodes, getProviderConnections } from "@/lib/localDb";
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
 
@@ -48,7 +48,7 @@ export async function resolveModelAlias(alias) {
  */
 export async function getModelInfo(modelStr) {
   const parsed = parseModel(modelStr);
-  console.log("🚀 QuyNH: getModelInfo -> parsed", parsed)
+  console.log("?? QuyNH: getModelInfo -> parsed", parsed)
 
   if (!parsed.isAlias) {
     // Provider-node prefixes are user-defined. They must not override built-in
@@ -88,13 +88,13 @@ export async function getModelInfo(modelStr) {
   }
 
   // Resolve via core + DB aliases
-  const result = await getModelInfoCore(modelStr, getModelAliases);
+  const result = fallbackToClaudeOAuth(await getModelInfoCore(modelStr, getModelAliases));
 
   // Extra prefix override: when core falls back to "openai", try package prefixes
   if (result.provider === "openai") {
     const extraProvider = getProviderFromExtraPrefixes(modelStr);
     if (extraProvider) {
-      console.log("[MODEL-INFO]", `Extra prefix matched: ${modelStr} → ${extraProvider}`);
+      console.log("[MODEL-INFO]", `Extra prefix matched: ${modelStr} ? ${extraProvider}`);
       return { provider: extraProvider, model: result.model };
     }
   }
@@ -115,4 +115,17 @@ export async function getComboModels(modelStr) {
     return combo.models;
   }
   return null;
+}
+
+// A bare `claude-*` id infers provider "anthropic" (API key). When no anthropic
+// connection is active but a Claude OAuth connection is, use "claude" instead of
+// failing with "No active credentials for provider: anthropic" (same idea as the
+// Codex-only gpt-* rules in open-sse/services/model.js).
+async function fallbackToClaudeOAuth(info) {
+  if (info?.provider !== "anthropic") return info;
+  const hasActive = async (provider) =>
+    (await getProviderConnections({ provider, isActive: true })).length > 0;
+  if (await hasActive("anthropic")) return info;
+  if (!(await hasActive("claude"))) return info;
+  return { ...info, provider: "claude" };
 }
