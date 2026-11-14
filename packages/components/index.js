@@ -14,3 +14,7 @@ export { ContextSections } from "./cmem/ContextSections.js";
 export { CmemTestPanel } from "./cmem/TestPanel.js";
 export { CmemStatsCards } from "./cmem/StatsCards.js";
 export { ObservationList } from "./cmem/ObservationList.js";
+
+export { SwaggerUIEmbed } from "./swagger/SwaggerUIEmbed.js";
+
+export { default as ErrorFrequencyChart } from "./error-stats/ErrorFrequencyChart.js";
