@@ -149,6 +149,7 @@ import p151 from "./uc-web.js";
 import p152 from "./runcrate.js";
 import p153 from "./nace.js";
 import p154 from "./sensenova-intl.js";
+import p155 from "./synthetic.js";
 export default [
   ...extraProviders,
   p0,
@@ -298,4 +299,5 @@ export default [
   p152,
   p153,
   p154,
+  p155,
 ];
