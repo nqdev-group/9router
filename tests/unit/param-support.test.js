@@ -54,6 +54,30 @@ describe("stripUnsupportedParams", () => {
     expect(body.max_tokens).toBe(64000);
   });
 
+  it("caps kiraai qwen3.8-flash-next-sale max_tokens at 16384 (override beats catalog 262144)", () => {
+    const capped = { max_tokens: 32000 };
+    stripUnsupportedParams("kiraai", "qwen3.8-flash-next-sale", capped);
+    expect(capped.max_tokens).toBe(16384);
+  });
+
+  it("clamps kiraai models to their catalog output limit and leaves unknown ids alone", () => {
+    const small = { max_tokens: 32000 };
+    stripUnsupportedParams("kiraai", "qwen3.6-flash", small); // catalog output_limit 8192
+    expect(small.max_tokens).toBe(8192);
+
+    const roomy = { max_tokens: 32000 };
+    stripUnsupportedParams("kiraai", "qwen3.8-flash", roomy); // catalog 131072 > request
+    expect(roomy.max_tokens).toBe(32000);
+
+    const unknown = { max_tokens: 32000 };
+    stripUnsupportedParams("kiraai", "not-a-kira-model", unknown);
+    expect(unknown.max_tokens).toBe(32000);
+
+    const otherProvider = { max_tokens: 32000 };
+    stripUnsupportedParams("openrouter", "qwen3.6-flash", otherProvider);
+    expect(otherProvider.max_tokens).toBe(32000);
+  });
+
   it("drops replayed reasoning fields from assistant messages for strict providers", () => {
     const makeBody = () => ({
       messages: [

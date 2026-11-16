@@ -1,4 +1,5 @@
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
+import { PARAM_STRIP_RULES as EXTRA_STRIP_RULES } from "@9router/translator/concerns/paramSupport.js";
 
 // Strip request params a given provider/model rejects upstream (e.g. HTTP 400).
 // Config-driven: add a rule instead of scattering `delete body.x` across executors.
@@ -59,6 +60,8 @@ const STRIP_RULES = [
   // Current OpenAI models (gpt-5.x / gpt-6.x) reject `max_tokens` with HTTP 400
   // ("Use 'max_completion_tokens' instead"). Clients send `max_tokens`, so rename it.
   { provider: "openai", renameParams: { max_tokens: "max_completion_tokens" } },
+  // Rules for packages/ providers — add them in packages/translator/concerns/paramSupport.js.
+  ...EXTRA_STRIP_RULES,
 ];
 
 // Test a rule's match (regex or predicate) against the model id.
